@@ -1,7 +1,7 @@
 import asyncio
 import os
 import google.generativeai as genai
-from flask import Flask, render_template, request, jsonify, g # Import g for app-level state
+from flask import Flask, render_template, request, jsonify
 
 app = Flask(__name__)
 
@@ -32,20 +32,6 @@ def configure_gemini_api():
 
 # Call this once at app startup
 configure_gemini_api()
-
-
-# --- Asyncio Loop Management (for Flask context) ---
-# Use a simple wrapper to ensure async functions run within the Flask context
-# For production, a dedicated async worker might be more robust,
-# but for this example, we'll run it in the main thread's loop.
-async def run_async_function(coroutine_func):
-    """Helper to run an async coroutine."""
-    try:
-        result = await coroutine_func
-        return result
-    except Exception as e:
-        print(f"ERROR: An error occurred during async operation: {e}")
-        return {"error": f"An error occurred during prompt generation: {e}"}
 
 # --- Your existing Gemini API interaction functions (adapted for web) ---
 
@@ -85,28 +71,23 @@ async def generate_prompts_async(raw_input):
             "creative": "", "technical": "", "shorter": "", "additions": ""
         }
 
-    # 1. Polished Prompt
+    # 1. Polished Prompt - Await directly as it's a prerequisite for others
     polished_prompt_instruction = f"Refine the following text into a clear, concise, and effective prompt for a large language model. Improve grammar, clarity, and structure. Do not add external information, only refine the given text:\n\n{raw_input}"
-    polished_prompt_task = asyncio.create_task(ask_gemini_for_prompt(polished_prompt_instruction))
+    polished_prompt = await ask_gemini_for_prompt(polished_prompt_instruction)
 
-    polished_prompt = await polished_prompt_task
     if "Error" in polished_prompt or "not configured" in polished_prompt:
         return {
             "polished": polished_prompt,
             "creative": "", "technical": "", "shorter": "", "additions": ""
         }
 
-    # 2. Prompt Variants (Creative, Technical, Shorter)
-    creative_prompt_instruction = f"Rewrite the following prompt to be more creative and imaginative, encouraging novel ideas and approaches:\n\n{polished_prompt}"
-    technical_prompt_instruction = f"Rewrite the following prompt to be more technical, precise, and detailed, focusing on specific requirements and constraints:\n\n{polished_prompt}"
-    shorter_prompt_instruction = f"Condense the following prompt into its shortest possible form while retaining all essential meaning and instructions. Aim for brevity.:\n\n{polished_prompt}"
+    # 2. Prompt Variants (Creative, Technical, Shorter) - Prepare coroutines
+    creative_coroutine = ask_gemini_for_prompt(f"Rewrite the following prompt to be more creative and imaginative, encouraging novel ideas and approaches:\n\n{polished_prompt}")
+    technical_coroutine = ask_gemini_for_prompt(f"Rewrite the following prompt to be more technical, precise, and detailed, focusing on specific requirements and constraints:\n\n{polished_prompt}")
+    shorter_coroutine = ask_gemini_for_prompt(f"Condense the following prompt into its shortest possible form while retaining all essential meaning and instructions. Aim for brevity.:\n\n{polished_prompt}", max_output_tokens=512)
 
-    creative_task = asyncio.create_task(ask_gemini_for_prompt(creative_prompt_instruction))
-    technical_task = asyncio.create_task(ask_gemini_for_prompt(technical_prompt_instruction))
-    shorter_task = asyncio.create_task(ask_gemini_for_prompt(shorter_prompt_instruction, max_output_tokens=512))
-
-    # 3. Suggested Additions
-    additions_instruction = f"""Analyze the following prompt and suggest potential additions to improve its effectiveness for a large language model. Focus on elements like:
+    # 3. Suggested Additions - Prepare coroutine
+    additions_coroutine = ask_gemini_for_prompt(f"""Analyze the following prompt and suggest potential additions to improve its effectiveness for a large language model. Focus on elements like:
     -   Desired Tone (e.g., formal, informal, humorous, serious)
     -   Required Format (e.g., bullet points, essay, script, email, JSON)
     -   Target Audience (e.g., experts, general public, children)
@@ -118,12 +99,11 @@ async def generate_prompts_async(raw_input):
     Provide your suggestions concisely, perhaps as a list or brief paragraphs.
 
     Prompt: {polished_prompt}
-    """
-    additions_task = asyncio.create_task(ask_gemini_for_prompt(additions_instruction))
+    """)
 
-    # Await all tasks concurrently
+    # Await all *coroutines* concurrently using asyncio.gather
     creative_result, technical_result, shorter_result, additions_result = await asyncio.gather(
-        creative_task, technical_task, shorter_task, additions_task
+        creative_coroutine, technical_coroutine, shorter_coroutine, additions_coroutine
     )
 
     return {
@@ -152,13 +132,12 @@ async def generate_prompts_endpoint():
             "creative": "", "technical": "", "shorter": "", "additions": ""
         })
 
-    # Call your async function
+    # Call your async function directly
     results = await generate_prompts_async(raw_input)
     return jsonify(results)
 
 if __name__ == '__main__':
-    # For local development, you can run: python app.py
-    # Set your API key as an environment variable before running locally, e.g.:
+    # For local development
+    # Make sure to set GEMINI_API_KEY environment variable locally before running:
     # export GEMINI_API_KEY="YOUR_ACTUAL_API_KEY"
-    # python app.py
     app.run(debug=True, host='0.0.0.0', port=os.getenv("PORT", 5000))
