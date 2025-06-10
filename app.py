@@ -11,7 +11,6 @@ GEMINI_API_KEY = None # Will be set from environment variable
 
 def configure_gemini_api():
     global GEMINI_API_KEY, GEMINI_API_CONFIGURED
-    # Prioritize reading from environment variable
     GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
     if GEMINI_API_KEY:
@@ -30,10 +29,9 @@ def configure_gemini_api():
         print("="*80 + "\n")
         GEMINI_API_CONFIGURED = False
 
-# Call this once at app startup
-configure_gemini_api()
+configure_gemini_api() # Call once at app startup
 
-# --- Your existing Gemini API interaction functions (adapted for web) ---
+# --- Your existing Gemini API interaction functions ---
 
 async def ask_gemini_for_prompt(prompt_instruction, max_output_tokens=4096):
     """
@@ -122,7 +120,8 @@ def index():
     return render_template('index.html')
 
 @app.route('/generate', methods=['POST'])
-async def generate_prompts_endpoint():
+# Removed 'async' from this function
+def generate_prompts_endpoint():
     """Handles the prompt generation request from the web form."""
     raw_input = request.form.get('prompt_input', '').strip()
 
@@ -132,12 +131,9 @@ async def generate_prompts_endpoint():
             "creative": "", "technical": "", "shorter": "", "additions": ""
         })
 
-    # Call your async function directly
-    results = await generate_prompts_async(raw_input)
+    # Use asyncio.run to execute the async function from a synchronous context
+    results = asyncio.run(generate_prompts_async(raw_input))
     return jsonify(results)
 
 if __name__ == '__main__':
-    # For local development
-    # Make sure to set GEMINI_API_KEY environment variable locally before running:
-    # export GEMINI_API_KEY="YOUR_ACTUAL_API_KEY"
     app.run(debug=True, host='0.0.0.0', port=os.getenv("PORT", 5000))
