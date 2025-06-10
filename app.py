@@ -131,8 +131,18 @@ def generate_prompts_endpoint():
             "creative": "", "technical": "", "shorter": "", "additions": ""
         })
 
-    # Use asyncio.run to execute the async function from a synchronous context
-    results = asyncio.run(generate_prompts_async(raw_input))
+    # Safe event loop handling for Flask (no asyncio.run)
+    try:
+        loop = asyncio.get_event_loop()
+    except RuntimeError:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+
+    if loop.is_closed():
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+
+    results = loop.run_until_complete(generate_prompts_async(raw_input))
     return jsonify(results)
 
 if __name__ == '__main__':
