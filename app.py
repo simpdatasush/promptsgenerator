@@ -2,18 +2,20 @@ import asyncio
 import os
 import google.generativeai as genai
 from flask import Flask, render_template, request, jsonify
-from flask_limiter import Limiter
-from flask_limiter.util import get_remote_address
+# REMOVE THESE TWO IMPORTS
+# from flask_limiter import Limiter
+# from flask_limiter.util import get_remote_address
 
 app = Flask(__name__)
 
+# REMOVE THIS BLOCK
 # --- Limiter Configuration ---
-limiter = Limiter(
-    get_remote_address,
-    app=app,
-    storage_uri="memory://",
-    strategy="fixed-window"
-)
+# limiter = Limiter(
+#     get_remote_address,
+#     app=app,
+#     storage_uri="memory://",
+#     strategy="fixed-window"
+# )
 
 # --- Gemini API Key and Configuration ---
 GEMINI_API_CONFIGURED = False
@@ -41,7 +43,7 @@ def configure_gemini_api():
 
 configure_gemini_api()
 
-# --- NEW: Response Filtering Function ---
+# --- Response Filtering Function ---
 def filter_gemini_response(text):
     """
     Filters Gemini's response to prevent it from answering out-of-scope questions
@@ -73,7 +75,7 @@ def filter_gemini_response(text):
         "i cannot explain the development of this tool",
         "my purpose is to",
         "i am designed to",
-        "i don't have enough information to", # If it refers to its own lack of info, not the user's prompt
+        "i don't have enough information to",
         "i lack the ability to"
     ]
 
@@ -83,7 +85,7 @@ def filter_gemini_response(text):
         "i encountered an error",
         "there was an issue in my processing",
         "i made an error",
-        "my apologies", # General apology, sometimes precedes self-correction or refusal
+        "my apologies",
         "i cannot respond to that"
     ]
 
@@ -102,9 +104,9 @@ def filter_gemini_response(text):
 
     # If it's a general "no response" from our side, still show that error
     if "no response from model." in text_lower or "error communicating with gemini api:" in text_lower:
-        return text # Don't filter our own internal error messages
+        return text
 
-    return text # If no unauthorized phrase is found, return the original text
+    return text
 
 # --- Gemini API interaction functions ---
 
@@ -123,10 +125,10 @@ async def ask_gemini_for_prompt(prompt_instruction, max_output_tokens=1024):
         )
 
         raw_gemini_text = response.text if response and response.text else "No response from model."
-        return filter_gemini_response(raw_gemini_text).strip() # Apply filter here
+        return filter_gemini_response(raw_gemini_text).strip()
     except Exception as e:
         print(f"DEBUG: Error calling Gemini API: {e}")
-        return filter_gemini_response(f"Error communicating with Gemini API: {e}") # Apply filter here too
+        return filter_gemini_response(f"Error communicating with Gemini API: {e}")
 
 async def generate_prompts_async(raw_input):
     if not raw_input.strip():
@@ -197,7 +199,8 @@ def index():
     return render_template('index.html')
 
 @app.route('/generate', methods=['POST'])
-@limiter.limit("1 per 10 minutes")
+# REMOVE THIS LINE:
+# @limiter.limit("1 per 10 minutes")
 def generate_prompts_endpoint():
     raw_input = request.form.get('prompt_input', '').strip()
 
