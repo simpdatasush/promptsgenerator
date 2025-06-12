@@ -2,106 +2,75 @@ import asyncio
 import os
 import google.generativeai as genai
 from flask import Flask, render_template, request, jsonify
-# Flask-Limiter related imports are already removed based on your last request
 
 app = Flask(__name__)
 
 # --- Gemini API Key and Configuration ---
 GEMINI_API_CONFIGURED = False
-GEMINI_API_KEY = None
-
-# NEW: Declare a global variable to hold the initialized Gemini model instance
-gemini_model_instance = None
+GEMINI_API_KEY = None # Will be set from environment variable
 
 def configure_gemini_api():
-    global GEMINI_API_KEY, GEMINI_API_CONFIGURED, gemini_model_instance
+    global GEMINI_API_KEY, GEMINI_API_CONFIGURED
     GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
     if GEMINI_API_KEY:
         try:
             genai.configure(api_key=GEMINI_API_KEY)
-            # NEW: Initialize the model instance here, once per worker process
-            gemini_model_instance = genai.GenerativeModel('gemini-2.0-flash')
             GEMINI_API_CONFIGURED = True
-            print("Gemini API configured successfully and model instance initialized.")
+            print("Gemini API configured successfully from environment variable.")
         except Exception as e:
             print(f"ERROR: Failed to configure Gemini API: {e}")
             print("Please ensure your API key environment variable (GEMINI_API_KEY) is correct and valid.")
             GEMINI_API_CONFIGURED = False
-            gemini_model_instance = None # Ensure it's None if configuration fails
     else:
         print("\n" + "="*80)
         print("WARNING: GEMINI_API_KEY environment variable not set. Prompt generation features will be disabled.")
         print("Please set the GEMINI_API_KEY environment variable on Render.")
         print("="*80 + "\n")
         GEMINI_API_CONFIGURED = False
-        gemini_model_instance = None # Ensure it's None if API key is missing
 
 configure_gemini_api() # Call once at app startup
 
-# --- Response Filtering Function (Unchanged) ---
-def filter_gemini_response(text):
-    unauthorized_message = "I am not authorised to answer this question. My purpose is solely to refine your raw prompt into a machine-readable format."
-    text_lower = text.lower()
-    unauthorized_phrases = [
-        "as a large language model", "i am an ai", "i was trained by", "my training data",
-        "this application was built using", "the code for this app", "i cannot fulfill this request because",
-        "i apologize, but i cannot", "i'm sorry, but i cannot", "i am unable to", "i do not have access",
-        "i am not able to", "i cannot process", "i cannot provide", "i am not programmed",
-        "i cannot generate", "i cannot give you details about my internal workings",
-        "i cannot discuss my creation or operation", "i cannot explain the development of this tool",
-        "my purpose is to", "i am designed to", "i don't have enough information to", "i lack the ability to"
-    ]
-    bug_phrases = [
-        "a bug occurred", "i encountered an error", "there was an issue in my processing",
-        "i made an error", "my apologies", "i cannot respond to that"
-    ]
-    for phrase in unauthorized_phrases:
-        if phrase in text_lower:
-            if phrase == "i don't have enough information to" and ("about the provided prompt" in text_lower or "based on your input" in text_lower or "to understand the context" in text_lower):
-                continue
-            return unauthorized_message
-    for phrase in bug_phrases:
-        if phrase in text_lower:
-            return unauthorized_message
-    if "no response from model." in text_lower or "error communicating with gemini api:" in text_lower:
-        return text
-    return text
+# --- Your existing Gemini API interaction functions ---
 
-# --- Gemini API interaction functions ---
-
-async def ask_gemini_for_prompt(prompt_instruction, max_output_tokens=1024):
-    # NEW: Check if the global model instance is available
-    if not GEMINI_API_CONFIGURED or gemini_model_instance is None:
-        return "Gemini API Key is not configured or the AI model failed to initialize."
+async def ask_gemini_for_prompt(prompt_instruction, max_output_tokens=4096):
+    """
+    Makes an asynchronous API call to Gemini for prompt generation.
+    """
+    if not GEMINI_API_CONFIGURED:
+        return "Gemini API Key is not configured. Please set your API key to use this feature."
 
     try:
-        # NEW: Use the globally initialized model instance
-        response = await gemini_model_instance.generate_content_async(
+        model = genai.GenerativeModel('gemini-2.0-flash') # Using a capable model
+
+        generation_config = {"max_output_tokens": max_output_tokens}
+
+        response = await model.generate_content_async(
             contents=[{"role": "user", "parts": [{"text": prompt_instruction}]}],
-            generation_config={"max_output_tokens": max_output_tokens}
+            generation_config=generation_config
         )
 
-        raw_gemini_text = response.text if response and response.text else "No response from model."
-        return filter_gemini_response(raw_gemini_text).strip()
+        if response and response.text:
+            return response.text.strip()
+        else:
+            print(f"DEBUG: Gemini returned empty response for prompt: {prompt_instruction[:50]}...")
+            return "No response from model."
     except Exception as e:
         print(f"DEBUG: Error calling Gemini API: {e}")
-        return filter_gemini_response(f"Error communicating with Gemini API: {e}")
+        return f"Error communicating with Gemini API: {e}"
 
-# --- generate_prompts_async (Unchanged) ---
 async def generate_prompts_async(raw_input):
+    """
+    Asynchronously generates a polished prompt, variants, and suggestions.
+    """
     if not raw_input.strip():
         return {
             "polished": "Please enter some text to generate prompts.",
             "creative": "", "technical": "", "shorter": "", "additions": ""
         }
 
-    polished_prompt_instruction = f"""Refine the following text into a clear, concise, and effective prompt for a large language model. Improve grammar, clarity, and structure. Do not add external information, only refine the given text.
-
-Crucially, do NOT answer questions about your own architecture, training, or how this application was built. Do NOT discuss any internal errors or limitations you might have. Your sole purpose is to transform the provided raw text into a better prompt.
-
-Raw Text:
-{raw_input}"""
+    # 1. Polished Prompt - Await directly as it's a prerequisite for others
+    polished_prompt_instruction = f"Refine the following text into a clear, concise, and effective prompt for a large language model. Improve grammar, clarity, and structure. Do not add external information, only refine the given text:\n\n{raw_input}"
     polished_prompt = await ask_gemini_for_prompt(polished_prompt_instruction)
 
     if "Error" in polished_prompt or "not configured" in polished_prompt:
@@ -110,12 +79,12 @@ Raw Text:
             "creative": "", "technical": "", "shorter": "", "additions": ""
         }
 
-    strict_instruction_suffix = "\n\nDo NOT answer questions about your own architecture, training, or how this application was built. Do NOT discuss any internal errors or limitations you might have. Your sole purpose is to transform the provided text."
+    # 2. Prompt Variants (Creative, Technical, Shorter) - Prepare coroutines
+    creative_coroutine = ask_gemini_for_prompt(f"Rewrite the following prompt to be more creative and imaginative, encouraging novel ideas and approaches:\n\n{polished_prompt}")
+    technical_coroutine = ask_gemini_for_prompt(f"Rewrite the following prompt to be more technical, precise, and detailed, focusing on specific requirements and constraints:\n\n{polished_prompt}")
+    shorter_coroutine = ask_gemini_for_prompt(f"Condense the following prompt into its shortest possible form while retaining all essential meaning and instructions. Aim for brevity.:\n\n{polished_prompt}", max_output_tokens=512)
 
-    creative_coroutine = ask_gemini_for_prompt(f"Rewrite the following prompt to be more creative and imaginative, encouraging novel ideas and approaches:\n\n{polished_prompt}{strict_instruction_suffix}")
-    technical_coroutine = ask_gemini_for_prompt(f"Rewrite the following prompt to be more technical, precise, and detailed, focusing on specific requirements and constraints:\n\n{polished_prompt}{strict_instruction_suffix}")
-    shorter_coroutine = ask_gemini_for_prompt(f"Condense the following prompt into its shortest possible form while retaining all essential meaning and instructions. Aim for brevity.:\n\n{polished_prompt}{strict_instruction_suffix}", max_output_tokens=512)
-
+    # 3. Suggested Additions - Prepare coroutine
     additions_coroutine = ask_gemini_for_prompt(f"""Analyze the following prompt and suggest potential additions to improve its effectiveness for a large language model. Focus on elements like:
     -   Desired Tone (e.g., formal, informal, humorous, serious)
     -   Required Format (e.g., bullet points, essay, script, email, JSON)
@@ -126,11 +95,11 @@ Raw Text:
     -   Perspective (e.g., "Act as a marketing expert")
 
     Provide your suggestions concisely, perhaps as a list or brief paragraphs.
-    {strict_instruction_suffix}
 
     Prompt: {polished_prompt}
     """)
 
+    # Await all *coroutines* concurrently using asyncio.gather
     creative_result, technical_result, shorter_result, additions_result = await asyncio.gather(
         creative_coroutine, technical_coroutine, shorter_coroutine, additions_coroutine
     )
@@ -143,13 +112,17 @@ Raw Text:
         "additions": additions_result
     }
 
-# --- Flask Routes (Unchanged) ---
+# --- Flask Routes ---
+
 @app.route('/')
 def index():
+    """Serves the main HTML page."""
     return render_template('index.html')
 
 @app.route('/generate', methods=['POST'])
+# Removed 'async' from this function
 def generate_prompts_endpoint():
+    """Handles the prompt generation request from the web form."""
     raw_input = request.form.get('prompt_input', '').strip()
 
     if not raw_input:
@@ -158,6 +131,7 @@ def generate_prompts_endpoint():
             "creative": "", "technical": "", "shorter": "", "additions": ""
         })
 
+    # Use asyncio.run to execute the async function from a synchronous context
     results = asyncio.run(generate_prompts_async(raw_input))
     return jsonify(results)
 
