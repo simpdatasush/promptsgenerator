@@ -179,15 +179,15 @@
                 });
 
                 if (!response.ok) {
-                    // --- NEW: Handle 429 Too Many Requests status ---
-                    if (response.status === 429) {
-                        const retryAfter = response.headers.get('Retry-After');
-                        const minutes = Math.ceil(parseInt(retryAfter, 10) / 60);
-                        appOutput.textContent = `⏱️ Too many requests. Please wait approximately ${minutes} minutes before trying again.`;
-                        console.warn("Rate limit exceeded.");
-                        return; // Exit the function early
-                    }
-                    // --- END NEW ---
+                    // REMOVE THIS BLOCK (start)
+                    // if (response.status === 429) {
+                    //     const retryAfter = response.headers.get('Retry-After');
+                    //     const minutes = Math.ceil(parseInt(retryAfter, 10) / 60);
+                    //     appOutput.textContent = `⏱️ Too many requests. Please wait approximately ${minutes} minutes before trying again.`;
+                    //     console.warn("Rate limit exceeded.");
+                    //     return;
+                    // }
+                    // REMOVE THIS BLOCK (end)
 
                     const errorText = await response.text();
                     throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
