@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Prompts Generator</title>
+    <title>Web Prompt Generator</title>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -112,16 +112,11 @@
             min-height: 60px;
             overflow-y: auto;
         }
-        @media (max-width: 768px) {
-            .results-grid {
-                grid-template-columns: 1fr; /* Stack columns on smaller screens */
-            }
-        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>AI Prompts Generator</h1>
+        <h1>Web Prompt Generator</h1>
 
         <form id="promptForm">
             <label for="prompt_input">Enter your raw prompt idea:</label>
@@ -184,6 +179,16 @@
                 });
 
                 if (!response.ok) {
+                    // --- NEW: Handle 429 Too Many Requests status ---
+                    if (response.status === 429) {
+                        const retryAfter = response.headers.get('Retry-After');
+                        const minutes = Math.ceil(parseInt(retryAfter, 10) / 60);
+                        appOutput.textContent = `⏱️ Too many requests. Please wait approximately ${minutes} minutes before trying again.`;
+                        console.warn("Rate limit exceeded.");
+                        return; // Exit the function early
+                    }
+                    // --- END NEW ---
+
                     const errorText = await response.text();
                     throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
                 }
@@ -199,6 +204,7 @@
                     document.getElementById('technical_output').textContent = data.technical;
                     document.getElementById('shorter_output').textContent = data.shorter;
                     document.getElementById('additions_output').textContent = data.additions;
+
                     appOutput.textContent = '✨ All prompt generation tasks complete.';
                 }
 
