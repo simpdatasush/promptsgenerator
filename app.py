@@ -106,7 +106,7 @@ async def ask_gemini_for_prompt(prompt_instruction, max_output_tokens=1024):
         # Use the globally initialized model instance
         response = await gemini_model_instance.generate_content_async(
             contents=[{"role": "user", "parts": [{"text": prompt_instruction}]}],
-            generation_config={"max_output_tokens": max_output_tokens}
+            generation_config={"max_output_tokens": max_output_tokens, "temperature": 0.1}
         )
         raw_gemini_text = response.text if response and response.text else "No response from model."
         return filter_gemini_response(raw_gemini_text).strip()
