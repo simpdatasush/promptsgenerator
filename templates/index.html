@@ -87,19 +87,19 @@
             margin-bottom: 10px;
         }
         .result-box pre {
-            white-space: pre-wrap; /* Preserve whitespace and wrap long lines */
-            word-wrap: break-word; /* Break words if necessary */
+            white-space: pre-wrap;
+            word-wrap: break-word;
             font-family: 'Consolas', 'Menlo', 'Courier New', monospace;
             font-size: 0.9rem;
             background-color: #eef1f4;
             padding: 10px;
             border-radius: 4px;
             border: 1px solid #e0e2e5;
-            flex-grow: 1; /* Allow pre tag to take available space */
-            overflow-y: auto; /* Enable scrolling for long content */
+            flex-grow: 1;
+            overflow-y: auto;
         }
         .suggestions {
-            grid-column: span 2; /* Span across both columns */
+            grid-column: span 2;
         }
         #app_output {
             margin-top: 20px;
@@ -111,6 +111,55 @@
             border: 1px solid #e0e2e5;
             min-height: 60px;
             overflow-y: auto;
+        }
+        /* Style for new save button */
+        .save-button {
+            background-color: #007bff; /* Blue for save */
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 10px;
+            align-self: flex-end; /* Puts button to the right */
+            font-size: 0.9rem;
+            transition: background-color 0.2s ease;
+        }
+        .save-button:hover {
+            background-color: #0056b3;
+        }
+        .saved-prompts-section {
+            background-color: #e6f7ff; /* Light blue background */
+            border: 1px solid #b3e0ff;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 30px;
+        }
+        .saved-prompts-list {
+            list-style-type: none;
+            padding: 0;
+            max-height: 300px; /* Limit height for scrolling */
+            overflow-y: auto;
+            border: 1px solid #cceeff;
+            border-radius: 5px;
+            background-color: #ffffff;
+        }
+        .saved-prompts-list li {
+            padding: 10px;
+            border-bottom: 1px solid #e0e0e0;
+            font-family: 'Consolas', 'Menlo', 'Courier New', monospace;
+            font-size: 0.85rem;
+            color: #444;
+            display: flex;
+            flex-direction: column;
+        }
+        .saved-prompts-list li:last-child {
+            border-bottom: none;
+        }
+        .saved-prompts-list li strong {
+            color: #3f51b5;
+            margin-bottom: 5px;
+            font-size: 0.9rem;
         }
     </style>
 </head>
@@ -130,29 +179,76 @@
             <div class="result-box">
                 <h3>Polished Prompt</h3>
                 <pre id="polished_output"></pre>
+                <button class="save-button" data-prompt-type="polished">Save Polished Prompt</button>
             </div>
             <div class="result-box">
                 <h3>Creative Variant</h3>
                 <pre id="creative_output"></pre>
+                <button class="save-button" data-prompt-type="creative">Save Creative Prompt</button>
             </div>
             <div class="result-box">
                 <h3>Technical Variant</h3>
                 <pre id="technical_output"></pre>
+                <button class="save-button" data-prompt-type="technical">Save Technical Prompt</button>
             </div>
             <div class="result-box">
                 <h3>Shorter Variant</h3>
                 <pre id="shorter_output"></pre>
+                <button class="save-button" data-prompt-type="shorter">Save Shorter Prompt</button>
             </div>
             <div class="result-box suggestions">
                 <h3>Suggested Additions</h3>
                 <pre id="additions_output"></pre>
+                <button class="save-button" data-prompt-type="additions">Save Additions</button>
             </div>
         </div>
+
+        <div class="saved-prompts-section">
+            <h2>Saved Prompts (Temporary)</h2>
+            <ul id="saved_prompts_list" class="saved-prompts-list">
+                <!-- Saved prompts will be loaded here -->
+            </ul>
+        </div>
+
     </div>
 
     <script>
+        // Function to fetch and display saved prompts
+        async function fetchAndDisplaySavedPrompts() {
+            const savedPromptsListElement = document.getElementById('saved_prompts_list');
+            savedPromptsListElement.innerHTML = ''; // Clear existing list
+
+            try {
+                const response = await fetch('/get_saved_prompts');
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const savedPrompts = await response.json();
+
+                if (savedPrompts.length === 0) {
+                    savedPromptsListElement.innerHTML = '<li>No prompts saved yet.</li>';
+                } else {
+                    savedPrompts.forEach(prompt => {
+                        const listItem = document.createElement('li');
+                        listItem.innerHTML = `
+                            <strong>${prompt.type.charAt(0).toUpperCase() + prompt.type.slice(1)} Prompt (${prompt.timestamp}):</strong>
+                            <pre>${prompt.text}</pre>
+                        `;
+                        savedPromptsListElement.appendChild(listItem);
+                    });
+                }
+            } catch (error) {
+                console.error("Error fetching saved prompts:", error);
+                savedPromptsListElement.innerHTML = '<li>Error loading saved prompts.</li>';
+            }
+        }
+
+        // Initial load of saved prompts when page loads
+        document.addEventListener('DOMContentLoaded', fetchAndDisplaySavedPrompts);
+
+
         document.getElementById('promptForm').addEventListener('submit', async function(event) {
-            event.preventDefault(); // Prevent default form submission
+            event.preventDefault();
 
             const promptInput = document.getElementById('prompt_input').value;
             const appOutput = document.getElementById('app_output');
@@ -166,7 +262,7 @@
             document.getElementById('additions_output').textContent = '';
 
             appOutput.textContent = '🚀 Generating prompts and variants...';
-            generateButton.disabled = true; // Disable button during generation
+            generateButton.disabled = true;
             generateButton.textContent = 'Generating...';
 
             try {
@@ -179,16 +275,6 @@
                 });
 
                 if (!response.ok) {
-                    // REMOVE THIS BLOCK (start)
-                    // if (response.status === 429) {
-                    //     const retryAfter = response.headers.get('Retry-After');
-                    //     const minutes = Math.ceil(parseInt(retryAfter, 10) / 60);
-                    //     appOutput.textContent = `⏱️ Too many requests. Please wait approximately ${minutes} minutes before trying again.`;
-                    //     console.warn("Rate limit exceeded.");
-                    //     return;
-                    // }
-                    // REMOVE THIS BLOCK (end)
-
                     const errorText = await response.text();
                     throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
                 }
@@ -212,9 +298,49 @@
                 appOutput.textContent = `❌ Failed to generate prompts: ${error.message}`;
                 console.error("Fetch error:", error);
             } finally {
-                generateButton.disabled = false; // Re-enable button
+                generateButton.disabled = false;
                 generateButton.textContent = 'Generate Prompts';
             }
+        });
+
+        // Event listeners for save buttons
+        document.querySelectorAll('.save-button').forEach(button => {
+            button.addEventListener('click', async function() {
+                const promptType = this.dataset.promptType; // Get the type from data-prompt-type attribute
+                const promptElementId = `${promptType}_output`;
+                const promptText = document.getElementById(promptElementId).textContent.trim();
+                const appOutput = document.getElementById('app_output');
+
+                if (!promptText) {
+                    appOutput.textContent = `❗ No ${promptType} prompt to save. Generate one first.`;
+                    return;
+                }
+
+                try {
+                    const response = await fetch('/save_prompt', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            prompt_text: promptText,
+                            prompt_type: promptType
+                        })
+                    });
+
+                    const data = await response.json();
+                    if (data.success) {
+                        appOutput.textContent = `✅ ${data.message}`;
+                        fetchAndDisplaySavedPrompts(); // Refresh the list of saved prompts
+                    } else {
+                        appOutput.textContent = `❌ Failed to save prompt: ${data.message}`;
+                        console.error("Save error:", data.message);
+                    }
+                } catch (error) {
+                    appOutput.textContent = `❌ Error communicating with server to save prompt: ${error.message}`;
+                    console.error("Network error saving prompt:", error);
+                }
+            });
         });
     </script>
 </body>
