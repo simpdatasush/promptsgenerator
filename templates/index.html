@@ -161,6 +161,31 @@
             margin-bottom: 5px;
             font-size: 0.9rem;
         }
+        /* Style for voice input button */
+        .voice-button {
+            background-color: #FF5722; /* Orange for voice */
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 5px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            margin-top: -10px; /* Adjust to align with textarea */
+            margin-bottom: 10px;
+            width: auto; /* Allow button to size to content */
+        }
+        .voice-button:hover {
+            background-color: #E64A19;
+        }
+        .voice-button.recording {
+            background-color: #D32F2F; /* Red when recording */
+        }
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 20px;
+        }
     </style>
 </head>
 <body>
@@ -169,7 +194,10 @@
 
         <form id="promptForm">
             <label for="prompt_input">Enter your raw prompt idea:</label>
-            <textarea id="prompt_input" name="prompt_input" rows="8" placeholder="e.g., Write a story about a robot who wants to be a chef."></textarea>
+            <div class="input-group">
+                <textarea id="prompt_input" name="prompt_input" rows="8" placeholder="e.g., Write a story about a robot who wants to be a chef."></textarea>
+                <button type="button" id="voice_input_button" class="voice-button">🎤 Start Voice Input</button>
+            </div>
             <button type="submit">Generate Prompts</button>
         </form>
 
@@ -206,8 +234,7 @@
         <div class="saved-prompts-section">
             <h2>Saved Prompts (Temporary)</h2>
             <ul id="saved_prompts_list" class="saved-prompts-list">
-                <!-- Saved prompts will be loaded here -->
-            </ul>
+                </ul>
         </div>
 
     </div>
@@ -306,7 +333,7 @@
         // Event listeners for save buttons
         document.querySelectorAll('.save-button').forEach(button => {
             button.addEventListener('click', async function() {
-                const promptType = this.dataset.promptType; // Get the type from data-prompt-type attribute
+                const promptType = this.dataset.promptType;
                 const promptElementId = `${promptType}_output`;
                 const promptText = document.getElementById(promptElementId).textContent.trim();
                 const appOutput = document.getElementById('app_output');
@@ -342,6 +369,79 @@
                 }
             });
         });
+
+        // --- NEW: Web Speech API for Voice Input ---
+        const voiceInputButton = document.getElementById('voice_input_button');
+        const promptInputTextarea = document.getElementById('prompt_input');
+        const appOutput = document.getElementById('app_output'); // Reuse appOutput from above
+
+        // Check for Web Speech API browser support
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SpeechRecognition) {
+            voiceInputButton.disabled = true;
+            voiceInputButton.textContent = '🎤 Voice Input Not Supported';
+            appOutput.textContent = 'Warning: Your browser does not support Web Speech API for voice input.';
+        } else {
+            const recognition = new SpeechRecognition();
+            recognition.continuous = false; // Set to true if you want continuous recognition until stopped
+            recognition.interimResults = false; // Set to true to get results while speaking
+            recognition.lang = 'en-US'; // Set the language for recognition
+
+            let isRecording = false;
+
+            voiceInputButton.addEventListener('click', () => {
+                if (isRecording) {
+                    recognition.stop();
+                    return;
+                }
+
+                // Clear previous text if not continuous and starting new input
+                if (!recognition.continuous) {
+                    promptInputTextarea.value = '';
+                }
+
+                try {
+                    recognition.start();
+                    isRecording = true;
+                    voiceInputButton.textContent = '🔴 Stop Recording';
+                    voiceInputButton.classList.add('recording');
+                    appOutput.textContent = '🗣️ Listening... Speak now.';
+                } catch (error) {
+                    console.error("Error starting speech recognition:", error);
+                    appOutput.textContent = `❌ Error starting voice input: ${error.message}`;
+                    isRecording = false;
+                    voiceInputButton.textContent = '🎤 Start Voice Input';
+                    voiceInputButton.classList.remove('recording');
+                }
+            });
+
+            recognition.onresult = (event) => {
+                const transcript = event.results[0][0].transcript;
+                // Append or replace based on your preference (currently appends if continuous)
+                promptInputTextarea.value = transcript; // Directly replace for single shot input
+                appOutput.textContent = '✅ Voice input captured. Click "Generate Prompts".';
+            };
+
+            recognition.onerror = (event) => {
+                console.error('Speech recognition error:', event.error);
+                appOutput.textContent = `❌ Voice input error: ${event.error}`;
+                isRecording = false;
+                voiceInputButton.textContent = '🎤 Start Voice Input';
+                voiceInputButton.classList.remove('recording');
+            };
+
+            recognition.onend = () => {
+                isRecording = false;
+                voiceInputButton.textContent = '🎤 Start Voice Input';
+                voiceInputButton.classList.remove('recording');
+                // Only show "ready" message if no error occurred immediately before end
+                if (!appOutput.textContent.startsWith('❌')) {
+                    appOutput.textContent = 'Voice input session ended.';
+                }
+            };
+        }
+        // --- END NEW: Web Speech API ---
+
     </script>
 </body>
 </html>
