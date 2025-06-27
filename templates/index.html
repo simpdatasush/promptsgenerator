@@ -221,8 +221,7 @@
                 <textarea id="prompt_input" name="prompt_input" rows="8" placeholder="e.g., Write a story about a robot who wants to be a chef."></textarea>
                 
                 <div class="language-selector">
-                    <label for="lang_select">Voice Input Language:</label>
-                    <select id="lang_select">
+                    <label for="lang_select">Voice Input & Output Language:</label> <select id="lang_select">
                         <option value="en-US">English (US)</option>
                         <option value="en-GB">English (UK)</option>
                         <option value="es-ES">Español (España)</option>
@@ -235,6 +234,7 @@
                         <option value="hi-IN">हिन्दी (भारत)</option>
                         </select>
                 </div>
+
                 <button type="button" id="voice_input_button" class="voice-button">🎤 Start Voice Input</button>
             </div>
             <button type="submit">Generate Prompts</button>
@@ -317,6 +317,8 @@
             event.preventDefault();
 
             const promptInput = document.getElementById('prompt_input').value;
+            // NEW: Get selected language for output
+            const selectedLanguage = document.getElementById('lang_select').value;
             const appOutput = document.getElementById('app_output');
             const generateButton = document.querySelector('button[type="submit"]');
 
@@ -334,6 +336,7 @@
             try {
                 const formData = new FormData();
                 formData.append('prompt_input', promptInput);
+                formData.append('language_code', selectedLanguage); // NEW: Append language code
 
                 const response = await fetch('/generate', {
                     method: 'POST',
@@ -369,7 +372,7 @@
             }
         });
 
-        // Event listeners for save buttons
+        // Event listeners for save buttons (unchanged)
         document.querySelectorAll('.save-button').forEach(button => {
             button.addEventListener('click', async function() {
                 const promptType = this.dataset.promptType;
@@ -397,7 +400,7 @@
                     const data = await response.json();
                     if (data.success) {
                         appOutput.textContent = `✅ ${data.message}`;
-                        fetchAndDisplaySavedPrompts(); // Refresh the list of saved prompts
+                        fetchAndDisplaySavedPrompts();
                     } else {
                         appOutput.textContent = `❌ Failed to save prompt: ${data.message}`;
                         console.error("Save error:", data.message);
@@ -409,37 +412,32 @@
             });
         });
 
-        // --- Web Speech API for Voice Input with Language Selector ---
+        // --- Web Speech API for Voice Input with Language Selector (Minor update for prompt) ---
         const voiceInputButton = document.getElementById('voice_input_button');
         const promptInputTextarea = document.getElementById('prompt_input');
-        // appOutput is already defined above, no need to redefine
-        const langSelect = document.getElementById('lang_select'); // NEW: Get language selector
-
+        const langSelect = document.getElementById('lang_select');
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
         if (!SpeechRecognition) {
             voiceInputButton.disabled = true;
             voiceInputButton.textContent = '🎤 Voice Input Not Supported';
             appOutput.textContent = 'Warning: Your browser does not support Web Speech API for voice input.';
-            langSelect.disabled = true; // Disable language selector if not supported
+            langSelect.disabled = true;
         } else {
             const recognition = new SpeechRecognition();
             recognition.continuous = false;
             recognition.interimResults = false;
-            // Set initial language from selector
-            recognition.lang = langSelect.value; // NEW: Set initial language
+            recognition.lang = langSelect.value;
 
             let isRecording = false;
 
-            // NEW: Event listener for language change
             langSelect.addEventListener('change', () => {
                 recognition.lang = langSelect.value;
-                appOutput.textContent = `Voice input language set to ${langSelect.options[langSelect.selectedIndex].text}.`;
-                // If recording, stop and restart with new language (optional, but good practice)
+                appOutput.textContent = `Voice input language set to ${langSelect.options[langSelect.selectedIndex].text}. Remember to click "Generate" to get prompts in this language.`; // Updated message
                 if (isRecording) {
                     recognition.stop();
                 }
             });
-
 
             voiceInputButton.addEventListener('click', () => {
                 if (isRecording) {
@@ -456,7 +454,7 @@
                     isRecording = true;
                     voiceInputButton.textContent = '🔴 Stop Recording';
                     voiceInputButton.classList.add('recording');
-                    appOutput.textContent = `🗣️ Listening (${langSelect.options[langSelect.selectedIndex].text}). Speak now.`; // NEW: Language indicator
+                    appOutput.textContent = `🗣️ Listening (${langSelect.options[langSelect.selectedIndex].text}). Speak now.`;
                 } catch (error) {
                     console.error("Error starting speech recognition:", error);
                     appOutput.textContent = `❌ Error starting voice input: ${error.message}`;
@@ -484,13 +482,11 @@
                 isRecording = false;
                 voiceInputButton.textContent = '🎤 Start Voice Input';
                 voiceInputButton.classList.remove('recording');
-                if (!appOutput.textContent.startsWith('❌') && !appOutput.textContent.startsWith('✅')) { // Keep success/error messages
+                if (!appOutput.textContent.startsWith('❌') && !appOutput.textContent.startsWith('✅')) {
                     appOutput.textContent = 'Voice input session ended.';
                 }
             };
         }
-        // --- END Web Speech API ---
-
     </script>
 </body>
 </html>
