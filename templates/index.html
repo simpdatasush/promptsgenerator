@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Prompt Generator</title>
+    <title>Web Prompt Generator</title>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -24,7 +24,7 @@
         h1 {
             text-align: center;
             color: #2c3e50;
-            margin-bottom: 20px; /* Reduced margin for new element */
+            margin-bottom: 20px;
         }
         label {
             display: block;
@@ -44,15 +44,17 @@
             min-height: 100px;
             box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.06);
         }
+        
+        /* GENERAL BUTTON STYLE - applies to both "Generate Prompts" and "Start Voice Input" */
         button {
             display: block;
-            width: 100%;
-            padding: 12px 20px;
-            background-color: #D32F2F; /* Changed to Red */
+            width: 100%; /* Full width */
+            padding: 12px 20px; /* Consistent padding */
+            background-color: #D32F2F; /* Red color */
             color: white;
             border: none;
             border-radius: 5px;
-            font-size: 1.1rem;
+            font-size: 1.1rem; /* Consistent font size */
             font-weight: bold;
             cursor: pointer;
             transition: background-color 0.3s ease, transform 0.1s ease;
@@ -64,6 +66,7 @@
         button:active {
             transform: translateY(0);
         }
+
         .results-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -82,7 +85,7 @@
         }
         .result-box h3 {
             margin-top: 0;
-            color: #3f51b5; /* A nice blue for section headers */
+            color: #3f51b5;
             font-size: 1.1rem;
             margin-bottom: 10px;
         }
@@ -138,7 +141,7 @@
         .saved-prompts-list {
             list-style-type: none;
             padding: 0;
-            max-height: 300px; /* Limit height for scrolling */
+            max-height: 300px;
             overflow-y: auto;
             border: 1px solid #cceeff;
             border-radius: 5px;
@@ -161,22 +164,11 @@
             margin-bottom: 5px;
             font-size: 0.9rem;
         }
-        /* Style for voice input button - now also red */
+        /* Specific styles for voice input button - only what differentiates it */
         .voice-button {
-            background-color: #D32F2F; /* Changed to Red */
-            color: white;
-            padding: 10px 15px;
-            border: none;
-            border-radius: 5px;
-            font-size: 1rem;
-            cursor: pointer;
-            transition: background-color 0.3s ease;
-            margin-top: 10px; /* Adjust spacing */
-            width: auto; /* Allow button to size to content */
-            align-self: flex-start; /* Align with input group */
-        }
-        .voice-button:hover {
-            background-color: #C62828; /* Darker Red on hover */
+            margin-top: 10px; /* Keep specific margin */
+            /* All other shared styles (width, padding, font-size, background-color, etc.) 
+               are now inherited from the general 'button' rule */
         }
         .voice-button.recording {
             background-color: #FF1744; /* Brighter Red when recording */
@@ -188,10 +180,10 @@
         }
         /* Language selector styling */
         .language-selector {
-            margin-bottom: 20px; /* Adjusted margin */
+            margin-bottom: 20px;
             display: flex;
             align-items: center;
-            justify-content: center; /* Center the selector */
+            justify-content: center;
             gap: 10px;
             background-color: #e9ecef;
             padding: 10px;
@@ -214,7 +206,7 @@
 </head>
 <body>
     <div class="container">
-        <h1>AI Prompt Generator</h1>
+        <h1>Web Prompt Generator</h1>
 
         <div class="language-selector">
             <label for="lang_select">Voice Input & Output Language:</label>
@@ -231,6 +223,7 @@
                 <option value="hi-IN">हिन्दी (भारत)</option>
                 </select>
         </div>
+
         <form id="promptForm">
             <label for="prompt_input">Enter your raw prompt idea:</label>
             <div class="input-group">
@@ -280,7 +273,7 @@
     </div>
 
     <script>
-        // --- NEW: Message Translations ---
+        // --- Message Translations (unchanged) ---
         const MESSAGES = {
             "en-US": {
                 "generating": "🚀 Generating prompts and variants...",
@@ -354,12 +347,11 @@
                 "no_input_text": "Bitte geben Sie Text ein, um Prompts zu generieren.",
                 "api_key_not_configured": "Der Gemini-API-Schlüssel ist nicht konfiguriert oder das KI-Modell konnte nicht initialisiert werden."
             },
-            // You can add more languages here
         };
 
         function getMessage(key, langCode, replacements = {}) {
-            const messages = MESSAGES[langCode] || MESSAGES["en-US"]; // Fallback to English
-            let message = messages[key] || MESSAGES["en-US"][key] || key; // Fallback to English key or key itself
+            const messages = MESSAGES[langCode] || MESSAGES["en-US"];
+            let message = messages[key] || MESSAGES["en-US"][key] || key;
             for (const placeholder in replacements) {
                 message = message.replace(`{${placeholder}}`, replacements[placeholder]);
             }
@@ -367,10 +359,10 @@
         }
 
 
-        // Function to fetch and display saved prompts
+        // Function to fetch and display saved prompts (unchanged)
         async function fetchAndDisplaySavedPrompts() {
             const savedPromptsListElement = document.getElementById('saved_prompts_list');
-            savedPromptsListElement.innerHTML = ''; // Clear existing list
+            savedPromptsListElement.innerHTML = '';
 
             try {
                 const response = await fetch('/get_saved_prompts');
@@ -397,7 +389,6 @@
             }
         }
 
-        // Initial load of saved prompts when page loads
         document.addEventListener('DOMContentLoaded', fetchAndDisplaySavedPrompts);
 
 
@@ -409,17 +400,15 @@
             const appOutput = document.getElementById('app_output');
             const generateButton = document.querySelector('button[type="submit"]');
 
-            // Clear previous results
             document.getElementById('polished_output').textContent = '';
             document.getElementById('creative_output').textContent = '';
             document.getElementById('technical_output').textContent = '';
             document.getElementById('shorter_output').textContent = '';
             document.getElementById('additions_output').textContent = '';
 
-            // Updated message using getMessage
             appOutput.textContent = getMessage("generating", selectedLanguage);
             generateButton.disabled = true;
-            generateButton.textContent = 'Generating...'; // Keep button text in English for now, can be translated later if needed
+            generateButton.textContent = 'Generating...';
 
             try {
                 const formData = new FormData();
@@ -432,14 +421,13 @@
                 });
 
                 if (!response.ok) {
-                    const errorData = await response.json(); // Assume JSON error
+                    const errorData = await response.json();
                     throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
                 }
 
                 const data = await response.json();
 
                 if (data.error) {
-                    // Updated message using getMessage
                     appOutput.textContent = getMessage("api_error", selectedLanguage, {error: data.error});
                     console.error("Backend error:", data.error);
                 } else {
@@ -449,12 +437,10 @@
                     document.getElementById('shorter_output').textContent = data.shorter;
                     document.getElementById('additions_output').textContent = data.additions;
 
-                    // Updated message using getMessage
                     appOutput.textContent = getMessage("generation_complete", selectedLanguage);
                 }
 
             } catch (error) {
-                // Updated message using getMessage
                 appOutput.textContent = getMessage("generation_failed", selectedLanguage) + ` ${error.message}`;
                 console.error("Fetch error:", error);
             } finally {
@@ -463,17 +449,16 @@
             }
         });
 
-        // Event listeners for save buttons
+        // Event listeners for save buttons (unchanged)
         document.querySelectorAll('.save-button').forEach(button => {
             button.addEventListener('click', async function() {
                 const promptType = this.dataset.promptType;
                 const promptElementId = `${promptType}_output`;
                 const promptText = document.getElementById(promptElementId).textContent.trim();
-                const selectedLanguage = document.getElementById('lang_select').value; // Get current lang
+                const selectedLanguage = document.getElementById('lang_select').value;
                 const appOutput = document.getElementById('app_output');
 
                 if (!promptText) {
-                    // Updated message using getMessage
                     appOutput.textContent = getMessage("no_prompt_to_save", selectedLanguage, {type: promptType});
                     return;
                 }
@@ -492,16 +477,13 @@
 
                     const data = await response.json();
                     if (data.success) {
-                        // Updated message using getMessage
                         appOutput.textContent = getMessage("prompt_saved", selectedLanguage);
                         fetchAndDisplaySavedPrompts();
                     } else {
-                        // Updated message using getMessage
                         appOutput.textContent = getMessage("save_failed", selectedLanguage) + ` ${data.message}`;
                         console.error("Save error:", data.message);
                     }
                 } catch (error) {
-                    // Updated message using getMessage
                     appOutput.textContent = getMessage("network_error_save", selectedLanguage) + ` ${error.message}`;
                     console.error("Network error saving prompt:", error);
                 }
@@ -517,7 +499,6 @@
         if (!SpeechRecognition) {
             voiceInputButton.disabled = true;
             voiceInputButton.textContent = '🎤 Voice Input Not Supported';
-            // Updated message using getMessage (fallback English since no lang selected yet)
             appOutput.textContent = getMessage("voice_not_supported", "en-US");
             langSelect.disabled = true;
         } else {
@@ -531,7 +512,6 @@
             langSelect.addEventListener('change', () => {
                 const selectedLanguage = langSelect.value;
                 recognition.lang = selectedLanguage;
-                // Updated message using getMessage
                 const langName = langSelect.options[langSelect.selectedIndex].text;
                 appOutput.textContent = `Voice input language set to ${langName}. Remember to click "Generate" to get prompts in this language.`;
                 if (isRecording) {
@@ -555,12 +535,10 @@
                     isRecording = true;
                     voiceInputButton.textContent = '🔴 Stop Recording';
                     voiceInputButton.classList.add('recording');
-                    // Updated message using getMessage
                     const langName = langSelect.options[langSelect.selectedIndex].text;
                     appOutput.textContent = getMessage("listening", selectedLanguage).replace("(English)", `(${langName})`);
                 } catch (error) {
                     console.error("Error starting speech recognition:", error);
-                    // Updated message using getMessage
                     appOutput.textContent = getMessage("voice_start_error", selectedLanguage) + ` ${error.message}`;
                     isRecording = false;
                     voiceInputButton.textContent = '🎤 Start Voice Input';
@@ -572,14 +550,12 @@
                 const selectedLanguage = langSelect.value;
                 const transcript = event.results[0][0].transcript;
                 promptInputTextarea.value = transcript;
-                // Updated message using getMessage
                 appOutput.textContent = getMessage("voice_captured", selectedLanguage);
             };
 
             recognition.onerror = (event) => {
                 const selectedLanguage = langSelect.value;
                 console.error('Speech recognition error:', event.error);
-                // Updated message using getMessage
                 appOutput.textContent = getMessage("voice_error", selectedLanguage) + ` ${event.error}`;
                 isRecording = false;
                 voiceInputButton.textContent = '🎤 Start Voice Input';
@@ -592,7 +568,6 @@
                 voiceInputButton.textContent = '🎤 Start Voice Input';
                 voiceInputButton.classList.remove('recording');
                 if (!appOutput.textContent.startsWith('❌') && !appOutput.textContent.startsWith('✅')) {
-                    // Updated message using getMessage
                     appOutput.textContent = getMessage("voice_ended", selectedLanguage);
                 }
             };
