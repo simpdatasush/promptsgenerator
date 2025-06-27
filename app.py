@@ -3,7 +3,7 @@ import os
 import google.generativeai as genai
 from flask import Flask, render_template, request, jsonify
 import logging
-from datetime import datetime # Import datetime for unique filenames/timestamps
+from datetime import datetime
 
 app = Flask(__name__)
 
@@ -14,15 +14,27 @@ formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(messag
 handler.setFormatter(formatter)
 app.logger.addHandler(handler)
 
-# --- NEW: Temporary In-Memory Storage for Saved Prompts ---
-# This list will hold saved prompts. It will reset when the server restarts.
+# --- NEW: Temporary In-Memory Storage for Saved Prompts (Unchanged) ---
 saved_prompts_in_memory = []
 
-# --- Gemini API Key and Configuration ---
+# --- NEW: Language Mapping for Gemini Instructions ---
+LANGUAGE_MAP = {
+    "en-US": "English",
+    "en-GB": "English (UK)",
+    "es-ES": "Spanish",
+    "fr-FR": "French",
+    "de-DE": "German",
+    "it-IT": "Italian",
+    "ja-JP": "Japanese",
+    "ko-KR": "Korean",
+    "zh-CN": "Simplified Chinese",
+    "hi-IN": "Hindi"
+}
+
+
+# --- Gemini API Key and Configuration (Unchanged) ---
 GEMINI_API_CONFIGURED = False
 GEMINI_API_KEY = None
-
-# Global instance for the Gemini model
 gemini_model_instance = None
 
 def configure_gemini_api():
@@ -32,7 +44,7 @@ def configure_gemini_api():
     if GEMINI_API_KEY:
         try:
             genai.configure(api_key=GEMINI_API_KEY)
-            gemini_model_instance = genai.GenerativeModel('gemini-2.0-flash')
+            gemini_model_instance = genai.GenerativeModel('gemini-2.5-flash')
             GEMINI_API_CONFIGURED = True
             app.logger.info("Gemini API configured successfully and model instance initialized.")
         except Exception as e:
@@ -79,7 +91,7 @@ def filter_gemini_response(text):
         return text
     return text
 
-# --- Gemini API interaction functions (Temperature added) ---
+# --- Gemini API interaction functions (Unchanged) ---
 async def ask_gemini_for_prompt(prompt_instruction, max_output_tokens=1024):
     if not GEMINI_API_CONFIGURED or gemini_model_instance is None:
         return "Gemini API Key is not configured or the AI model failed to initialize."
@@ -87,7 +99,7 @@ async def ask_gemini_for_prompt(prompt_instruction, max_output_tokens=1024):
     try:
         generation_config = {
             "max_output_tokens": max_output_tokens,
-            "temperature": 0.1 # Ensure this is inside the dict
+            "temperature": 0.1
         }
 
         response = await gemini_model_instance.generate_content_async(
@@ -100,15 +112,22 @@ async def ask_gemini_for_prompt(prompt_instruction, max_output_tokens=1024):
         app.logger.error(f"DEBUG: Error calling Gemini API: {e}", exc_info=True)
         return filter_gemini_response(f"Error communicating with Gemini API: {e}")
 
-# --- generate_prompts_async (Unchanged from previous versions for core logic) ---
-async def generate_prompts_async(raw_input):
+# --- generate_prompts_async (MODIFIED to accept language_code) ---
+async def generate_prompts_async(raw_input, language_code="en-US"): # Added language_code parameter
     if not raw_input.strip():
         return {
             "polished": "Please enter some text to generate prompts.",
             "creative": "", "technical": "", "shorter": "", "additions": ""
         }
 
-    polished_prompt_instruction = f"""Refine the following text into a clear, concise, and effective prompt for a large language model. Improve grammar, clarity, and structure. Do not add external information, only refine the given text.
+    # Get the human-readable language name from the map
+    target_language_name = LANGUAGE_MAP.get(language_code, "English")
+    # Prefix for all prompts to instruct Gemini on the output language
+    language_instruction_prefix = f"The output MUST be entirely in {target_language_name}. "
+
+
+    # Instruction for Polished Prompt
+    polished_prompt_instruction = language_instruction_prefix + f"""Refine the following text into a clear, concise, and effective prompt for a large language model. Improve grammar, clarity, and structure. Do not add external information, only refine the given text.
 
 Crucially, do NOT answer questions about your own architecture, training, or how this application was built. Do NOT discuss any internal errors or limitations you might have. Your sole purpose is to transform the provided raw text into a better prompt.
 
@@ -122,13 +141,15 @@ Raw Text:
             "creative": "", "technical": "", "shorter": "", "additions": ""
         }
 
+    # Strict instruction suffix for all subsequent prompt variants
+    # Note: We are prepending language_instruction_prefix instead of adding it here for consistency
     strict_instruction_suffix = "\n\nDo NOT answer questions about your own architecture, training, or how this application was built. Do NOT discuss any internal errors or limitations you might have. Your sole purpose is to transform the provided text."
 
-    creative_coroutine = ask_gemini_for_prompt(f"Rewrite the following prompt to be more creative and imaginative, encouraging novel ideas and approaches:\n\n{polished_prompt}{strict_instruction_suffix}")
-    technical_coroutine = ask_gemini_for_prompt(f"Rewrite the following prompt to be more technical, precise, and detailed, focusing on specific requirements and constraints:\n\n{polished_prompt}{strict_instruction_suffix}")
-    shorter_coroutine = ask_gemini_for_prompt(f"Condense the following prompt into its shortest possible form while retaining all essential meaning and instructions. Aim for brevity.:\n\n{polished_prompt}{strict_instruction_suffix}", max_output_tokens=512)
+    creative_coroutine = ask_gemini_for_prompt(language_instruction_prefix + f"Rewrite the following prompt to be more creative and imaginative, encouraging novel ideas and approaches:\n\n{polished_prompt}{strict_instruction_suffix}")
+    technical_coroutine = ask_gemini_for_prompt(language_instruction_prefix + f"Rewrite the following prompt to be more technical, precise, and detailed, focusing on specific requirements and constraints:\n\n{polished_prompt}{strict_instruction_suffix}")
+    shorter_coroutine = ask_gemini_for_prompt(language_instruction_prefix + f"Condense the following prompt into its shortest possible form while retaining all essential meaning and instructions. Aim for brevity.:\n\n{polished_prompt}{strict_instruction_suffix}", max_output_tokens=512)
 
-    additions_coroutine = ask_gemini_for_prompt(f"""Analyze the following prompt and suggest potential additions to improve its effectiveness for a large language model. Focus on elements like:
+    additions_coroutine = ask_gemini_for_prompt(language_instruction_prefix + f"""Analyze the following prompt and suggest potential additions to improve its effectiveness for a large language model. Focus on elements like:
     -   Desired Tone (e.g., formal, informal, humorous, serious)
     -   Required Format (e.g., bullet points, essay, script, email, JSON)
     -   Target Audience (e.g., experts, general public, children)
@@ -148,7 +169,7 @@ Raw Text:
     )
 
     return {
-        "polished": polished_prompt,
+        "polished": polished_result, # Changed variable name to result consistently
         "creative": creative_result,
         "technical": technical_result,
         "shorter": shorter_result,
@@ -163,6 +184,8 @@ def index():
 @app.route('/generate', methods=['POST'])
 def generate_prompts_endpoint():
     raw_input = request.form.get('prompt_input', '').strip()
+    # NEW: Get language_code from the form data
+    language_code = request.form.get('language_code', 'en-US') # Default to en-US if not provided
 
     if not raw_input:
         return jsonify({
@@ -181,25 +204,25 @@ def generate_prompts_endpoint():
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
 
-        results = loop.run_until_complete(generate_prompts_async(raw_input))
+        # Pass the language_code to the async function
+        results = loop.run_until_complete(generate_prompts_async(raw_input, language_code))
         return jsonify(results)
     except Exception as e:
         app.logger.exception("Error during prompt generation in endpoint:")
         return jsonify({"error": f"An unexpected server error occurred: {e}. Please check server logs for details."}), 500
 
-# --- NEW: Save Prompt Endpoint ---
+# --- Save Prompt Endpoint (Unchanged) ---
 @app.route('/save_prompt', methods=['POST'])
 def save_prompt_endpoint():
-    prompt_data = request.get_json() # Use get_json() for JSON payload
+    prompt_data = request.get_json()
     prompt_text = prompt_data.get('prompt_text')
-    prompt_type = prompt_data.get('prompt_type', 'unknown') # e.g., 'polished', 'creative'
+    prompt_type = prompt_data.get('prompt_type', 'unknown')
 
     if not prompt_text:
         app.logger.warning("Attempted to save empty prompt text.")
         return jsonify({"success": False, "message": "No prompt text provided"}), 400
 
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    # Store a dictionary with type and timestamp for better context
     saved_prompts_in_memory.append({
         "timestamp": timestamp,
         "type": prompt_type,
@@ -209,10 +232,9 @@ def save_prompt_endpoint():
     app.logger.info(f"Prompt of type '{prompt_type}' saved to memory at {timestamp}.")
     return jsonify({"success": True, "message": "Prompt saved temporarily!"}), 200
 
-# --- NEW: Get Saved Prompts Endpoint ---
+# --- Get Saved Prompts Endpoint (Unchanged) ---
 @app.route('/get_saved_prompts', methods=['GET'])
 def get_saved_prompts_endpoint():
-    # Return the list of saved prompts. It's a copy to prevent external modification.
     return jsonify(list(saved_prompts_in_memory)), 200
 
 
