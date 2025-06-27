@@ -169,7 +169,7 @@ Raw Text:
     )
 
     return {
-        "polished": polished_result, # Changed variable name to result consistently
+        "polished": polished_prompt, # FIXED: Changed from polished_result to polished_prompt
         "creative": creative_result,
         "technical": technical_result,
         "shorter": shorter_result,
@@ -184,8 +184,7 @@ def index():
 @app.route('/generate', methods=['POST'])
 def generate_prompts_endpoint():
     raw_input = request.form.get('prompt_input', '').strip()
-    # NEW: Get language_code from the form data
-    language_code = request.form.get('language_code', 'en-US') # Default to en-US if not provided
+    language_code = request.form.get('language_code', 'en-US')
 
     if not raw_input:
         return jsonify({
@@ -204,7 +203,6 @@ def generate_prompts_endpoint():
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
 
-        # Pass the language_code to the async function
         results = loop.run_until_complete(generate_prompts_async(raw_input, language_code))
         return jsonify(results)
     except Exception as e:
