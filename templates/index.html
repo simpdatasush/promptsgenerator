@@ -171,9 +171,9 @@
             font-size: 1rem;
             cursor: pointer;
             transition: background-color 0.3s ease;
-            margin-top: -10px; /* Adjust to align with textarea */
-            margin-bottom: 10px;
+            margin-top: 10px; /* Adjust spacing */
             width: auto; /* Allow button to size to content */
+            align-self: flex-start; /* Align with input group */
         }
         .voice-button:hover {
             background-color: #E64A19;
@@ -186,6 +186,29 @@
             flex-direction: column;
             margin-bottom: 20px;
         }
+        /* New style for language selector */
+        .language-selector {
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background-color: #e9ecef;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #dee2e6;
+        }
+        .language-selector label {
+            margin-bottom: 0;
+            font-weight: normal;
+        }
+        .language-selector select {
+            padding: 8px 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 0.95rem;
+            background-color: #fff;
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.06);
+        }
     </style>
 </head>
 <body>
@@ -196,6 +219,22 @@
             <label for="prompt_input">Enter your raw prompt idea:</label>
             <div class="input-group">
                 <textarea id="prompt_input" name="prompt_input" rows="8" placeholder="e.g., Write a story about a robot who wants to be a chef."></textarea>
+                
+                <div class="language-selector">
+                    <label for="lang_select">Voice Input Language:</label>
+                    <select id="lang_select">
+                        <option value="en-US">English (US)</option>
+                        <option value="en-GB">English (UK)</option>
+                        <option value="es-ES">Español (España)</option>
+                        <option value="fr-FR">Français (France)</option>
+                        <option value="de-DE">Deutsch (Deutschland)</option>
+                        <option value="it-IT">Italiano (Italia)</option>
+                        <option value="ja-JP">日本語 (日本)</option>
+                        <option value="ko-KR">한국어 (대한민국)</option>
+                        <option value="zh-CN">中文 (普通话, 简体)</option>
+                        <option value="hi-IN">हिन्दी (भारत)</option>
+                        </select>
+                </div>
                 <button type="button" id="voice_input_button" class="voice-button">🎤 Start Voice Input</button>
             </div>
             <button type="submit">Generate Prompts</button>
@@ -370,24 +409,37 @@
             });
         });
 
-        // --- NEW: Web Speech API for Voice Input ---
+        // --- Web Speech API for Voice Input with Language Selector ---
         const voiceInputButton = document.getElementById('voice_input_button');
         const promptInputTextarea = document.getElementById('prompt_input');
-        const appOutput = document.getElementById('app_output'); // Reuse appOutput from above
+        // appOutput is already defined above, no need to redefine
+        const langSelect = document.getElementById('lang_select'); // NEW: Get language selector
 
-        // Check for Web Speech API browser support
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         if (!SpeechRecognition) {
             voiceInputButton.disabled = true;
             voiceInputButton.textContent = '🎤 Voice Input Not Supported';
             appOutput.textContent = 'Warning: Your browser does not support Web Speech API for voice input.';
+            langSelect.disabled = true; // Disable language selector if not supported
         } else {
             const recognition = new SpeechRecognition();
-            recognition.continuous = false; // Set to true if you want continuous recognition until stopped
-            recognition.interimResults = false; // Set to true to get results while speaking
-            recognition.lang = 'en-US'; // Set the language for recognition
+            recognition.continuous = false;
+            recognition.interimResults = false;
+            // Set initial language from selector
+            recognition.lang = langSelect.value; // NEW: Set initial language
 
             let isRecording = false;
+
+            // NEW: Event listener for language change
+            langSelect.addEventListener('change', () => {
+                recognition.lang = langSelect.value;
+                appOutput.textContent = `Voice input language set to ${langSelect.options[langSelect.selectedIndex].text}.`;
+                // If recording, stop and restart with new language (optional, but good practice)
+                if (isRecording) {
+                    recognition.stop();
+                }
+            });
+
 
             voiceInputButton.addEventListener('click', () => {
                 if (isRecording) {
@@ -395,7 +447,6 @@
                     return;
                 }
 
-                // Clear previous text if not continuous and starting new input
                 if (!recognition.continuous) {
                     promptInputTextarea.value = '';
                 }
@@ -405,7 +456,7 @@
                     isRecording = true;
                     voiceInputButton.textContent = '🔴 Stop Recording';
                     voiceInputButton.classList.add('recording');
-                    appOutput.textContent = '🗣️ Listening... Speak now.';
+                    appOutput.textContent = `🗣️ Listening (${langSelect.options[langSelect.selectedIndex].text}). Speak now.`; // NEW: Language indicator
                 } catch (error) {
                     console.error("Error starting speech recognition:", error);
                     appOutput.textContent = `❌ Error starting voice input: ${error.message}`;
@@ -417,8 +468,7 @@
 
             recognition.onresult = (event) => {
                 const transcript = event.results[0][0].transcript;
-                // Append or replace based on your preference (currently appends if continuous)
-                promptInputTextarea.value = transcript; // Directly replace for single shot input
+                promptInputTextarea.value = transcript;
                 appOutput.textContent = '✅ Voice input captured. Click "Generate Prompts".';
             };
 
@@ -434,13 +484,12 @@
                 isRecording = false;
                 voiceInputButton.textContent = '🎤 Start Voice Input';
                 voiceInputButton.classList.remove('recording');
-                // Only show "ready" message if no error occurred immediately before end
-                if (!appOutput.textContent.startsWith('❌')) {
+                if (!appOutput.textContent.startsWith('❌') && !appOutput.textContent.startsWith('✅')) { // Keep success/error messages
                     appOutput.textContent = 'Voice input session ended.';
                 }
             };
         }
-        // --- END NEW: Web Speech API ---
+        // --- END Web Speech API ---
 
     </script>
 </body>
