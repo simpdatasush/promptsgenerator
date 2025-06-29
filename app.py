@@ -5,7 +5,7 @@ from flask import Flask, render_template, request, jsonify, make_response
 import logging
 from datetime import datetime
 
-app = Flask(__app__)
+app = Flask(__name__)
 
 # Configure logging for the Flask app
 app.logger.setLevel(logging.INFO)
