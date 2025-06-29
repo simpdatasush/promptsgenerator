@@ -5,7 +5,7 @@ from flask import Flask, render_template, request, jsonify, make_response
 import logging
 from datetime import datetime
 
-app = Flask(__name__) # Corrected __name__ from __app__ in previous fix
+app = Flask(__name__) # Corrected __name__
 
 # Configure logging for the Flask app
 app.logger.setLevel(logging.INFO)
@@ -35,31 +35,28 @@ LANGUAGE_MAP = {
 # --- Gemini API Key and Configuration ---
 GEMINI_API_CONFIGURED = False
 GEMINI_API_KEY = None
-gemini_model_instance = None
+# gemini_model_instance = None # We will now initialize this per async call
 
 def configure_gemini_api():
-    global GEMINI_API_KEY, GEMINI_API_CONFIGURED, gemini_model_instance
+    global GEMINI_API_KEY, GEMINI_API_CONFIGURED
     GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
     if GEMINI_API_KEY:
         try:
             genai.configure(api_key=GEMINI_API_KEY)
-            # Use gemini-1.5-flash for potentially better handling of longer contexts in recursion
-            gemini_model_instance = genai.GenerativeModel('gemini-2.0-flash') 
+            # No need to create model instance here, it will be created in ask_gemini_for_prompt
             GEMINI_API_CONFIGURED = True
-            app.logger.info("Gemini API configured successfully and model instance initialized.")
+            app.logger.info("Gemini API configured successfully.")
         except Exception as e:
             app.logger.error(f"ERROR: Failed to configure Gemini API: {e}")
             app.logger.error("Please ensure your API key environment variable (GEMINI_API_KEY) is correct and valid.")
             GEMINI_API_CONFIGURED = False
-            gemini_model_instance = None
     else:
         app.logger.warning("\n" + "="*80)
         app.logger.warning("WARNING: GEMINI_API_KEY environment variable not set. Prompt generation features will be disabled.")
         app.logger.warning("Please set the GEMINI_API_KEY environment variable on Render.")
         app.logger.warning("="*80 + "\n")
         GEMINI_API_CONFIGURED = False
-        gemini_model_instance = None
 
 configure_gemini_api()
 
@@ -78,7 +75,6 @@ def filter_gemini_response(text):
     ]
     for phrase in unauthorized_phrases:
         if phrase in text_lower:
-            # Allow "i don't have enough information to" if it's clearly related to the prompt itself
             if phrase == "i don't have enough information to" and \
                ("about the provided prompt" in text_lower or "based on your input" in text_lower or "to understand the context" in text_lower):
                 continue
@@ -98,10 +94,15 @@ def filter_gemini_response(text):
 
 # --- Gemini API interaction functions ---
 async def ask_gemini_for_prompt(prompt_instruction, max_output_tokens=1024):
-    if not GEMINI_API_CONFIGURED or gemini_model_instance is None:
+    if not GEMINI_API_CONFIGURED: # Check global config, not model instance here
         return "Gemini API Key is not configured or the AI model failed to initialize."
 
     try:
+        # --- IMPORTANT CHANGE HERE ---
+        # Create a new model instance for each call to ensure it's tied to the current event loop
+        # This will be less efficient for high traffic, but solves the "Event loop is closed" issue
+        gemini_model_instance = genai.GenerativeModel('gemini-2.0-flash') 
+
         generation_config = {
             "max_output_tokens": max_output_tokens,
             "temperature": 0.1
@@ -117,7 +118,7 @@ async def ask_gemini_for_prompt(prompt_instruction, max_output_tokens=1024):
         app.logger.error(f"DEBUG: Error calling Gemini API: {e}", exc_info=True)
         return filter_gemini_response(f"Error communicating with Gemini API: {e}")
 
-# --- generate_prompts_async (original function, unchanged) ---
+# --- generate_prompts_async (original function, unchanged apart from model instance removal) ---
 async def generate_prompts_async(raw_input, language_code="en-US"):
     if not raw_input.strip():
         return {
@@ -168,7 +169,7 @@ Raw Text:
     )
 
     return {
-        "polished": polished_prompt, # Use polished_result from here
+        "polished": polished_prompt,
         "creative": creative_result,
         "technical": technical_result,
         "shorter": shorter_result,
@@ -191,7 +192,6 @@ def generate_prompts_endpoint():
             "creative": "", "technical": "", "shorter": "", "additions": ""
         })
 
-    # Use asyncio.run() to execute the async function in a new event loop
     try:
         results = asyncio.run(generate_prompts_async(raw_input, language_code))
         return jsonify(results)
@@ -251,10 +251,10 @@ def download_prompts_txt():
 
 # --- NEW: Recursive Polish Endpoint ---
 @app.route('/recursive_polish', methods=['POST'])
-def recursive_polish_endpoint(): # Made this synchronous to use asyncio.run inside
+def recursive_polish_endpoint():
     raw_input = request.form.get('prompt_input', '').strip()
     language_code = request.form.get('language_code', 'en-US')
-    num_iterations = 3 # Fixed number of iterations
+    num_iterations = 3 
 
     if not raw_input:
         return jsonify({"error": "Please provide input for recursive polishing."}), 400
@@ -278,14 +278,15 @@ def recursive_polish_endpoint(): # Made this synchronous to use asyncio.run insi
             )
             
             # Use asyncio.run() for each async call within the synchronous loop
+            # This ensures each API call gets a fresh event loop context.
             refined_output = asyncio.run(ask_gemini_for_prompt(refinement_instruction))
             
             if "Error" in refined_output or "not configured" in refined_output or "not authorised" in refined_output:
                 app.logger.error(f"Recursive polishing failed at iteration {i+1}: {refined_output}")
                 return jsonify({"error": f"Recursive polishing stopped due to AI error at iteration {i+1}: {refined_output}"}), 500
             
-            current_prompt_text = refined_output # The output of this step becomes the input for the next
-            final_polished_prompt = refined_output # Keep track of the last successful refinement
+            current_prompt_text = refined_output 
+            final_polished_prompt = refined_output 
 
     except Exception as e:
         app.logger.exception(f"Error during recursive polishing process:")
@@ -295,6 +296,4 @@ def recursive_polish_endpoint(): # Made this synchronous to use asyncio.run insi
 
 
 if __name__ == '__main__':
-    # No need for manual asyncio loop management here when using asyncio.run()
-    # It implicitly creates and closes a new loop for each call.
     app.run(debug=True, host='0.0.0.0', port=os.getenv("PORT", 5000))
