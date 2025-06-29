@@ -45,7 +45,7 @@ def configure_gemini_api():
         try:
             genai.configure(api_key=GEMINI_API_KEY)
             # Use gemini-1.5-flash for potentially better handling of longer contexts in recursion
-            gemini_model_instance = genai.GenerativeModel('gemini-1.5-flash') 
+            gemini_model_instance = genai.GenerativeModel('gemini-2.0-flash') 
             GEMINI_API_CONFIGURED = True
             app.logger.info("Gemini API configured successfully and model instance initialized.")
         except Exception as e:
