@@ -1,7 +1,7 @@
 import asyncio
 import os
 import google.generativeai as genai
-from flask import Flask, render_template, request, jsonify, make_response
+from flask import Flask, render_template, request, jsonify, make_response # Import make_response
 import logging
 from datetime import datetime
 
@@ -14,10 +14,10 @@ formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(messag
 handler.setFormatter(formatter)
 app.logger.addHandler(handler)
 
-# --- Temporary In-Memory Storage for Saved Prompts ---
+# --- NEW: Temporary In-Memory Storage for Saved Prompts ---
 saved_prompts_in_memory = []
 
-# --- Language Mapping for Gemini Instructions ---
+# --- NEW: Language Mapping for Gemini Instructions ---
 LANGUAGE_MAP = {
     "en-US": "English",
     "en-GB": "English (UK)",
@@ -35,27 +35,30 @@ LANGUAGE_MAP = {
 # --- Gemini API Key and Configuration ---
 GEMINI_API_CONFIGURED = False
 GEMINI_API_KEY = None
-# The model instance is now created inside ask_gemini_for_prompt for reliability
+gemini_model_instance = None
 
 def configure_gemini_api():
-    global GEMINI_API_KEY, GEMINI_API_CONFIGURED
+    global GEMINI_API_KEY, GEMINI_API_CONFIGURED, gemini_model_instance
     GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
     if GEMINI_API_KEY:
         try:
             genai.configure(api_key=GEMINI_API_KEY)
+            gemini_model_instance = genai.GenerativeModel('gemini-2.0-flash')
             GEMINI_API_CONFIGURED = True
-            app.logger.info("Gemini API configured successfully.")
+            app.logger.info("Gemini API configured successfully and model instance initialized.")
         except Exception as e:
             app.logger.error(f"ERROR: Failed to configure Gemini API: {e}")
             app.logger.error("Please ensure your API key environment variable (GEMINI_API_KEY) is correct and valid.")
             GEMINI_API_CONFIGURED = False
+            gemini_model_instance = None
     else:
         app.logger.warning("\n" + "="*80)
         app.logger.warning("WARNING: GEMINI_API_KEY environment variable not set. Prompt generation features will be disabled.")
         app.logger.warning("Please set the GEMINI_API_KEY environment variable on Render.")
         app.logger.warning("="*80 + "\n")
         GEMINI_API_CONFIGURED = False
+        gemini_model_instance = None
 
 configure_gemini_api()
 
@@ -72,34 +75,28 @@ def filter_gemini_response(text):
         "i cannot discuss my creation or operation", "i cannot explain the development of this tool",
         "my purpose is to", "i am designed to", "i don't have enough information to", "i lack the ability to"
     ]
-    for phrase in unauthorized_phrases:
-        if phrase in text_lower:
-            if phrase == "i don't have enough information to" and \
-               ("about the provided prompt" in text_lower or "based on your input" in text_lower or "to understand the context" in text_lower):
-                continue
-            return unauthorized_message
-    
     bug_phrases = [
         "a bug occurred", "i encountered an error", "there was an issue in my processing",
         "i made an error", "my apologies", "i cannot respond to that"
     ]
+    for phrase in unauthorized_phrases:
+        if phrase in text_lower:
+            if phrase == "i don't have enough information to" and ("about the provided prompt" in text_lower or "based on your input" in text_lower or "to understand the context" in text_lower):
+                continue
+            return unauthorized_message
     for phrase in bug_phrases:
         if phrase in text_lower:
             return unauthorized_message
-    
     if "no response from model." in text_lower or "error communicating with gemini api:" in text_lower:
         return text
     return text
 
-# --- Gemini API interaction function ---
+# --- Gemini API interaction functions ---
 async def ask_gemini_for_prompt(prompt_instruction, max_output_tokens=1024):
-    if not GEMINI_API_CONFIGURED:
+    if not GEMINI_API_CONFIGURED or gemini_model_instance is None:
         return "Gemini API Key is not configured or the AI model failed to initialize."
 
     try:
-        # Create a new model instance for each call to ensure it's tied to the current event loop
-        gemini_model_instance = genai.GenerativeModel('gemini-2.0-flash') 
-
         generation_config = {
             "max_output_tokens": max_output_tokens,
             "temperature": 0.1
@@ -115,7 +112,7 @@ async def ask_gemini_for_prompt(prompt_instruction, max_output_tokens=1024):
         app.logger.error(f"DEBUG: Error calling Gemini API: {e}", exc_info=True)
         return filter_gemini_response(f"Error communicating with Gemini API: {e}")
 
-# --- generate_prompts_async function (main async logic for prompt variations) ---
+# --- generate_prompts_async ---
 async def generate_prompts_async(raw_input, language_code="en-US"):
     if not raw_input.strip():
         return {
@@ -190,7 +187,17 @@ def generate_prompts_endpoint():
         })
 
     try:
-        results = asyncio.run(generate_prompts_async(raw_input, language_code))
+        try:
+            loop = asyncio.get_event_loop()
+        except RuntimeError:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+
+        if loop.is_closed():
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+
+        results = loop.run_until_complete(generate_prompts_async(raw_input, language_code))
         return jsonify(results)
     except Exception as e:
         app.logger.exception("Error during prompt generation in endpoint:")
@@ -222,7 +229,7 @@ def save_prompt_endpoint():
 def get_saved_prompts_endpoint():
     return jsonify(list(saved_prompts_in_memory)), 200
 
-# --- Download Prompts as TXT Endpoint ---
+# --- NEW: Download Prompts as TXT Endpoint ---
 @app.route('/download_prompts_txt', methods=['GET'])
 def download_prompts_txt():
     if not saved_prompts_in_memory:
@@ -236,9 +243,9 @@ def download_prompts_txt():
         lines.append("-" * 30)
         lines.append(prompt['text'])
         lines.append("-" * 30)
-        lines.append("\n")
+        lines.append("\n") # Add an extra newline for separation between prompts
 
-    text_content = "\n".join(lines).strip()
+    text_content = "\n".join(lines).strip() # Join all lines and remove leading/trailing whitespace
 
     response = make_response(text_content)
     response.headers["Content-Disposition"] = "attachment; filename=saved_prompts.txt"
@@ -246,7 +253,11 @@ def download_prompts_txt():
     app.logger.info("Generated and sending saved_prompts.txt for download.")
     return response
 
-# --- Removed recursive_polish_endpoint ---
 
 if __name__ == '__main__':
+    try:
+        asyncio.get_event_loop()
+    except RuntimeError:
+        asyncio.set_event_loop(asyncio.new_event_loop())
+
     app.run(debug=True, host='0.0.0.0', port=os.getenv("PORT", 5000))
