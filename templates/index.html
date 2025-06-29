@@ -166,10 +166,10 @@
         }
         /* Specific styles for voice input button - only what differentiates it */
         .voice-button {
-            margin-top: 10px;
+            margin-top: 10px; /* Keep specific margin */
         }
         .voice-button.recording {
-            background-color: #FF1744;
+            background-color: #FF1744; /* Brighter Red when recording */
         }
         .input-group {
             display: flex;
@@ -201,11 +201,11 @@
             box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.06);
         }
 
-        /* Style for download button in saved prompts section */
+        /* NEW: Style for download button in saved prompts section */
         .download-all-button {
-            display: block;
-            width: 100%;
-            padding: 10px 15px;
+            display: block; /* Make it a block element */
+            width: 100%; /* Take full width of its container */
+            padding: 10px 15px; /* Adjust padding as needed */
             background-color: #28a745; /* Green color for download */
             color: white;
             border: none;
@@ -214,32 +214,10 @@
             font-weight: bold;
             cursor: pointer;
             transition: background-color 0.3s ease;
-            margin-top: 15px;
+            margin-top: 15px; /* Space above button */
         }
         .download-all-button:hover {
             background-color: #218838; /* Darker green on hover */
-        }
-        /* NEW: Style for recursive polish button */
-        .recursive-polish-button {
-            display: block;
-            width: 100%;
-            padding: 12px 20px;
-            background-color: #007bff; /* Blue color */
-            color: white;
-            border: none;
-            border-radius: 5px;
-            font-size: 1.1rem;
-            font-weight: bold;
-            cursor: pointer;
-            transition: background-color 0.3s ease, transform 0.1s ease;
-            margin-top: 10px; /* Space above */
-        }
-        .recursive-polish-button:hover {
-            background-color: #0056b3; /* Darker blue on hover */
-            transform: translateY(-1px);
-        }
-        .recursive-polish-button:active {
-            transform: translateY(0);
         }
     </style>
 </head>
@@ -271,9 +249,6 @@
                 <button type="button" id="voice_input_button" class="voice-button">🎤 Start Voice Input</button>
             </div>
             <button type="submit">Generate Prompts</button>
-            <button type="button" id="recursive_polish_button" class="recursive-polish-button">
-                ✨ Recursively Polish Prompt (3 Iterations)
-            </button>
         </form>
 
         <div id="app_output">Application messages will appear here.</div>
@@ -318,7 +293,7 @@
     </div>
 
     <script>
-        // --- Message Translations (updated with new messages) ---
+        // --- Message Translations (unchanged) ---
         const MESSAGES = {
             "en-US": {
                 "generating": "🚀 Generating prompts and variants...",
@@ -336,10 +311,7 @@
                 "generation_failed": "❌ Failed to generate prompts:",
                 "generation_complete": "✨ All prompt generation tasks complete.",
                 "no_input_text": "Please enter some text to generate prompts.",
-                "api_key_not_configured": "Gemini API Key is not configured or the AI model failed to initialize.",
-                "recursive_polishing": "🔄 Recursively polishing prompt (Iteration {current} of {total})...", // NEW
-                "recursive_complete": "✅ Recursive polishing complete. Final result in 'Polished Prompt'.", // NEW
-                "recursive_failed": "❌ Recursive polishing failed: {error}" // NEW
+                "api_key_not_configured": "Gemini API Key is not configured or the AI model failed to initialize."
             },
             "es-ES": {
                 "generating": "🚀 Generando indicaciones y variantes...",
@@ -357,10 +329,7 @@
                 "generation_failed": "❌ Fallo al generar indicaciones:",
                 "generation_complete": "✨ Todas las tareas de generación de indicaciones completadas.",
                 "no_input_text": "Por favor, introduzca texto para generar indicaciones.",
-                "api_key_not_configured": "La clave API de Gemini no está configurada o el modelo de IA no se pudo inicializar.",
-                "recursive_polishing": "🔄 Pulido recursivo de la indicación (Iteración {current} de {total})...", // NEW
-                "recursive_complete": "✅ Pulido recursivo completado. Resultado final en 'Indicación Pulida'.", // NEW
-                "recursive_failed": "❌ El pulido recursivo falló: {error}" // NEW
+                "api_key_not_configured": "La clave API de Gemini no está configurada o el modelo de IA no se pudo inicializar."
             },
             "fr-FR": {
                 "generating": "🚀 Génération des invites et variantes...",
@@ -378,10 +347,7 @@
                 "generation_failed": "❌ Échec de la génération des invites :",
                 "generation_complete": "✨ Toutes les tâches de génération d'invites terminées.",
                 "no_input_text": "Veuillez saisir du texte pour générer des invites.",
-                "api_key_not_configured": "La clé API Gemini n'est pas configurée ou le modèle d'IA n'a pas pu être initialisé.",
-                "recursive_polishing": "🔄 Polissage récursif de l'invite (Itération {current} de {total})...", // NEW
-                "recursive_complete": "✅ Polissage récursif terminé. Résultat final dans 'Invite Polie'.", // NEW
-                "recursive_failed": "❌ Le polissage récursif a échoué : {error}" // NEW
+                "api_key_not_configured": "La clé API Gemini n'est pas configurée ou le modèle d'IA n'a pas pu être initialisé."
             },
             "de-DE": {
                 "generating": "🚀 Prompts und Varianten werden generiert...",
@@ -399,10 +365,7 @@
                 "generation_failed": "❌ Generierung der Prompts fehlgeschlagen:",
                 "generation_complete": "✨ Alle Prompt-Generierungsaufgaben abgeschlossen.",
                 "no_input_text": "Bitte geben Sie Text ein, um Prompts zu generieren.",
-                "api_key_not_configured": "Der Gemini-API-Schlüssel ist nicht konfiguriert oder das KI-Modell konnte nicht initialisiert werden.",
-                "recursive_polishing": "🔄 Rekursives Prompt-Polieren (Iteration {current} von {total})...", // NEW
-                "recursive_complete": "✅ Rekursives Polieren abgeschlossen. Endergebnis in 'Polierter Prompt'.", // NEW
-                "recursive_failed": "❌ Rekursives Polieren fehlgeschlagen: {error}" // NEW
+                "api_key_not_configured": "Der Gemini-API-Schlüssel ist nicht konfiguriert oder das KI-Modell konnte nicht initialisiert werden."
             },
         };
 
@@ -456,19 +419,15 @@
             const selectedLanguage = document.getElementById('lang_select').value;
             const appOutput = document.getElementById('app_output');
             const generateButton = document.querySelector('button[type="submit"]');
-            const recursivePolishButton = document.getElementById('recursive_polish_button'); // Get recursive button
 
-            // Clear previous results
             document.getElementById('polished_output').textContent = '';
             document.getElementById('creative_output').textContent = '';
             document.getElementById('technical_output').textContent = '';
             document.getElementById('shorter_output').textContent = '';
             document.getElementById('additions_output').textContent = '';
 
-            // Update UI for generation
             appOutput.textContent = getMessage("generating", selectedLanguage);
             generateButton.disabled = true;
-            recursivePolishButton.disabled = true; // Disable recursive button too
             generateButton.textContent = 'Generating...';
 
             try {
@@ -506,7 +465,6 @@
                 console.error("Fetch error:", error);
             } finally {
                 generateButton.disabled = false;
-                recursivePolishButton.disabled = false; // Re-enable recursive button
                 generateButton.textContent = 'Generate Prompts';
             }
         });
@@ -634,73 +592,6 @@
                 }
             };
         }
-
-        // --- NEW: Recursive Polish Button Logic ---
-        document.getElementById('recursive_polish_button').addEventListener('click', async function() {
-            const promptInput = document.getElementById('prompt_input').value;
-            const selectedLanguage = document.getElementById('lang_select').value;
-            const appOutput = document.getElementById('app_output');
-            const polishedOutput = document.getElementById('polished_output');
-            const generateButton = document.querySelector('button[type="submit"]');
-            const recursivePolishButton = this; // Reference to the clicked button
-
-            if (!promptInput.trim()) {
-                appOutput.textContent = getMessage("no_input_text", selectedLanguage);
-                return;
-            }
-
-            // Clear previous results in polished output
-            polishedOutput.textContent = '';
-            document.getElementById('creative_output').textContent = '';
-            document.getElementById('technical_output').textContent = '';
-            document.getElementById('shorter_output').textContent = '';
-            document.getElementById('additions_output').textContent = '';
-
-
-            recursivePolishButton.disabled = true;
-            generateButton.disabled = true; // Also disable the regular generate button
-
-            // Update output for recursive process
-            const numIterations = 3;
-            for (let i = 0; i < numIterations; i++) {
-                appOutput.textContent = getMessage("recursive_polishing", selectedLanguage, {current: i + 1, total: numIterations});
-                await new Promise(resolve => setTimeout(resolve, 500)); // Small delay for message visibility
-            }
-
-
-            try {
-                const formData = new FormData();
-                formData.append('prompt_input', promptInput);
-                formData.append('language_code', selectedLanguage);
-
-                const response = await fetch('/recursive_polish', {
-                    method: 'POST',
-                    body: formData
-                });
-
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
-                }
-
-                const data = await response.json();
-
-                if (data.error) {
-                    appOutput.textContent = getMessage("recursive_failed", selectedLanguage, {error: data.error});
-                    console.error("Recursive Polish Backend error:", data.error);
-                } else {
-                    polishedOutput.textContent = data.final_polished_prompt;
-                    appOutput.textContent = getMessage("recursive_complete", selectedLanguage);
-                }
-
-            } catch (error) {
-                appOutput.textContent = getMessage("recursive_failed", selectedLanguage, {error: error.message});
-                console.error("Recursive Polish Fetch error:", error);
-            } finally {
-                recursivePolishButton.disabled = false;
-                generateButton.disabled = false; // Re-enable regular generate button
-            }
-        });
     </script>
 </body>
 </html>
