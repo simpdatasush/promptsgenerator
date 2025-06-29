@@ -5,7 +5,7 @@ from flask import Flask, render_template, request, jsonify, make_response
 import logging
 from datetime import datetime
 
-app = Flask(__name__)
+app = Flask(__name__) # Corrected __name__ from __app__ in previous fix
 
 # Configure logging for the Flask app
 app.logger.setLevel(logging.INFO)
@@ -168,7 +168,7 @@ Raw Text:
     )
 
     return {
-        "polished": polished_result, # Use polished_result from here
+        "polished": polished_prompt, # Use polished_result from here
         "creative": creative_result,
         "technical": technical_result,
         "shorter": shorter_result,
@@ -191,18 +191,13 @@ def generate_prompts_endpoint():
             "creative": "", "technical": "", "shorter": "", "additions": ""
         })
 
+    # Use asyncio.run() to execute the async function in a new event loop
     try:
-        loop = asyncio.get_event_loop()
-    except RuntimeError:
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-
-    if loop.is_closed():
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-
-    results = loop.run_until_complete(generate_prompts_async(raw_input, language_code))
-    return jsonify(results)
+        results = asyncio.run(generate_prompts_async(raw_input, language_code))
+        return jsonify(results)
+    except Exception as e:
+        app.logger.exception("Error during prompt generation in endpoint:")
+        return jsonify({"error": f"An unexpected server error occurred: {e}. Please check server logs for details."}), 500
 
 # --- Save Prompt Endpoint ---
 @app.route('/save_prompt', methods=['POST'])
@@ -256,7 +251,7 @@ def download_prompts_txt():
 
 # --- NEW: Recursive Polish Endpoint ---
 @app.route('/recursive_polish', methods=['POST'])
-async def recursive_polish_endpoint():
+def recursive_polish_endpoint(): # Made this synchronous to use asyncio.run inside
     raw_input = request.form.get('prompt_input', '').strip()
     language_code = request.form.get('language_code', 'en-US')
     num_iterations = 3 # Fixed number of iterations
@@ -268,21 +263,22 @@ async def recursive_polish_endpoint():
     target_language_name = LANGUAGE_MAP.get(language_code, "English")
     final_polished_prompt = ""
 
-    for i in range(num_iterations):
-        app.logger.info(f"Recursive Polish - Iteration {i+1}/{num_iterations}")
-        
-        refinement_instruction = (
-            f"You are tasked with iteratively refining a given prompt for a large language model. "
-            f"On this step (Iteration {i+1} of {num_iterations}), focus on making it even more clear, "
-            f"concise, and effective. Remove any redundancy, improve phrasing, and ensure it directly guides the LLM. "
-            f"Do NOT add new information or answer questions about yourself or how this application works. "
-            f"Your sole purpose is to refine the prompt. "
-            f"The output MUST be entirely in {target_language_name}.\n\n"
-            f"Refine this prompt:\n{current_prompt_text}"
-        )
-        
-        try:
-            refined_output = await ask_gemini_for_prompt(refinement_instruction)
+    try:
+        for i in range(num_iterations):
+            app.logger.info(f"Recursive Polish - Iteration {i+1}/{num_iterations}")
+            
+            refinement_instruction = (
+                f"You are tasked with iteratively refining a given prompt for a large language model. "
+                f"On this step (Iteration {i+1} of {num_iterations}), focus on making it even more clear, "
+                f"concise, and effective. Remove any redundancy, improve phrasing, and ensure it directly guides the LLM. "
+                f"Do NOT add new information or answer questions about yourself or how this application works. "
+                f"Your sole purpose is to refine the prompt. "
+                f"The output MUST be entirely in {target_language_name}.\n\n"
+                f"Refine this prompt:\n{current_prompt_text}"
+            )
+            
+            # Use asyncio.run() for each async call within the synchronous loop
+            refined_output = asyncio.run(ask_gemini_for_prompt(refinement_instruction))
             
             if "Error" in refined_output or "not configured" in refined_output or "not authorised" in refined_output:
                 app.logger.error(f"Recursive polishing failed at iteration {i+1}: {refined_output}")
@@ -291,17 +287,14 @@ async def recursive_polish_endpoint():
             current_prompt_text = refined_output # The output of this step becomes the input for the next
             final_polished_prompt = refined_output # Keep track of the last successful refinement
 
-        except Exception as e:
-            app.logger.exception(f"Error during recursive polishing iteration {i+1}:")
-            return jsonify({"error": f"An unexpected server error occurred during recursive polishing at iteration {i+1}: {e}"}), 500
+    except Exception as e:
+        app.logger.exception(f"Error during recursive polishing process:")
+        return jsonify({"error": f"An unexpected server error occurred during recursive polishing: {e}"}), 500
             
     return jsonify({"final_polished_prompt": final_polished_prompt})
 
 
 if __name__ == '__main__':
-    try:
-        asyncio.get_event_loop()
-    except RuntimeError:
-        asyncio.set_event_loop(asyncio.new_event_loop())
-
+    # No need for manual asyncio loop management here when using asyncio.run()
+    # It implicitly creates and closes a new loop for each call.
     app.run(debug=True, host='0.0.0.0', port=os.getenv("PORT", 5000))
