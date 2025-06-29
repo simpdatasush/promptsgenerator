@@ -1,11 +1,11 @@
 import asyncio
 import os
 import google.generativeai as genai
-from flask import Flask, render_template, request, jsonify, make_response # Import make_response
+from flask import Flask, render_template, request, jsonify, make_response
 import logging
 from datetime import datetime
 
-app = Flask(__name__)
+app = Flask(__app__)
 
 # Configure logging for the Flask app
 app.logger.setLevel(logging.INFO)
@@ -44,7 +44,8 @@ def configure_gemini_api():
     if GEMINI_API_KEY:
         try:
             genai.configure(api_key=GEMINI_API_KEY)
-            gemini_model_instance = genai.GenerativeModel('gemini-2.0-flash')
+            # Use gemini-1.5-flash for potentially better handling of longer contexts in recursion
+            gemini_model_instance = genai.GenerativeModel('gemini-1.5-flash') 
             GEMINI_API_CONFIGURED = True
             app.logger.info("Gemini API configured successfully and model instance initialized.")
         except Exception as e:
@@ -75,18 +76,22 @@ def filter_gemini_response(text):
         "i cannot discuss my creation or operation", "i cannot explain the development of this tool",
         "my purpose is to", "i am designed to", "i don't have enough information to", "i lack the ability to"
     ]
+    for phrase in unauthorized_phrases:
+        if phrase in text_lower:
+            # Allow "i don't have enough information to" if it's clearly related to the prompt itself
+            if phrase == "i don't have enough information to" and \
+               ("about the provided prompt" in text_lower or "based on your input" in text_lower or "to understand the context" in text_lower):
+                continue
+            return unauthorized_message
+    
     bug_phrases = [
         "a bug occurred", "i encountered an error", "there was an issue in my processing",
         "i made an error", "my apologies", "i cannot respond to that"
     ]
-    for phrase in unauthorized_phrases:
-        if phrase in text_lower:
-            if phrase == "i don't have enough information to" and ("about the provided prompt" in text_lower or "based on your input" in text_lower or "to understand the context" in text_lower):
-                continue
-            return unauthorized_message
     for phrase in bug_phrases:
         if phrase in text_lower:
             return unauthorized_message
+    
     if "no response from model." in text_lower or "error communicating with gemini api:" in text_lower:
         return text
     return text
@@ -112,7 +117,7 @@ async def ask_gemini_for_prompt(prompt_instruction, max_output_tokens=1024):
         app.logger.error(f"DEBUG: Error calling Gemini API: {e}", exc_info=True)
         return filter_gemini_response(f"Error communicating with Gemini API: {e}")
 
-# --- generate_prompts_async ---
+# --- generate_prompts_async (original function, unchanged) ---
 async def generate_prompts_async(raw_input, language_code="en-US"):
     if not raw_input.strip():
         return {
@@ -163,7 +168,7 @@ Raw Text:
     )
 
     return {
-        "polished": polished_prompt,
+        "polished": polished_result, # Use polished_result from here
         "creative": creative_result,
         "technical": technical_result,
         "shorter": shorter_result,
@@ -187,21 +192,17 @@ def generate_prompts_endpoint():
         })
 
     try:
-        try:
-            loop = asyncio.get_event_loop()
-        except RuntimeError:
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
+        loop = asyncio.get_event_loop()
+    except RuntimeError:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
 
-        if loop.is_closed():
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
+    if loop.is_closed():
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
 
-        results = loop.run_until_complete(generate_prompts_async(raw_input, language_code))
-        return jsonify(results)
-    except Exception as e:
-        app.logger.exception("Error during prompt generation in endpoint:")
-        return jsonify({"error": f"An unexpected server error occurred: {e}. Please check server logs for details."}), 500
+    results = loop.run_until_complete(generate_prompts_async(raw_input, language_code))
+    return jsonify(results)
 
 # --- Save Prompt Endpoint ---
 @app.route('/save_prompt', methods=['POST'])
@@ -229,7 +230,7 @@ def save_prompt_endpoint():
 def get_saved_prompts_endpoint():
     return jsonify(list(saved_prompts_in_memory)), 200
 
-# --- NEW: Download Prompts as TXT Endpoint ---
+# --- Download Prompts as TXT Endpoint ---
 @app.route('/download_prompts_txt', methods=['GET'])
 def download_prompts_txt():
     if not saved_prompts_in_memory:
@@ -243,15 +244,58 @@ def download_prompts_txt():
         lines.append("-" * 30)
         lines.append(prompt['text'])
         lines.append("-" * 30)
-        lines.append("\n") # Add an extra newline for separation between prompts
+        lines.append("\n")
 
-    text_content = "\n".join(lines).strip() # Join all lines and remove leading/trailing whitespace
+    text_content = "\n".join(lines).strip()
 
     response = make_response(text_content)
     response.headers["Content-Disposition"] = "attachment; filename=saved_prompts.txt"
     response.headers["Content-type"] = "text/plain"
     app.logger.info("Generated and sending saved_prompts.txt for download.")
     return response
+
+# --- NEW: Recursive Polish Endpoint ---
+@app.route('/recursive_polish', methods=['POST'])
+async def recursive_polish_endpoint():
+    raw_input = request.form.get('prompt_input', '').strip()
+    language_code = request.form.get('language_code', 'en-US')
+    num_iterations = 3 # Fixed number of iterations
+
+    if not raw_input:
+        return jsonify({"error": "Please provide input for recursive polishing."}), 400
+
+    current_prompt_text = raw_input
+    target_language_name = LANGUAGE_MAP.get(language_code, "English")
+    final_polished_prompt = ""
+
+    for i in range(num_iterations):
+        app.logger.info(f"Recursive Polish - Iteration {i+1}/{num_iterations}")
+        
+        refinement_instruction = (
+            f"You are tasked with iteratively refining a given prompt for a large language model. "
+            f"On this step (Iteration {i+1} of {num_iterations}), focus on making it even more clear, "
+            f"concise, and effective. Remove any redundancy, improve phrasing, and ensure it directly guides the LLM. "
+            f"Do NOT add new information or answer questions about yourself or how this application works. "
+            f"Your sole purpose is to refine the prompt. "
+            f"The output MUST be entirely in {target_language_name}.\n\n"
+            f"Refine this prompt:\n{current_prompt_text}"
+        )
+        
+        try:
+            refined_output = await ask_gemini_for_prompt(refinement_instruction)
+            
+            if "Error" in refined_output or "not configured" in refined_output or "not authorised" in refined_output:
+                app.logger.error(f"Recursive polishing failed at iteration {i+1}: {refined_output}")
+                return jsonify({"error": f"Recursive polishing stopped due to AI error at iteration {i+1}: {refined_output}"}), 500
+            
+            current_prompt_text = refined_output # The output of this step becomes the input for the next
+            final_polished_prompt = refined_output # Keep track of the last successful refinement
+
+        except Exception as e:
+            app.logger.exception(f"Error during recursive polishing iteration {i+1}:")
+            return jsonify({"error": f"An unexpected server error occurred during recursive polishing at iteration {i+1}: {e}"}), 500
+            
+    return jsonify({"final_polished_prompt": final_polished_prompt})
 
 
 if __name__ == '__main__':
