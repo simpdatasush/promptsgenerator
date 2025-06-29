@@ -1,7 +1,7 @@
 import asyncio
 import os
 import google.generativeai as genai
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, make_response # Import make_response
 import logging
 from datetime import datetime
 
@@ -14,7 +14,7 @@ formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(messag
 handler.setFormatter(formatter)
 app.logger.addHandler(handler)
 
-# --- NEW: Temporary In-Memory Storage for Saved Prompts (Unchanged) ---
+# --- NEW: Temporary In-Memory Storage for Saved Prompts ---
 saved_prompts_in_memory = []
 
 # --- NEW: Language Mapping for Gemini Instructions ---
@@ -32,7 +32,7 @@ LANGUAGE_MAP = {
 }
 
 
-# --- Gemini API Key and Configuration (Unchanged) ---
+# --- Gemini API Key and Configuration ---
 GEMINI_API_CONFIGURED = False
 GEMINI_API_KEY = None
 gemini_model_instance = None
@@ -62,7 +62,7 @@ def configure_gemini_api():
 
 configure_gemini_api()
 
-# --- Response Filtering Function (Unchanged) ---
+# --- Response Filtering Function ---
 def filter_gemini_response(text):
     unauthorized_message = "I am not authorised to answer this question. My purpose is solely to refine your raw prompt into a machine-readable format."
     text_lower = text.lower()
@@ -91,7 +91,7 @@ def filter_gemini_response(text):
         return text
     return text
 
-# --- Gemini API interaction functions (Unchanged) ---
+# --- Gemini API interaction functions ---
 async def ask_gemini_for_prompt(prompt_instruction, max_output_tokens=1024):
     if not GEMINI_API_CONFIGURED or gemini_model_instance is None:
         return "Gemini API Key is not configured or the AI model failed to initialize."
@@ -112,21 +112,17 @@ async def ask_gemini_for_prompt(prompt_instruction, max_output_tokens=1024):
         app.logger.error(f"DEBUG: Error calling Gemini API: {e}", exc_info=True)
         return filter_gemini_response(f"Error communicating with Gemini API: {e}")
 
-# --- generate_prompts_async (MODIFIED to accept language_code) ---
-async def generate_prompts_async(raw_input, language_code="en-US"): # Added language_code parameter
+# --- generate_prompts_async ---
+async def generate_prompts_async(raw_input, language_code="en-US"):
     if not raw_input.strip():
         return {
             "polished": "Please enter some text to generate prompts.",
             "creative": "", "technical": "", "shorter": "", "additions": ""
         }
 
-    # Get the human-readable language name from the map
     target_language_name = LANGUAGE_MAP.get(language_code, "English")
-    # Prefix for all prompts to instruct Gemini on the output language
     language_instruction_prefix = f"The output MUST be entirely in {target_language_name}. "
 
-
-    # Instruction for Polished Prompt
     polished_prompt_instruction = language_instruction_prefix + f"""Refine the following text into a clear, concise, and effective prompt for a large language model. Improve grammar, clarity, and structure. Do not add external information, only refine the given text.
 
 Crucially, do NOT answer questions about your own architecture, training, or how this application was built. Do NOT discuss any internal errors or limitations you might have. Your sole purpose is to transform the provided raw text into a better prompt.
@@ -141,8 +137,6 @@ Raw Text:
             "creative": "", "technical": "", "shorter": "", "additions": ""
         }
 
-    # Strict instruction suffix for all subsequent prompt variants
-    # Note: We are prepending language_instruction_prefix instead of adding it here for consistency
     strict_instruction_suffix = "\n\nDo NOT answer questions about your own architecture, training, or how this application was built. Do NOT discuss any internal errors or limitations you might have. Your sole purpose is to transform the provided text."
 
     creative_coroutine = ask_gemini_for_prompt(language_instruction_prefix + f"Rewrite the following prompt to be more creative and imaginative, encouraging novel ideas and approaches:\n\n{polished_prompt}{strict_instruction_suffix}")
@@ -169,7 +163,7 @@ Raw Text:
     )
 
     return {
-        "polished": polished_prompt, # FIXED: Changed from polished_result to polished_prompt
+        "polished": polished_prompt,
         "creative": creative_result,
         "technical": technical_result,
         "shorter": shorter_result,
@@ -209,7 +203,7 @@ def generate_prompts_endpoint():
         app.logger.exception("Error during prompt generation in endpoint:")
         return jsonify({"error": f"An unexpected server error occurred: {e}. Please check server logs for details."}), 500
 
-# --- Save Prompt Endpoint (Unchanged) ---
+# --- Save Prompt Endpoint ---
 @app.route('/save_prompt', methods=['POST'])
 def save_prompt_endpoint():
     prompt_data = request.get_json()
@@ -230,10 +224,34 @@ def save_prompt_endpoint():
     app.logger.info(f"Prompt of type '{prompt_type}' saved to memory at {timestamp}.")
     return jsonify({"success": True, "message": "Prompt saved temporarily!"}), 200
 
-# --- Get Saved Prompts Endpoint (Unchanged) ---
+# --- Get Saved Prompts Endpoint ---
 @app.route('/get_saved_prompts', methods=['GET'])
 def get_saved_prompts_endpoint():
     return jsonify(list(saved_prompts_in_memory)), 200
+
+# --- NEW: Download Prompts as TXT Endpoint ---
+@app.route('/download_prompts_txt', methods=['GET'])
+def download_prompts_txt():
+    if not saved_prompts_in_memory:
+        return "No prompts to download.", 404
+
+    lines = []
+    for i, prompt in enumerate(saved_prompts_in_memory):
+        lines.append(f"--- PROMPT {i+1} ---")
+        lines.append(f"Type: {prompt['type'].capitalize()}")
+        lines.append(f"Saved: {prompt['timestamp']}")
+        lines.append("-" * 30)
+        lines.append(prompt['text'])
+        lines.append("-" * 30)
+        lines.append("\n") # Add an extra newline for separation between prompts
+
+    text_content = "\n".join(lines).strip() # Join all lines and remove leading/trailing whitespace
+
+    response = make_response(text_content)
+    response.headers["Content-Disposition"] = "attachment; filename=saved_prompts.txt"
+    response.headers["Content-type"] = "text/plain"
+    app.logger.info("Generated and sending saved_prompts.txt for download.")
+    return response
 
 
 if __name__ == '__main__':
