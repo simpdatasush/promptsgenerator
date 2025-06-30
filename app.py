@@ -141,7 +141,7 @@ async def ask_gemini_for_prompt(prompt_instruction, max_output_tokens=1024):
         return "Gemini API Key is not configured or the AI model failed to initialize."
 
     try:
-        gemini_model_instance = genai.GenerativeModel('gemini-1.5-flash') 
+        gemini_model_instance = genai.GenerativeModel('gemini-2.0-flash') 
 
         generation_config = {
             "max_output_tokens": max_output_tokens,
