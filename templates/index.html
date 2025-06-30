@@ -4,6 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Prompt Generator</title>
+    <!-- NEW: Bootstrap CSS for better styling of auth forms and alerts -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <!-- NEW: Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -166,10 +170,10 @@
         }
         /* Specific styles for voice input button - only what differentiates it */
         .voice-button {
-            margin-top: 10px; /* Keep specific margin */
+            margin-top: 10px;
         }
         .voice-button.recording {
-            background-color: #FF1744; /* Brighter Red when recording */
+            background-color: #FF1744;
         }
         .input-group {
             display: flex;
@@ -201,11 +205,11 @@
             box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.06);
         }
 
-        /* NEW: Style for download button in saved prompts section */
+        /* Style for download button in saved prompts section */
         .download-all-button {
-            display: block; /* Make it a block element */
-            width: 100%; /* Take full width of its container */
-            padding: 10px 15px; /* Adjust padding as needed */
+            display: block;
+            width: 100%;
+            padding: 10px 15px;
             background-color: #28a745; /* Green color for download */
             color: white;
             border: none;
@@ -214,17 +218,57 @@
             font-weight: bold;
             cursor: pointer;
             transition: background-color 0.3s ease;
-            margin-top: 15px; /* Space above button */
+            margin-top: 15px;
         }
         .download-all-button:hover {
-            background-color: #218838; /* Darker green on hover */
+            background-color: #218838;
+        }
+        /* NEW: Styles for login/logout/register links */
+        .auth-links {
+            text-align: right;
+            margin-bottom: 15px;
+        }
+        .auth-links a, .auth-links span {
+            margin-left: 15px;
+            color: #007bff;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        .auth-links a:hover {
+            text-decoration: underline;
+        }
+        .auth-links .username {
+            color: #28a745; /* Green for logged-in username */
         }
     </style>
 </head>
 <body>
     <div class="container">
+        <!-- NEW: Auth Links -->
+        <div class="auth-links">
+            {% if current_user.is_authenticated %}
+                <span>Logged in as: <strong class="username">{{ current_user.username }}</strong></span>
+                <a href="{{ url_for('logout') }}">Logout</a>
+            {% else %}
+                <a href="{{ url_for('login') }}">Login</a>
+                <a href="{{ url_for('register') }}">Register</a>
+            {% endif %}
+        </div>
+        <!-- END NEW: Auth Links -->
+
+        <!-- NEW: Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        <!-- END NEW: Flash Messages -->
+
         <h1>AI Prompt Generator</h1>
 
+        <!-- Language Selector -->
         <div class="language-selector">
             <label for="lang_select">Voice Input & Output Language:</label>
             <select id="lang_select">
@@ -238,7 +282,8 @@
                 <option value="ko-KR">한국어 (대한민국)</option>
                 <option value="zh-CN">中文 (普通话, 简体)</option>
                 <option value="hi-IN">हिन्दी (भारत)</option>
-                </select>
+                <!-- Add more languages as needed -->
+            </select>
         </div>
 
         <form id="promptForm">
@@ -284,7 +329,9 @@
         <div class="saved-prompts-section">
             <h2>Saved Prompts (Temporary)</h2>
             <ul id="saved_prompts_list" class="saved-prompts-list">
-                </ul>
+                <!-- Saved prompts will be loaded here -->
+            </ul>
+            <!-- Download Button -->
             <button class="download-all-button" onclick="window.location.href='/download_prompts_txt'">
                 ⬇️ Download All Prompts (TXT)
             </button>
@@ -385,9 +432,14 @@
             savedPromptsListElement.innerHTML = '';
 
             try {
+                // NEW: Fetch saved prompts only if user is authenticated or for anonymous
                 const response = await fetch('/get_saved_prompts');
                 if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
+                    // If not logged in, this might return 401/403, handle gracefully
+                    // For now, just log and show empty list.
+                    console.warn(`Could not fetch saved prompts: HTTP status ${response.status}`);
+                    savedPromptsListElement.innerHTML = '<li>Please log in to view your saved prompts.</li>';
+                    return;
                 }
                 const savedPrompts = await response.json();
 
@@ -441,6 +493,12 @@
                 });
 
                 if (!response.ok) {
+                    // If Flask-Login redirects to login, this will not be JSON.
+                    // Check if it's a redirect (status 302) or a JSON error.
+                    if (response.status === 302) {
+                        window.location.href = response.url; // Redirect to login page
+                        return; // Stop further execution
+                    }
                     const errorData = await response.json();
                     throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
                 }
@@ -494,6 +552,15 @@
                             prompt_type: promptType
                         })
                     });
+
+                    if (!response.ok) {
+                        if (response.status === 302) {
+                            window.location.href = response.url; // Redirect to login page
+                            return;
+                        }
+                        const errorData = await response.json();
+                        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+                    }
 
                     const data = await response.json();
                     if (data.success) {
