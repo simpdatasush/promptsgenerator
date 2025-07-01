@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI CV & Cover Letter Generator</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f8f9fa;
+            padding-top: 20px;
+        }
+        .container {
+            max-width: 900px;
+            background-color: #ffffff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        h1, h2 {
+            color: #343a40;
+            margin-bottom: 20px;
+        }
+        textarea {
+            resize: vertical;
+            min-height: 150px;
+        }
+        .result-box {
+            background-color: #e9ecef;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            position: relative;
+        }
+        .result-text {
+            font-family: 'Courier New', Courier, monospace;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            color: #212529;
+            background-color: #f1f3f5;
+            padding: 10px;
+            border-radius: 4px;
+            border: 1px solid #dee2e6;
+            min-height: 100px;
+        }
+        .loading-spinner {
+            display: none;
+            margin-top: 20px;
+        }
+        .auth-links {
+            text-align: right;
+            margin-bottom: 15px;
+        }
+        .auth-links a, .auth-links span {
+            margin-left: 15px;
+            color: #007bff;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        .auth-links a:hover {
+            text-decoration: underline;
+        }
+        .auth-links .username {
+            color: #28a745;
+        }
+        .download-btn {
+            margin-top: 15px;
+        }
+        .form-group.lang-select-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background-color: #e9ecef;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #dee2e6;
+            margin-bottom: 20px;
+        }
+        .form-group.lang-select-group label {
+            margin-bottom: 0;
+            font-weight: normal;
+        }
+        .form-group.lang-select-group select {
+            flex-grow: 1;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="auth-links">
+            {% if current_user.is_authenticated %}
+                <span>Logged in as: <strong class="username">{{ current_user.username }}</strong></span>
+                <a href="{{ url_for('dashboard') }}">Dashboard</a>
+                <a href="{{ url_for('logout') }}">Logout</a>
+            {% else %}
+                <a href="{{ url_for('login') }}">Login</a>
+                <a href="{{ url_for('register') }}">Register</a>
+            {% endif %}
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <h1 class="text-center mb-4">AI CV & Cover Letter Generator</h1>
+        <p class="text-center lead">Generate tailored cover letters and optimize your CV based on job descriptions.</p>
+
+        <hr>
+
+        <div class="form-group lang-select-group">
+            <label for="lang_select">Output Language:</label>
+            <select class="form-control" id="lang_select" name="language_code">
+                {% for code, name in language_map.items() %}
+                    <option value="{{ code }}">{{ name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="job_description">Job Description:</label>
+            <textarea class="form-control" id="job_description" rows="8" placeholder="Paste the full job description here..."></textarea>
+        </div>
+
+        <div class="form-group">
+            <label for="user_cv_text">Your CV Text (Paste Here):</label>
+            <textarea class="form-control" id="user_cv_text" rows="10" placeholder="Paste the plain text content of your CV here. Avoid special formatting."></textarea>
+            <small class="form-text text-muted">Please paste your CV content as plain text. PDF/DOCX upload is not supported directly.</small>
+        </div>
+
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <button type="button" id="generate_cover_letter_btn" class="btn btn-primary btn-block"><i class="fas fa-envelope"></i> Generate Cover Letter</button>
+            </div>
+            <div class="col-md-6">
+                <button type="button" id="generate_cv_btn" class="btn btn-success btn-block"><i class="fas fa-file-alt"></i> Generate Tailored CV</button>
+            </div>
+        </div>
+
+        <div id="loading_spinner" class="loading-spinner text-center">
+            <div class="spinner-border text-primary" role="status">
+                <span class="sr-only">Loading...</span>
+            </div>
+            <p class="mt-2">Generating...</p>
+        </div>
+
+        <div id="cover_letter_result_section" class="result-box mt-4" style="display:none;">
+            <h2>Generated Cover Letter</h2>
+            <pre class="result-text" id="cover_letter_output"></pre>
+            <button class="btn btn-info btn-sm download-btn" id="download_cover_letter_btn"><i class="fas fa-download"></i> Download Cover Letter (.txt)</button>
+        </div>
+
+        <div id="cv_result_section" class="result-box mt-4" style="display:none;">
+            <h2>Generated Tailored CV</h2>
+            <pre class="result-text" id="cv_output"></pre>
+            <button class="btn btn-info btn-sm download-btn" id="download_cv_btn"><i class="fas fa-download"></i> Download Tailored CV (.txt)</button>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            const jobDescriptionInput = $('#job_description');
+            const userCvTextInput = $('#user_cv_text');
+            const langSelect = $('#lang_select');
+            const loadingSpinner = $('#loading_spinner');
+            const coverLetterOutput = $('#cover_letter_output');
+            const cvOutput = $('#cv_output');
+            const coverLetterResultSection = $('#cover_letter_result_section');
+            const cvResultSection = $('#cv_result_section');
+            const downloadCoverLetterBtn = $('#download_cover_letter_btn');
+            const downloadCvBtn = $('#download_cv_btn');
+            const generateCoverLetterBtn = $('#generate_cover_letter_btn');
+            const generateCvBtn = $('#generate_cv_btn');
+
+            function showLoading(message = "Generating...") {
+                loadingSpinner.find('p').text(message);
+                loadingSpinner.show();
+                generateCoverLetterBtn.prop('disabled', true);
+                generateCvBtn.prop('disabled', true);
+                coverLetterResultSection.hide();
+                cvResultSection.hide();
+            }
+
+            function hideLoading() {
+                loadingSpinner.hide();
+                generateCoverLetterBtn.prop('disabled', false);
+                generateCvBtn.prop('disabled', false);
+            }
+
+            function showToast(message, isError = false) {
+                const toastHtml = `
+                    <div class="toast" role="alert" aria-live="assertive" aria-atomic="true" data-delay="3000">
+                        <div class="toast-body">
+                            ${message}
+                        </div>
+                    </div>
+                `;
+                const $toast = $(toastHtml);
+                if (isError) {
+                    $toast.addClass('bg-danger text-white'); // Bootstrap error color
+                } else {
+                    $toast.addClass('bg-success text-white'); // Bootstrap success color
+                }
+                $('.toast-container').append($toast);
+                $toast.toast('show');
+                $toast.on('hidden.bs.toast', function () {
+                    $(this).remove();
+                });
+            }
+
+            // Generate Cover Letter
+            generateCoverLetterBtn.on('click', async function() {
+                const jobDescription = jobDescriptionInput.val().trim();
+                const languageCode = langSelect.val();
+
+                if (!jobDescription) {
+                    showToast("Please paste the Job Description.", true);
+                    return;
+                }
+
+                showLoading("Generating Cover Letter...");
+
+                try {
+                    const formData = new FormData();
+                    formData.append('job_description', jobDescription);
+                    formData.append('language_code', languageCode);
+
+                    const response = await fetch('/generate_cover_letter', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    if (!response.ok) {
+                        if (response.status === 302) { // Redirect to login
+                            window.location.href = response.url;
+                            return;
+                        }
+                        const errorData = await response.json();
+                        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+                    }
+
+                    const data = await response.json();
+                    if (data.error) {
+                        showToast(`Error: ${data.error}`, true);
+                    } else {
+                        coverLetterOutput.text(data.cover_letter);
+                        coverLetterResultSection.show();
+                        showToast("Cover Letter generated successfully!");
+                    }
+                } catch (error) {
+                    showToast(`Failed to generate Cover Letter: ${error.message}`, true);
+                    console.error("Cover Letter generation error:", error);
+                } finally {
+                    hideLoading();
+                }
+            });
+
+            // Generate Tailored CV
+            generateCvBtn.on('click', async function() {
+                const userCvText = userCvTextInput.val().trim();
+                const jobDescription = jobDescriptionInput.val().trim();
+                const languageCode = langSelect.val();
+
+                if (!userCvText || !jobDescription) {
+                    showToast("Please paste both your CV text and the Job Description.", true);
+                    return;
+                }
+
+                showLoading("Generating Tailored CV...");
+
+                try {
+                    const formData = new FormData();
+                    formData.append('user_cv_text', userCvText);
+                    formData.append('job_description', jobDescription);
+                    formData.append('language_code', languageCode);
+
+                    const response = await fetch('/generate_cv', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    if (!response.ok) {
+                        if (response.status === 302) { // Redirect to login
+                            window.location.href = response.url;
+                            return;
+                        }
+                        const errorData = await response.json();
+                        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+                    }
+
+                    const data = await response.json();
+                    if (data.error) {
+                        showToast(`Error: ${data.error}`, true);
+                    } else {
+                        cvOutput.text(data.tailored_cv);
+                        cvResultSection.show();
+                        showToast("Tailored CV generated successfully!");
+                    }
+                } catch (error) {
+                    showToast(`Failed to generate Tailored CV: ${error.message}`, true);
+                    console.error("CV generation error:", error);
+                } finally {
+                    hideLoading();
+                }
+            });
+
+            // Download Cover Letter
+            downloadCoverLetterBtn.on('click', function() {
+                const text = coverLetterOutput.text();
+                if (text) {
+                    const blob = new Blob([text], { type: 'text/plain' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'cover_letter.txt';
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                } else {
+                    showToast("No cover letter to download.", true);
+                }
+            });
+
+            // Download Tailored CV
+            downloadCvBtn.on('click', function() {
+                const text = cvOutput.text();
+                if (text) {
+                    const blob = new Blob([text], { type: 'text/plain' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'tailored_cv.txt';
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                } else {
+                    showToast("No tailored CV to download.", true);
+                }
+            });
+        });
+    </script>
+</body>
+</html>
