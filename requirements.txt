@@ -6,7 +6,6 @@ grpcio==1.62.0
 Flask-Login==0.6.3
 Flask-SQLAlchemy==3.1.1
 Werkzeug==2.3.7 # Ensure Werkzeug is explicitly pinned or compatible
-asgiref==3.7.2 # NEW: Add this line
 
 ##Flask==2.3.2
 ##google-generativeai==0.7.0
