@@ -137,7 +137,7 @@ async def ask_gemini_for_prompt(prompt_instruction, max_output_tokens=1024):
     try:
         # Create a new model instance for each call to ensure it's tied to the current event loop
         # gemini-1.5-flash is good for longer contexts
-        model = genai.GenerativeModel('gemini-1.5-flash') 
+        model = genai.GenerativeModel('gemini-2.0-flash') 
 
         generation_config = {
             "max_output_tokens": max_output_tokens,
