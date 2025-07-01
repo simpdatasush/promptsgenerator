@@ -310,8 +310,8 @@ def generate_prompts_endpoint():
         })
 
     try:
-        # CORRECTED: Use async_to_sync for async functions
-        results = async_to_sync(generate_prompts_async, thread_sensitive=False)(raw_input, language_code)
+        # CORRECTED: Removed thread_sensitive=False
+        results = async_to_sync(generate_prompts_async)(raw_input, language_code)
         return jsonify(results)
     except Exception as e:
         app.logger.exception("Error during prompt generation in endpoint:")
@@ -328,8 +328,8 @@ def generate_cover_letter_endpoint():
         return jsonify({"error": "Please provide a job description."}), 400
 
     try:
-        # CORRECTED: Use async_to_sync for async functions
-        cover_letter = async_to_sync(generate_cover_letter_async, thread_sensitive=False)(job_description, language_code)
+        # CORRECTED: Removed thread_sensitive=False
+        cover_letter = async_to_sync(generate_cover_letter_async)(job_description, language_code)
         if "Error" in cover_letter or "not configured" in cover_letter:
             return jsonify({"error": cover_letter}), 500
         return jsonify({"cover_letter": cover_letter})
@@ -349,8 +349,8 @@ def generate_cv_endpoint():
         return jsonify({"error": "Please provide both your CV text and the job description."}), 400
 
     try:
-        # CORRECTED: Use async_to_sync for async functions
-        tailored_cv = async_to_sync(generate_cv_async, thread_sensitive=False)(user_cv_text, job_description, language_code)
+        # CORRECTED: Removed thread_sensitive=False
+        tailored_cv = async_to_sync(generate_cv_async)(user_cv_text, job_description, language_code)
         if "Error" in tailored_cv or "not configured" in tailored_cv:
             return jsonify({"error": tailored_cv}), 500
         return jsonify({"tailored_cv": tailored_cv})
@@ -479,4 +479,3 @@ with app.app_context():
 # --- Main App Run ---
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=os.getenv("PORT", 5000))
-
