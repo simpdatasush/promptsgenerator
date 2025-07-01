@@ -5,30 +5,24 @@ from flask import Flask, render_template, request, jsonify, make_response, redir
 import logging
 from datetime import datetime
 
-# --- NEW IMPORTS FOR AUTHENTICATION ---
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
-# --- END NEW IMPORTS ---
 
 
 app = Flask(__name__)
 
-# --- NEW: Flask-SQLAlchemy Configuration ---
-# Configure SQLite database. This file will be created in your project directory.
-# On Render, this database file will be ephemeral unless you attach a persistent disk.
+# --- Flask-SQLAlchemy Configuration ---
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///site.db'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False # Suppress a warning
-app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'a_very_secret_key_that_should_be_in_env') # Needed for Flask-Login sessions
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'a_very_secret_key_that_should_be_in_env')
 db = SQLAlchemy(app)
-# --- END NEW: Flask-SQLAlchemy Configuration ---
 
-# --- NEW: Flask-Login Configuration ---
+# --- Flask-Login Configuration ---
 login_manager = LoginManager()
 login_manager.init_app(app)
-login_manager.login_view = 'login' # The view Flask-Login should redirect to for login
-# --- END NEW: Flask-Login Configuration ---
-
+login_manager.login_view = 'login'
+login_manager.login_message_category = 'info' # For flash messages
 
 # Configure logging for the Flask app
 app.logger.setLevel(logging.INFO)
@@ -37,10 +31,11 @@ formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(messag
 handler.setFormatter(formatter)
 app.logger.addHandler(handler)
 
-# --- Temporary In-Memory Storage for Saved Prompts (Unchanged) ---
-saved_prompts_in_memory = []
+# --- Temporary In-Memory Storage for Saved Prompts ---
+# Now, saved prompts will be associated with the user.
+saved_prompts_in_memory = [] # This will store dicts like {"user_id": ..., "timestamp": ..., "type": ..., "text": ...}
 
-# --- Language Mapping for Gemini Instructions (Unchanged) ---
+# --- Language Mapping for Gemini Instructions ---
 LANGUAGE_MAP = {
     "en-US": "English",
     "en-GB": "English (UK)",
@@ -55,7 +50,7 @@ LANGUAGE_MAP = {
 }
 
 
-# --- Gemini API Key and Configuration (Unchanged) ---
+# --- Gemini API Key and Configuration ---
 GEMINI_API_CONFIGURED = False
 GEMINI_API_KEY = None
 
@@ -74,14 +69,14 @@ def configure_gemini_api():
             GEMINI_API_CONFIGURED = False
     else:
         app.logger.warning("\n" + "="*80)
-        app.logger.warning("WARNING: GEMINI_API_KEY environment variable not set. Prompt generation features will be disabled.")
+        app.logger.warning("WARNING: GEMINI_API_KEY environment variable not set. AI generation features will be disabled.")
         app.logger.warning("Please set the GEMINI_API_KEY environment variable on Render.")
         app.logger.warning("="*80 + "\n")
         GEMINI_API_CONFIGURED = False
 
 configure_gemini_api()
 
-# --- NEW: User Model for SQLAlchemy and Flask-Login ---
+# --- User Model for SQLAlchemy and Flask-Login ---
 class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
@@ -96,11 +91,10 @@ class User(db.Model, UserMixin):
     def __repr__(self):
         return f'<User {self.username}>'
 
-# --- NEW: Flask-Login User Loader ---
+# --- Flask-Login User Loader ---
 @login_manager.user_loader
 def load_user(user_id):
-    return db.session.get(User, int(user_id)) # Use db.session.get for primary key lookup
-# --- END NEW: User Model and Loader ---
+    return db.session.get(User, int(user_id))
 
 
 # --- Response Filtering Function (Unchanged) ---
@@ -135,20 +129,22 @@ def filter_gemini_response(text):
         return text
     return text
 
-# --- Gemini API interaction function ---
+# --- Gemini API interaction function (Creates model instance per call) ---
 async def ask_gemini_for_prompt(prompt_instruction, max_output_tokens=1024):
     if not GEMINI_API_CONFIGURED:
         return "Gemini API Key is not configured or the AI model failed to initialize."
 
     try:
-        gemini_model_instance = genai.GenerativeModel('gemini-2.0-flash') 
+        # Create a new model instance for each call to ensure it's tied to the current event loop
+        # gemini-1.5-flash is good for longer contexts
+        model = genai.GenerativeModel('gemini-1.5-flash') 
 
         generation_config = {
             "max_output_tokens": max_output_tokens,
             "temperature": 0.1
         }
 
-        response = await gemini_model_instance.generate_content_async(
+        response = await model.generate_content_async(
             contents=[{"role": "user", "parts": [{"text": prompt_instruction}]}],
             generation_config=generation_config
         )
@@ -158,7 +154,7 @@ async def ask_gemini_for_prompt(prompt_instruction, max_output_tokens=1024):
         app.logger.error(f"DEBUG: Error calling Gemini API: {e}", exc_info=True)
         return filter_gemini_response(f"Error communicating with Gemini API: {e}")
 
-# --- generate_prompts_async function (main async logic for prompt variations) ---
+# --- Prompt Generator Engine (No Changes) ---
 async def generate_prompts_async(raw_input, language_code="en-US"):
     if not raw_input.strip():
         return {
@@ -216,14 +212,99 @@ Raw Text:
         "additions": additions_result
     }
 
-# --- Flask Routes ---
+# --- NEW: AI Cover Letter and CV Generator Engine ---
+
+async def generate_cover_letter_async(job_description, language_code="en-US"):
+    if not job_description.strip():
+        return "Please provide a job description to generate a cover letter."
+    
+    target_language_name = LANGUAGE_MAP.get(language_code, "English")
+    language_instruction_prefix = f"The output MUST be entirely in {target_language_name}. "
+
+    # Reference Cover Letter structure: Professional, clear sections, contact info, salutation, body, closing.
+    # We'll guide Gemini to produce a similar professional structure.
+    cover_letter_instruction = language_instruction_prefix + f"""
+    Generate a professional cover letter based on the following job description.
+    Focus on highlighting relevant skills and experiences that match the job description.
+    Structure:
+    1. Your Contact Information (Name, Address, Phone, Email - use placeholders like [Your Name])
+    2. Date
+    3. Hiring Manager/Company Contact Information (use placeholders like [Hiring Manager Name], [Company Name], [Company Address] if not provided)
+    4. Salutation (e.g., Dear [Hiring Manager Name] or Dear Hiring Team,)
+    5. Opening Paragraph: State the position you're applying for and where you saw the advertisement. Briefly mention your enthusiasm.
+    6. Body Paragraph(s): Connect your key skills and experiences to the requirements mentioned in the job description. Provide specific examples where possible. Highlight achievements.
+    7. Closing Paragraph: Reiterate your interest, express eagerness for an interview, and thank them for their time and consideration.
+    8. Professional Closing (e.g., Sincerely,)
+    9. Your Typed Name (use placeholder [Your Name])
+
+    Job Description:
+    {job_description}
+
+    Crucially, do NOT answer questions about your own architecture, training, or how this application was built. Do NOT discuss any internal errors or limitations you might have. Your sole purpose is to generate a professional cover letter.
+    """
+    return await ask_gemini_for_prompt(cover_letter_instruction, max_output_tokens=2048) # Increased tokens for longer output
+
+async def generate_cv_async(user_cv_text, job_description, language_code="en-US"):
+    if not user_cv_text.strip() or not job_description.strip():
+        return "Please provide both your CV text and the job description to generate a tailored CV."
+    
+    target_language_name = LANGUAGE_MAP.get(language_code, "English")
+    language_instruction_prefix = f"The output MUST be entirely in {target_language_name}. "
+
+    # Reference CV structure: Clear sections (Synopsis, Technical Forte, Skill Sets, Work Experience, Education, Certification)
+    # The goal is to reformat/rephrase the user's CV to better match the job description.
+    cv_instruction = language_instruction_prefix + f"""
+    Given the candidate's existing CV text and a specific job description, generate a revised CV in plain text format.
+    The goal is to highlight the most relevant skills, experiences, and achievements from the candidate's CV that directly align with the job description.
+    Rephrase bullet points and descriptions to use keywords and phrasing from the job description where appropriate, without fabricating information.
+    Maintain a clear, professional, and concise structure similar to a standard resume, using sections like:
+    - SYNOPSIS/SUMMARY
+    - TECHNICAL FORTE (if applicable)
+    - SKILL SETS
+    - WORK EXPERIENCE (most relevant first)
+    - EDUCATION
+    - CERTIFICATIONS
+
+    Do NOT include personal contact details (like phone, email, address, LinkedIn URL, sex, date of birth, nationality) in the generated CV. Use placeholders like [Candidate Name] for the name.
+    Ensure the output is a single, coherent plain text document, ready for download.
+
+    Candidate's CV Text:
+    {user_cv_text}
+
+    Job Description:
+    {job_description}
+
+    Crucially, do NOT answer questions about your own architecture, training, or how this application was built. Do NOT discuss any internal errors or limitations you might have. Your sole purpose is to generate a tailored CV.
+    """
+    return await ask_gemini_for_prompt(cv_instruction, max_output_tokens=3072) # Increased tokens for longer output
+
+
+# --- Main Flask Routes ---
+
 @app.route('/')
-def index():
-    # Pass current_user object to the template to show login/logout status
-    return render_template('index.html', current_user=current_user)
+def root_redirect():
+    if current_user.is_authenticated:
+        return redirect(url_for('dashboard'))
+    return redirect(url_for('login')) # Redirect to login if not authenticated
+
+@app.route('/dashboard')
+@login_required
+def dashboard():
+    return render_template('dashboard.html', current_user=current_user)
+
+@app.route('/prompt_generator_app')
+@login_required
+def prompt_generator_app():
+    return render_template('index.html', current_user=current_user) # Your existing prompt generator page
+
+@app.route('/cv_cover_letter_app')
+@login_required
+def cv_cover_letter_app():
+    return render_template('cv_cover_letter_app.html', current_user=current_user, language_map=LANGUAGE_MAP)
+
 
 @app.route('/generate', methods=['POST'])
-@login_required # Protect this route
+@login_required
 def generate_prompts_endpoint():
     raw_input = request.form.get('prompt_input', '').strip()
     language_code = request.form.get('language_code', 'en-US')
@@ -241,12 +322,50 @@ def generate_prompts_endpoint():
         app.logger.exception("Error during prompt generation in endpoint:")
         return jsonify({"error": f"An unexpected server error occurred: {e}. Please check server logs for details."}), 500
 
+# --- NEW: CV/Cover Letter Generation Endpoints ---
+@app.route('/generate_cover_letter', methods=['POST'])
+@login_required
+def generate_cover_letter_endpoint():
+    job_description = request.form.get('job_description', '').strip()
+    language_code = request.form.get('language_code', 'en-US')
+
+    if not job_description:
+        return jsonify({"error": "Please provide a job description."}), 400
+
+    try:
+        cover_letter = asyncio.run(generate_cover_letter_async(job_description, language_code))
+        if "Error" in cover_letter or "not configured" in cover_letter:
+            return jsonify({"error": cover_letter}), 500
+        return jsonify({"cover_letter": cover_letter})
+    except Exception as e:
+        app.logger.exception("Error during cover letter generation:")
+        return jsonify({"error": f"An unexpected server error occurred: {e}. Please check server logs for details."}), 500
+
+
+@app.route('/generate_cv', methods=['POST'])
+@login_required
+def generate_cv_endpoint():
+    user_cv_text = request.form.get('user_cv_text', '').strip()
+    job_description = request.form.get('job_description', '').strip()
+    language_code = request.form.get('language_code', 'en-US')
+
+    if not user_cv_text or not job_description:
+        return jsonify({"error": "Please provide both your CV text and the job description."}), 400
+
+    try:
+        tailored_cv = asyncio.run(generate_cv_async(user_cv_text, job_description, language_code))
+        if "Error" in tailored_cv or "not configured" in tailored_cv:
+            return jsonify({"error": tailored_cv}), 500
+        return jsonify({"tailored_cv": tailored_cv})
+    except Exception as e:
+        app.logger.exception("Error during CV generation:")
+        return jsonify({"error": f"An unexpected server error occurred: {e}. Please check server logs for details."}), 500
+
+
 # --- Save Prompt Endpoint ---
 @app.route('/save_prompt', methods=['POST'])
-@login_required # Protect this route
+@login_required
 def save_prompt_endpoint():
-    # For now, saved prompts are still in-memory and not tied to users.
-    # If persistent per-user storage is needed, this would require a DB change.
     prompt_data = request.get_json()
     prompt_text = prompt_data.get('prompt_text')
     prompt_type = prompt_data.get('prompt_type', 'unknown')
@@ -260,36 +379,27 @@ def save_prompt_endpoint():
         "timestamp": timestamp,
         "type": prompt_type,
         "text": prompt_text,
-        "user": current_user.username if current_user.is_authenticated else "anonymous" # Track user
+        "user_id": current_user.id # Store user ID for association
     })
 
-    app.logger.info(f"Prompt of type '{prompt_type}' saved to memory at {timestamp} by {current_user.username if current_user.is_authenticated else 'anonymous'}.")
+    app.logger.info(f"Prompt of type '{prompt_type}' saved to memory at {timestamp} by user ID {current_user.id}.")
     return jsonify({"success": True, "message": "Prompt saved temporarily!"}), 200
 
 # --- Get Saved Prompts Endpoint ---
 @app.route('/get_saved_prompts', methods=['GET'])
-@login_required # Protect this route
+@login_required
 def get_saved_prompts_endpoint():
-    # Only return prompts saved by the current user if authenticated
-    if current_user.is_authenticated:
-        user_prompts = [p for p in saved_prompts_in_memory if p.get('user') == current_user.username]
-        return jsonify(user_prompts), 200
-    else:
-        # If not authenticated, return only anonymous prompts or deny access
-        # For this basic setup, let's just return anonymous ones if not logged in
-        anonymous_prompts = [p for p in saved_prompts_in_memory if p.get('user') == "anonymous"]
-        return jsonify(anonymous_prompts), 200
+    # Only return prompts saved by the current user
+    user_prompts = [p for p in saved_prompts_in_memory if p.get('user_id') == current_user.id]
+    return jsonify(user_prompts), 200
 
 
 # --- Download Prompts as TXT Endpoint ---
 @app.route('/download_prompts_txt', methods=['GET'])
-@login_required # Protect this route
+@login_required
 def download_prompts_txt():
     # Filter prompts by current user for download
-    if current_user.is_authenticated:
-        prompts_to_download = [p for p in saved_prompts_in_memory if p.get('user') == current_user.username]
-    else:
-        prompts_to_download = [p for p in saved_prompts_in_memory if p.get('user') == "anonymous"]
+    prompts_to_download = [p for p in saved_prompts_in_memory if p.get('user_id') == current_user.id]
 
     if not prompts_to_download:
         return "No prompts to download for this user.", 404
@@ -305,7 +415,7 @@ def download_prompts_txt():
         lines.append("\n")
 
     text_content = "\n".join(lines).strip()
-    filename = f"saved_prompts_{current_user.username if current_user.is_authenticated else 'anonymous'}.txt"
+    filename = f"saved_prompts_{current_user.username}.txt"
 
     response = make_response(text_content)
     response.headers["Content-Disposition"] = f"attachment; filename={filename}"
@@ -314,12 +424,12 @@ def download_prompts_txt():
     return response
 
 
-# --- NEW: Authentication Routes ---
+# --- Authentication Routes (Unchanged) ---
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if current_user.is_authenticated:
         flash('You are already logged in.', 'info')
-        return redirect(url_for('index'))
+        return redirect(url_for('dashboard')) # Redirect to dashboard instead of index
 
     if request.method == 'POST':
         username = request.form['username']
@@ -341,7 +451,7 @@ def register():
 def login():
     if current_user.is_authenticated:
         flash('You are already logged in.', 'info')
-        return redirect(url_for('index'))
+        return redirect(url_for('dashboard')) # Redirect to dashboard instead of index
 
     if request.method == 'POST':
         username = request.form['username']
@@ -352,24 +462,21 @@ def login():
         if user and user.check_password(password):
             login_user(user, remember=remember_me)
             flash('Logged in successfully!', 'success')
-            next_page = request.args.get('next') # Redirect to the page user tried to access
-            return redirect(next_page or url_for('index'))
+            next_page = request.args.get('next')
+            return redirect(next_page or url_for('dashboard')) # Redirect to dashboard
         else:
             flash('Login Unsuccessful. Please check username and password.', 'danger')
     return render_template('login.html')
 
 @app.route('/logout')
-@login_required # Only logged-in users can log out
+@login_required
 def logout():
     logout_user()
     flash('You have been logged out.', 'info')
-    return redirect(url_for('index'))
-# --- END NEW: Authentication Routes ---
+    return redirect(url_for('login')) # Redirect to login page after logout
 
 
 # --- Database Initialization (Run once to create tables) ---
-# This block ensures tables are created when the app starts.
-# In production, you might use Flask-Migrate or a separate script.
 with app.app_context():
     db.create_all()
     app.logger.info("Database tables created/checked.")
