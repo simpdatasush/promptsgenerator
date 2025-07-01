@@ -8,7 +8,7 @@ from datetime import datetime
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
-from asgiref.sync import sync_to_async # NEW: Import sync_to_async
+from asgiref.sync import async_to_sync # CORRECTED: Import async_to_sync
 
 
 app = Flask(__name__)
@@ -135,8 +135,6 @@ async def ask_gemini_for_prompt(prompt_instruction, max_output_tokens=1024):
         return "Gemini API Key is not configured or the AI model failed to initialize."
 
     try:
-        # Create a new model instance for each call to ensure it's tied to the current event loop
-        # gemini-1.5-flash is good for longer contexts
         model = genai.GenerativeModel('gemini-2.0-flash') 
 
         generation_config = {
@@ -231,7 +229,7 @@ async def generate_cover_letter_async(job_description, language_code="en-US"):
     4. Salutation (e.g., Dear [Hiring Manager Name] or Dear Hiring Team,)
     5. Opening Paragraph: State the position you're applying for and where you saw the advertisement. Briefly mention your enthusiasm.
     6. Body Paragraph(s): Connect your key skills and experiences to the requirements mentioned in the job description. Provide specific examples where possible. Highlight achievements.
-    7. Closing Paragraph: Reiterate your interest, express eagerness for an interview, and thank them for their time and consideration.
+    7. Closing Paragraph: Reiterate your interest, express eagerness for an interview, and thank them for your time and consideration.
     8. Professional Closing (e.g., Sincerely,)
     9. Your Typed Name (use placeholder [Your Name])
 
@@ -312,8 +310,8 @@ def generate_prompts_endpoint():
         })
 
     try:
-        # Use sync_to_async to run the async function
-        results = sync_to_async(generate_prompts_async, thread_sensitive=False)(raw_input, language_code)
+        # CORRECTED: Use async_to_sync for async functions
+        results = async_to_sync(generate_prompts_async, thread_sensitive=False)(raw_input, language_code)
         return jsonify(results)
     except Exception as e:
         app.logger.exception("Error during prompt generation in endpoint:")
@@ -330,8 +328,8 @@ def generate_cover_letter_endpoint():
         return jsonify({"error": "Please provide a job description."}), 400
 
     try:
-        # Use sync_to_async to run the async function
-        cover_letter = sync_to_async(generate_cover_letter_async, thread_sensitive=False)(job_description, language_code)
+        # CORRECTED: Use async_to_sync for async functions
+        cover_letter = async_to_sync(generate_cover_letter_async, thread_sensitive=False)(job_description, language_code)
         if "Error" in cover_letter or "not configured" in cover_letter:
             return jsonify({"error": cover_letter}), 500
         return jsonify({"cover_letter": cover_letter})
@@ -351,8 +349,8 @@ def generate_cv_endpoint():
         return jsonify({"error": "Please provide both your CV text and the job description."}), 400
 
     try:
-        # Use sync_to_async to run the async function
-        tailored_cv = sync_to_async(generate_cv_async, thread_sensitive=False)(user_cv_text, job_description, language_code)
+        # CORRECTED: Use async_to_sync for async functions
+        tailored_cv = async_to_sync(generate_cv_async, thread_sensitive=False)(user_cv_text, job_description, language_code)
         if "Error" in tailored_cv or "not configured" in tailored_cv:
             return jsonify({"error": tailored_cv}), 500
         return jsonify({"tailored_cv": tailored_cv})
