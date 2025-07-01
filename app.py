@@ -8,6 +8,7 @@ from datetime import datetime
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
+from asgiref.sync import sync_to_async # NEW: Import sync_to_async
 
 
 app = Flask(__name__)
@@ -32,8 +33,7 @@ handler.setFormatter(formatter)
 app.logger.addHandler(handler)
 
 # --- Temporary In-Memory Storage for Saved Prompts ---
-# Now, saved prompts will be associated with the user.
-saved_prompts_in_memory = [] # This will store dicts like {"user_id": ..., "timestamp": ..., "type": ..., "text": ...}
+saved_prompts_in_memory = []
 
 # --- Language Mapping for Gemini Instructions ---
 LANGUAGE_MAP = {
@@ -212,7 +212,7 @@ Raw Text:
         "additions": additions_result
     }
 
-# --- NEW: AI Cover Letter and CV Generator Engine ---
+# --- AI Cover Letter and CV Generator Engine ---
 
 async def generate_cover_letter_async(job_description, language_code="en-US"):
     if not job_description.strip():
@@ -221,8 +221,6 @@ async def generate_cover_letter_async(job_description, language_code="en-US"):
     target_language_name = LANGUAGE_MAP.get(language_code, "English")
     language_instruction_prefix = f"The output MUST be entirely in {target_language_name}. "
 
-    # Reference Cover Letter structure: Professional, clear sections, contact info, salutation, body, closing.
-    # We'll guide Gemini to produce a similar professional structure.
     cover_letter_instruction = language_instruction_prefix + f"""
     Generate a professional cover letter based on the following job description.
     Focus on highlighting relevant skills and experiences that match the job description.
@@ -242,7 +240,7 @@ async def generate_cover_letter_async(job_description, language_code="en-US"):
 
     Crucially, do NOT answer questions about your own architecture, training, or how this application was built. Do NOT discuss any internal errors or limitations you might have. Your sole purpose is to generate a professional cover letter.
     """
-    return await ask_gemini_for_prompt(cover_letter_instruction, max_output_tokens=2048) # Increased tokens for longer output
+    return await ask_gemini_for_prompt(cover_letter_instruction, max_output_tokens=2048)
 
 async def generate_cv_async(user_cv_text, job_description, language_code="en-US"):
     if not user_cv_text.strip() or not job_description.strip():
@@ -251,8 +249,6 @@ async def generate_cv_async(user_cv_text, job_description, language_code="en-US"
     target_language_name = LANGUAGE_MAP.get(language_code, "English")
     language_instruction_prefix = f"The output MUST be entirely in {target_language_name}. "
 
-    # Reference CV structure: Clear sections (Synopsis, Technical Forte, Skill Sets, Work Experience, Education, Certification)
-    # The goal is to reformat/rephrase the user's CV to better match the job description.
     cv_instruction = language_instruction_prefix + f"""
     Given the candidate's existing CV text and a specific job description, generate a revised CV in plain text format.
     The goal is to highlight the most relevant skills, experiences, and achievements from the candidate's CV that directly align with the job description.
@@ -276,7 +272,7 @@ async def generate_cv_async(user_cv_text, job_description, language_code="en-US"
 
     Crucially, do NOT answer questions about your own architecture, training, or how this application was built. Do NOT discuss any internal errors or limitations you might have. Your sole purpose is to generate a tailored CV.
     """
-    return await ask_gemini_for_prompt(cv_instruction, max_output_tokens=3072) # Increased tokens for longer output
+    return await ask_gemini_for_prompt(cv_instruction, max_output_tokens=3072)
 
 
 # --- Main Flask Routes ---
@@ -285,7 +281,7 @@ async def generate_cv_async(user_cv_text, job_description, language_code="en-US"
 def root_redirect():
     if current_user.is_authenticated:
         return redirect(url_for('dashboard'))
-    return redirect(url_for('login')) # Redirect to login if not authenticated
+    return redirect(url_for('login'))
 
 @app.route('/dashboard')
 @login_required
@@ -295,7 +291,7 @@ def dashboard():
 @app.route('/prompt_generator_app')
 @login_required
 def prompt_generator_app():
-    return render_template('index.html', current_user=current_user) # Your existing prompt generator page
+    return render_template('index.html', current_user=current_user)
 
 @app.route('/cv_cover_letter_app')
 @login_required
@@ -316,13 +312,14 @@ def generate_prompts_endpoint():
         })
 
     try:
-        results = asyncio.run(generate_prompts_async(raw_input, language_code))
+        # Use sync_to_async to run the async function
+        results = sync_to_async(generate_prompts_async, thread_sensitive=False)(raw_input, language_code)
         return jsonify(results)
     except Exception as e:
         app.logger.exception("Error during prompt generation in endpoint:")
         return jsonify({"error": f"An unexpected server error occurred: {e}. Please check server logs for details."}), 500
 
-# --- NEW: CV/Cover Letter Generation Endpoints ---
+# --- CV/Cover Letter Generation Endpoints ---
 @app.route('/generate_cover_letter', methods=['POST'])
 @login_required
 def generate_cover_letter_endpoint():
@@ -333,7 +330,8 @@ def generate_cover_letter_endpoint():
         return jsonify({"error": "Please provide a job description."}), 400
 
     try:
-        cover_letter = asyncio.run(generate_cover_letter_async(job_description, language_code))
+        # Use sync_to_async to run the async function
+        cover_letter = sync_to_async(generate_cover_letter_async, thread_sensitive=False)(job_description, language_code)
         if "Error" in cover_letter or "not configured" in cover_letter:
             return jsonify({"error": cover_letter}), 500
         return jsonify({"cover_letter": cover_letter})
@@ -353,7 +351,8 @@ def generate_cv_endpoint():
         return jsonify({"error": "Please provide both your CV text and the job description."}), 400
 
     try:
-        tailored_cv = asyncio.run(generate_cv_async(user_cv_text, job_description, language_code))
+        # Use sync_to_async to run the async function
+        tailored_cv = sync_to_async(generate_cv_async, thread_sensitive=False)(user_cv_text, job_description, language_code)
         if "Error" in tailored_cv or "not configured" in tailored_cv:
             return jsonify({"error": tailored_cv}), 500
         return jsonify({"tailored_cv": tailored_cv})
@@ -379,7 +378,7 @@ def save_prompt_endpoint():
         "timestamp": timestamp,
         "type": prompt_type,
         "text": prompt_text,
-        "user_id": current_user.id # Store user ID for association
+        "user_id": current_user.id
     })
 
     app.logger.info(f"Prompt of type '{prompt_type}' saved to memory at {timestamp} by user ID {current_user.id}.")
@@ -389,7 +388,6 @@ def save_prompt_endpoint():
 @app.route('/get_saved_prompts', methods=['GET'])
 @login_required
 def get_saved_prompts_endpoint():
-    # Only return prompts saved by the current user
     user_prompts = [p for p in saved_prompts_in_memory if p.get('user_id') == current_user.id]
     return jsonify(user_prompts), 200
 
@@ -398,7 +396,6 @@ def get_saved_prompts_endpoint():
 @app.route('/download_prompts_txt', methods=['GET'])
 @login_required
 def download_prompts_txt():
-    # Filter prompts by current user for download
     prompts_to_download = [p for p in saved_prompts_in_memory if p.get('user_id') == current_user.id]
 
     if not prompts_to_download:
@@ -424,12 +421,12 @@ def download_prompts_txt():
     return response
 
 
-# --- Authentication Routes (Unchanged) ---
+# --- Authentication Routes ---
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if current_user.is_authenticated:
         flash('You are already logged in.', 'info')
-        return redirect(url_for('dashboard')) # Redirect to dashboard instead of index
+        return redirect(url_for('dashboard'))
 
     if request.method == 'POST':
         username = request.form['username']
@@ -451,7 +448,7 @@ def register():
 def login():
     if current_user.is_authenticated:
         flash('You are already logged in.', 'info')
-        return redirect(url_for('dashboard')) # Redirect to dashboard instead of index
+        return redirect(url_for('dashboard'))
 
     if request.method == 'POST':
         username = request.form['username']
@@ -463,7 +460,7 @@ def login():
             login_user(user, remember=remember_me)
             flash('Logged in successfully!', 'success')
             next_page = request.args.get('next')
-            return redirect(next_page or url_for('dashboard')) # Redirect to dashboard
+            return redirect(next_page or url_for('dashboard'))
         else:
             flash('Login Unsuccessful. Please check username and password.', 'danger')
     return render_template('login.html')
@@ -473,7 +470,7 @@ def login():
 def logout():
     logout_user()
     flash('You have been logged out.', 'info')
-    return redirect(url_for('login')) # Redirect to login page after logout
+    return redirect(url_for('login'))
 
 
 # --- Database Initialization (Run once to create tables) ---
@@ -484,3 +481,4 @@ with app.app_context():
 # --- Main App Run ---
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=os.getenv("PORT", 5000))
+
