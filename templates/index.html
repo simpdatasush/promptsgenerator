@@ -4,7 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Prompt Generator</title>
+    <!-- NEW: Bootstrap CSS for better styling of auth forms and alerts -->
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <!-- NEW: Font Awesome for icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
     <style>
         body {
@@ -221,7 +223,7 @@
         .download-all-button:hover {
             background-color: #218838;
         }
-        /* Styles for login/logout/register links */
+        /* NEW: Styles for login/logout/register links */
         .auth-links {
             text-align: right;
             margin-bottom: 15px;
@@ -236,25 +238,25 @@
             text-decoration: underline;
         }
         .auth-links .username {
-            color: #28a745;
+            color: #28a745; /* Green for logged-in username */
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <!-- Auth Links -->
+        <!-- NEW: Auth Links -->
         <div class="auth-links">
             {% if current_user.is_authenticated %}
                 <span>Logged in as: <strong class="username">{{ current_user.username }}</strong></span>
-                <a href="{{ url_for('dashboard') }}">Dashboard</a> {# NEW: Link to dashboard #}
                 <a href="{{ url_for('logout') }}">Logout</a>
             {% else %}
                 <a href="{{ url_for('login') }}">Login</a>
                 <a href="{{ url_for('register') }}">Register</a>
             {% endif %}
         </div>
+        <!-- END NEW: Auth Links -->
 
-        <!-- Flash Messages -->
+        <!-- NEW: Flash Messages -->
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 {% for category, message in messages %}
@@ -262,6 +264,7 @@
                 {% endfor %}
             {% endif %}
         {% endwith %}
+        <!-- END NEW: Flash Messages -->
 
         <h1>AI Prompt Generator</h1>
 
@@ -423,19 +426,17 @@
         }
 
 
-        // Function to fetch and display saved prompts
+        // Function to fetch and display saved prompts (unchanged)
         async function fetchAndDisplaySavedPrompts() {
             const savedPromptsListElement = document.getElementById('saved_prompts_list');
             savedPromptsListElement.innerHTML = '';
 
             try {
+                // NEW: Fetch saved prompts only if user is authenticated or for anonymous
                 const response = await fetch('/get_saved_prompts');
                 if (!response.ok) {
-                    if (response.status === 302) {
-                        // If redirected to login, handle it
-                        window.location.href = response.url;
-                        return;
-                    }
+                    // If not logged in, this might return 401/403, handle gracefully
+                    // For now, just log and show empty list.
                     console.warn(`Could not fetch saved prompts: HTTP status ${response.status}`);
                     savedPromptsListElement.innerHTML = '<li>Please log in to view your saved prompts.</li>';
                     return;
@@ -492,9 +493,11 @@
                 });
 
                 if (!response.ok) {
+                    // If Flask-Login redirects to login, this will not be JSON.
+                    // Check if it's a redirect (status 302) or a JSON error.
                     if (response.status === 302) {
-                        window.location.href = response.url;
-                        return;
+                        window.location.href = response.url; // Redirect to login page
+                        return; // Stop further execution
                     }
                     const errorData = await response.json();
                     throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
@@ -524,7 +527,7 @@
             }
         });
 
-        // Event listeners for save buttons
+        // Event listeners for save buttons (unchanged)
         document.querySelectorAll('.save-button').forEach(button => {
             button.addEventListener('click', async function() {
                 const promptType = this.dataset.promptType;
@@ -552,7 +555,7 @@
 
                     if (!response.ok) {
                         if (response.status === 302) {
-                            window.location.href = response.url;
+                            window.location.href = response.url; // Redirect to login page
                             return;
                         }
                         const errorData = await response.json();
@@ -574,7 +577,7 @@
             });
         });
 
-        // --- Web Speech API for Voice Input with Language Selector ---
+        // --- Web Speech API for Voice Input with Language Selector (unchanged) ---
         const voiceInputButton = document.getElementById('voice_input_button');
         const promptInputTextarea = document.getElementById('prompt_input');
         const langSelect = document.getElementById('lang_select');
