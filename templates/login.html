@@ -3,38 +3,258 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login</title>
+    <title>AI Prompt Generator</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
     <style>
         body {
-            font-family: Arial, sans-serif;
-            background-color: #f8f9fa;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             margin: 0;
+            padding: 20px;
+            background-color: #f0f2f5;
+            color: #333;
+            line-height: 1.6;
         }
         .container {
-            max-width: 400px;
-            background-color: #ffffff;
+            max-width: 900px;
+            margin: 0 auto;
+            background-color: #fff;
             padding: 30px;
             border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
         }
-        h2 {
-            color: #343a40;
-            margin-bottom: 20px;
+        h1 {
             text-align: center;
+            color: #2c3e50;
+            margin-bottom: 20px;
         }
-        .form-group label {
+        label {
+            display: block;
+            margin-bottom: 8px;
             font-weight: bold;
+            color: #555;
+        }
+        textarea {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            box-sizing: border-box; /* Include padding in width */
+            font-size: 1rem;
+            resize: vertical;
+            min-height: 100px;
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.06);
+        }
+        
+        /* GENERAL BUTTON STYLE - applies to both "Generate Prompts" and "Start Voice Input" */
+        button {
+            display: block;
+            width: 100%; /* Full width */
+            padding: 12px 20px; /* Consistent padding */
+            background-color: #D32F2F; /* Red color */
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 1.1rem; /* Consistent font size */
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.1s ease;
+        }
+        button:hover {
+            background-color: #C62828; /* Darker Red on hover */
+            transform: translateY(-1px);
+        }
+        button:active {
+            transform: translateY(0);
+        }
+
+        .results-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-top: 30px;
+        }
+        .result-box {
+            background-color: #f9f9f9;
+            border: 1px solid #eee;
+            border-radius: 6px;
+            padding: 15px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+            min-height: 150px;
+            display: flex;
+            flex-direction: column;
+        }
+        .result-box h3 {
+            margin-top: 0;
+            color: #3f51b5;
+            font-size: 1.1rem;
+            margin-bottom: 10px;
+        }
+        .result-box pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-family: 'Consolas', 'Menlo', 'Courier New', monospace;
+            font-size: 0.9rem;
+            background-color: #eef1f4;
+            padding: 10px;
+            border-radius: 4px;
+            border: 1px solid #e0e2e5;
+            flex-grow: 1;
+            overflow-y: auto;
+        }
+        .suggestions {
+            grid-column: span 2;
+        }
+        #app_output {
+            margin-top: 20px;
+            font-size: 0.9em;
+            color: #666;
+            background-color: #eef1f4;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #e0e2e5;
+            min-height: 60px;
+            overflow-y: auto;
+        }
+        /* Style for new save button */
+        .save-button {
+            background-color: #007bff; /* Blue for save */
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 10px;
+            align-self: flex-end; /* Puts button to the right */
+            font-size: 0.9rem;
+            transition: background-color 0.2s ease;
+        }
+        .save-button:hover {
+            background-color: #0056b3;
+        }
+        .saved-prompts-section {
+            background-color: #e6f7ff; /* Light blue background */
+            border: 1px solid #b3e0ff;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 30px;
+        }
+        .saved-prompts-list {
+            list-style-type: none;
+            padding: 0;
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #cceeff;
+            border-radius: 5px;
+            background-color: #ffffff;
+        }
+        .saved-prompts-list li {
+            padding: 10px;
+            border-bottom: 1px solid #e0e0e0;
+            font-family: 'Consolas', 'Menlo', 'Courier New', monospace;
+            font-size: 0.85rem;
+            color: #444;
+            display: flex;
+            flex-direction: column;
+        }
+        .saved-prompts-list li:last-child {
+            border-bottom: none;
+        }
+        .saved-prompts-list li strong {
+            color: #3f51b5;
+            margin-bottom: 5px;
+            font-size: 0.9rem;
+        }
+        /* Specific styles for voice input button - only what differentiates it */
+        .voice-button {
+            margin-top: 10px;
+        }
+        .voice-button.recording {
+            background-color: #FF1744;
+        }
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 20px;
+        }
+        /* Language selector styling */
+        .language-selector {
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            background-color: #e9ecef;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #dee2e6;
+        }
+        .language-selector label {
+            margin-bottom: 0;
+            font-weight: normal;
+        }
+        .language-selector select {
+            padding: 8px 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 0.95rem;
+            background-color: #fff;
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.06);
+        }
+
+        /* Style for download button in saved prompts section */
+        .download-all-button {
+            display: block;
+            width: 100%;
+            padding: 10px 15px;
+            background-color: #28a745; /* Green color for download */
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            margin-top: 15px;
+        }
+        .download-all-button:hover {
+            background-color: #218838;
+        }
+        /* Styles for login/logout/register links */
+        .auth-links {
+            text-align: right;
+            margin-bottom: 15px;
+        }
+        .auth-links a, .auth-links span {
+            margin-left: 15px;
+            color: #007bff;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        .auth-links a:hover {
+            text-decoration: underline;
+        }
+        .auth-links .username {
+            color: #28a745;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h2>Login</h2>
+        <!-- Auth Links -->
+        <div class="auth-links">
+            {% if current_user.is_authenticated %}
+                <span>Logged in as: <strong class="username">{{ current_user.username }}</strong></span>
+                <a href="{{ url_for('dashboard') }}">Dashboard</a> {# NEW: Link to dashboard #}
+                <a href="{{ url_for('logout') }}">Logout</a>
+            {% else %}
+                <a href="{{ url_for('login') }}">Login</a>
+                <a href="{{ url_for('register') }}">Register</a>
+            {% endif %}
+        </div>
+
+        <!-- Flash Messages -->
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 {% for category, message in messages %}
@@ -42,22 +262,400 @@
                 {% endfor %}
             {% endif %}
         {% endwith %}
-        <form method="POST">
-            <div class="form-group">
-                <label for="username">Username:</label>
-                <input type="text" class="form-control" id="username" name="username" required>
+
+        <h1>AI Prompt Generator</h1>
+
+        <!-- Language Selector -->
+        <div class="language-selector">
+            <label for="lang_select">Voice Input & Output Language:</label>
+            <select id="lang_select">
+                <option value="en-US">English (US)</option>
+                <option value="en-GB">English (UK)</option>
+                <option value="es-ES">Español (España)</option>
+                <option value="fr-FR">Français (France)</option>
+                <option value="de-DE">Deutsch (Deutschland)</option>
+                <option value="it-IT">Italiano (Italia)</option>
+                <option value="ja-JP">日本語 (日本)</option>
+                <option value="ko-KR">한국어 (대한민국)</option>
+                <option value="zh-CN">中文 (普通话, 简体)</option>
+                <option value="hi-IN">हिन्दी (भारत)</option>
+                <!-- Add more languages as needed -->
+            </select>
+        </div>
+
+        <form id="promptForm">
+            <label for="prompt_input">Enter your raw prompt idea:</label>
+            <div class="input-group">
+                <textarea id="prompt_input" name="prompt_input" rows="8" placeholder="e.g., Write a story about a robot who wants to be a chef."></textarea>
+                
+                <button type="button" id="voice_input_button" class="voice-button">🎤 Start Voice Input</button>
             </div>
-            <div class="form-group">
-                <label for="password">Password:</label>
-                <input type="password" class="form-control" id="password" name="password" required>
-            </div>
-            <div class="form-group form-check">
-                <input type="checkbox" class="form-check-input" id="remember_me" name="remember_me">
-                <label class="form-check-label" for="remember_me">Remember Me</label>
-            </div>
-            <button type="submit" class="btn btn-primary btn-block">Login</button>
-            <p class="text-center mt-3">Don't have an account? <a href="{{ url_for('register') }}">Register here</a></p>
+            <button type="submit">Generate Prompts</button>
         </form>
+
+        <div id="app_output">Application messages will appear here.</div>
+
+        <div class="results-grid">
+            <div class="result-box">
+                <h3>Polished Prompt</h3>
+                <pre id="polished_output"></pre>
+                <button class="save-button" data-prompt-type="polished">Save Polished Prompt</button>
+            </div>
+            <div class="result-box">
+                <h3>Creative Variant</h3>
+                <pre id="creative_output"></pre>
+                <button class="save-button" data-prompt-type="creative">Save Creative Prompt</button>
+            </div>
+            <div class="result-box">
+                <h3>Technical Variant</h3>
+                <pre id="technical_output"></pre>
+                <button class="save-button" data-prompt-type="technical">Save Technical Prompt</button>
+            </div>
+            <div class="result-box">
+                <h3>Shorter Variant</h3>
+                <pre id="shorter_output"></pre>
+                <button class="save-button" data-prompt-type="shorter">Save Shorter Prompt</button>
+            </div>
+            <div class="result-box suggestions">
+                <h3>Suggested Additions</h3>
+                <pre id="additions_output"></pre>
+                <button class="save-button" data-prompt-type="additions">Save Additions</button>
+            </div>
+        </div>
+
+        <div class="saved-prompts-section">
+            <h2>Saved Prompts (Temporary)</h2>
+            <ul id="saved_prompts_list" class="saved-prompts-list">
+                <!-- Saved prompts will be loaded here -->
+            </ul>
+            <!-- Download Button -->
+            <button class="download-all-button" onclick="window.location.href='/download_prompts_txt'">
+                ⬇️ Download All Prompts (TXT)
+            </button>
+        </div>
+
     </div>
+
+    <script>
+        // --- Message Translations (unchanged) ---
+        const MESSAGES = {
+            "en-US": {
+                "generating": "🚀 Generating prompts and variants...",
+                "voice_not_supported": "Warning: Your browser does not support Web Speech API for voice input.",
+                "listening": "🗣️ Listening (English). Speak now.",
+                "voice_captured": "✅ Voice input captured. Click \"Generate Prompts\".",
+                "voice_error": "❌ Voice input error:",
+                "voice_start_error": "❌ Error starting voice input:",
+                "voice_ended": "Voice input session ended.",
+                "no_prompt_to_save": "❗ No {type} prompt to save. Generate one first.",
+                "prompt_saved": "✅ Prompt saved temporarily!",
+                "save_failed": "❌ Failed to save prompt:",
+                "network_error_save": "❌ Error communicating with server to save prompt:",
+                "api_error": "❌ Error: {error}",
+                "generation_failed": "❌ Failed to generate prompts:",
+                "generation_complete": "✨ All prompt generation tasks complete.",
+                "no_input_text": "Please enter some text to generate prompts.",
+                "api_key_not_configured": "Gemini API Key is not configured or the AI model failed to initialize."
+            },
+            "es-ES": {
+                "generating": "🚀 Generando indicaciones y variantes...",
+                "voice_not_supported": "Advertencia: Su navegador no soporta la API de Voz para entrada de voz.",
+                "listening": "🗣️ Escuchando (Español). Hable ahora.",
+                "voice_captured": "✅ Entrada de voz capturada. Haga clic en \"Generar Indicaciones\".",
+                "voice_error": "❌ Error de entrada de voz:",
+                "voice_start_error": "❌ Error al iniciar la entrada de voz:",
+                "voice_ended": "Sesión de entrada de voz finalizada.",
+                "no_prompt_to_save": "❗ No hay indicación {type} para guardar. Genere una primero.",
+                "prompt_saved": "✅ ¡Indicación guardada temporalmente!",
+                "save_failed": "❌ Error al guardar la indicación:",
+                "network_error_save": "❌ Error de comunicación con el servidor al guardar la indicación:",
+                "api_error": "❌ Error: {error}",
+                "generation_failed": "❌ Fallo al generar indicaciones:",
+                "generation_complete": "✨ Todas las tareas de generación de indicaciones completadas.",
+                "no_input_text": "Por favor, introduzca texto para generar indicaciones.",
+                "api_key_not_configured": "La clave API de Gemini no está configurada o el modelo de IA no se pudo inicializar."
+            },
+            "fr-FR": {
+                "generating": "🚀 Génération des invites et variantes...",
+                "voice_not_supported": "Avertissement: Votre navigateur ne prend pas en charge l'API vocale pour la saisie vocale.",
+                "listening": "🗣️ À l'écoute (Français). Parlez maintenant.",
+                "voice_captured": "✅ Saisie vocale capturée. Cliquez sur \"Générer les invites\".",
+                "voice_error": "❌ Erreur de saisie vocale :",
+                "voice_start_error": "❌ Erreur au démarrage de la saisie vocale :",
+                "voice_ended": "Session de saisie vocale terminée.",
+                "no_prompt_to_save": "❗ Aucune invite {type} à enregistrer. Générez-en une d'abord.",
+                "prompt_saved": "✅ Invite enregistrée temporairement !",
+                "save_failed": "❌ Échec de l'enregistrement de l'invite :",
+                "network_error_save": "❌ Erreur de communication avec le serveur lors de l'enregistrement de l'invite :",
+                "api_error": "❌ Erreur : {error}",
+                "generation_failed": "❌ Échec de la génération des invites :",
+                "generation_complete": "✨ Toutes les tâches de génération d'invites terminées.",
+                "no_input_text": "Veuillez saisir du texte pour générer des invites.",
+                "api_key_not_configured": "La clé API Gemini n'est pas configurée ou le modèle d'IA n'a pas pu être initialisé."
+            },
+            "de-DE": {
+                "generating": "🚀 Prompts und Varianten werden generiert...",
+                "voice_not_supported": "Warnung: Ihr Browser unterstützt die Web Speech API für die Spracheingabe nicht.",
+                "listening": "🗣️ Höre zu (Deutsch). Sprechen Sie jetzt.",
+                "voice_captured": "✅ Spracheingabe erfasst. Klicken Sie auf „Prompts generieren“.",
+                "voice_error": "❌ Fehler bei der Spracheingabe:",
+                "voice_start_error": "❌ Fehler beim Starten der Spracheingabe:",
+                "voice_ended": "Spracheingabesitzung beendet.",
+                "no_prompt_to_save": "❗ Kein {type}-Prompt zum Speichern vorhanden. Generieren Sie zuerst einen.",
+                "prompt_saved": "✅ Prompt temporär gespeichert!",
+                "save_failed": "❌ Speichern des Prompts fehlgeschlagen:",
+                "network_error_save": "❌ Fehler bei der Kommunikation mit dem Server beim Speichern des Prompts:",
+                "api_error": "❌ Fehler: {error}",
+                "generation_failed": "❌ Generierung der Prompts fehlgeschlagen:",
+                "generation_complete": "✨ Alle Prompt-Generierungsaufgaben abgeschlossen.",
+                "no_input_text": "Bitte geben Sie Text ein, um Prompts zu generieren.",
+                "api_key_not_configured": "Der Gemini-API-Schlüssel ist nicht konfiguriert oder das KI-Modell konnte nicht initialisiert werden."
+            },
+        };
+
+        function getMessage(key, langCode, replacements = {}) {
+            const messages = MESSAGES[langCode] || MESSAGES["en-US"];
+            let message = messages[key] || MESSAGES["en-US"][key] || key;
+            for (const placeholder in replacements) {
+                message = message.replace(`{${placeholder}}`, replacements[placeholder]);
+            }
+            return message;
+        }
+
+
+        // Function to fetch and display saved prompts
+        async function fetchAndDisplaySavedPrompts() {
+            const savedPromptsListElement = document.getElementById('saved_prompts_list');
+            savedPromptsListElement.innerHTML = '';
+
+            try {
+                const response = await fetch('/get_saved_prompts');
+                if (!response.ok) {
+                    if (response.status === 302) {
+                        // If redirected to login, handle it
+                        window.location.href = response.url;
+                        return;
+                    }
+                    console.warn(`Could not fetch saved prompts: HTTP status ${response.status}`);
+                    savedPromptsListElement.innerHTML = '<li>Please log in to view your saved prompts.</li>';
+                    return;
+                }
+                const savedPrompts = await response.json();
+
+                if (savedPrompts.length === 0) {
+                    savedPromptsListElement.innerHTML = '<li>No prompts saved yet.</li>';
+                } else {
+                    savedPrompts.forEach(prompt => {
+                        const listItem = document.createElement('li');
+                        listItem.innerHTML = `
+                            <strong>${prompt.type.charAt(0).toUpperCase() + prompt.type.slice(1)} Prompt (${prompt.timestamp}):</strong>
+                            <pre>${prompt.text}</pre>
+                        `;
+                        savedPromptsListElement.appendChild(listItem);
+                    });
+                }
+            } catch (error) {
+                console.error("Error fetching saved prompts:", error);
+                savedPromptsListElement.innerHTML = '<li>Error loading saved prompts.</li>';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', fetchAndDisplaySavedPrompts);
+
+
+        document.getElementById('promptForm').addEventListener('submit', async function(event) {
+            event.preventDefault();
+
+            const promptInput = document.getElementById('prompt_input').value;
+            const selectedLanguage = document.getElementById('lang_select').value;
+            const appOutput = document.getElementById('app_output');
+            const generateButton = document.querySelector('button[type="submit"]');
+
+            document.getElementById('polished_output').textContent = '';
+            document.getElementById('creative_output').textContent = '';
+            document.getElementById('technical_output').textContent = '';
+            document.getElementById('shorter_output').textContent = '';
+            document.getElementById('additions_output').textContent = '';
+
+            appOutput.textContent = getMessage("generating", selectedLanguage);
+            generateButton.disabled = true;
+            generateButton.textContent = 'Generating...';
+
+            try {
+                const formData = new FormData();
+                formData.append('prompt_input', promptInput);
+                formData.append('language_code', selectedLanguage);
+
+                const response = await fetch('/generate', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    if (response.status === 302) {
+                        window.location.href = response.url;
+                        return;
+                    }
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                if (data.error) {
+                    appOutput.textContent = getMessage("api_error", selectedLanguage, {error: data.error});
+                    console.error("Backend error:", data.error);
+                } else {
+                    document.getElementById('polished_output').textContent = data.polished;
+                    document.getElementById('creative_output').textContent = data.creative;
+                    document.getElementById('technical_output').textContent = data.technical;
+                    document.getElementById('shorter_output').textContent = data.shorter;
+                    document.getElementById('additions_output').textContent = data.additions;
+
+                    appOutput.textContent = getMessage("generation_complete", selectedLanguage);
+                }
+
+            } catch (error) {
+                appOutput.textContent = getMessage("generation_failed", selectedLanguage) + ` ${error.message}`;
+                console.error("Fetch error:", error);
+            } finally {
+                generateButton.disabled = false;
+                generateButton.textContent = 'Generate Prompts';
+            }
+        });
+
+        // Event listeners for save buttons
+        document.querySelectorAll('.save-button').forEach(button => {
+            button.addEventListener('click', async function() {
+                const promptType = this.dataset.promptType;
+                const promptElementId = `${promptType}_output`;
+                const promptText = document.getElementById(promptElementId).textContent.trim();
+                const selectedLanguage = document.getElementById('lang_select').value;
+                const appOutput = document.getElementById('app_output');
+
+                if (!promptText) {
+                    appOutput.textContent = getMessage("no_prompt_to_save", selectedLanguage, {type: promptType});
+                    return;
+                }
+
+                try {
+                    const response = await fetch('/save_prompt', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            prompt_text: promptText,
+                            prompt_type: promptType
+                        })
+                    });
+
+                    if (!response.ok) {
+                        if (response.status === 302) {
+                            window.location.href = response.url;
+                            return;
+                        }
+                        const errorData = await response.json();
+                        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+                    }
+
+                    const data = await response.json();
+                    if (data.success) {
+                        appOutput.textContent = getMessage("prompt_saved", selectedLanguage);
+                        fetchAndDisplaySavedPrompts();
+                    } else {
+                        appOutput.textContent = getMessage("save_failed", selectedLanguage) + ` ${data.message}`;
+                        console.error("Save error:", data.message);
+                    }
+                } catch (error) {
+                    appOutput.textContent = getMessage("network_error_save", selectedLanguage) + ` ${error.message}`;
+                    console.error("Network error saving prompt:", error);
+                }
+            });
+        });
+
+        // --- Web Speech API for Voice Input with Language Selector ---
+        const voiceInputButton = document.getElementById('voice_input_button');
+        const promptInputTextarea = document.getElementById('prompt_input');
+        const langSelect = document.getElementById('lang_select');
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+        if (!SpeechRecognition) {
+            voiceInputButton.disabled = true;
+            voiceInputButton.textContent = '🎤 Voice Input Not Supported';
+            appOutput.textContent = getMessage("voice_not_supported", "en-US");
+            langSelect.disabled = true;
+        } else {
+            const recognition = new SpeechRecognition();
+            recognition.continuous = false;
+            recognition.interimResults = false;
+            recognition.lang = langSelect.value;
+
+            let isRecording = false;
+
+            langSelect.addEventListener('change', () => {
+                const selectedLanguage = langSelect.value;
+                recognition.lang = selectedLanguage;
+                const langName = langSelect.options[langSelect.selectedIndex].text;
+                appOutput.textContent = `Voice input language set to ${langName}. Remember to click "Generate" to get prompts in this language.`;
+                if (isRecording) {
+                    recognition.stop();
+                }
+            });
+
+            voiceInputButton.addEventListener('click', () => {
+                const selectedLanguage = langSelect.value;
+                if (isRecording) {
+                    recognition.stop();
+                    return;
+                }
+
+                if (!recognition.continuous) {
+                    promptInputTextarea.value = '';
+                }
+
+                try {
+                    recognition.start();
+                    isRecording = true;
+                    voiceInputButton.textContent = '🔴 Stop Recording';
+                    voiceInputButton.classList.add('recording');
+                    const langName = langSelect.options[langSelect.selectedIndex].text;
+                    appOutput.textContent = getMessage("listening", selectedLanguage).replace("(English)", `(${langName})`);
+                } catch (error) {
+                    console.error("Error starting speech recognition:", error);
+                    appOutput.textContent = getMessage("voice_start_error", selectedLanguage) + ` ${error.message}`;
+                    isRecording = false;
+                    voiceInputButton.textContent = '🎤 Start Voice Input';
+                    voiceInputButton.classList.remove('recording');
+                }
+            });
+
+            recognition.onresult = (event) => {
+                const selectedLanguage = langSelect.value;
+                const transcript = event.results[0][0].transcript;
+                promptInputTextarea.value = transcript;
+                appOutput.textContent = getMessage("voice_captured", selectedLanguage);
+            };
+
+            recognition.onerror = (event) => {
+                const selectedLanguage = langSelect.value;
+                console.error('Speech recognition error:', event.error);
+                appOutput.textContent = getMessage("voice_error", selectedLanguage) + ` ${event.error}`;
+                isRecording = false;
+                voiceInputButton.textContent = '🎤 Start Voice Input';
+                voiceInputButton.classList.remove('recording');
+            };
+
+            recognition.onend = () => {
+                const selectedLanguage = langSelect.value;
+                isRecording = false;
+                voiceInputButton.textContent = '🎤 Start Voice Input';
+                voiceInputButton.classList.remove('recording');
+                if (!appOutput.textContent.startsWith('❌') && !appOutput.textContent.startsWith('✅')) {
+                    appOutput.textContent = getMessage("voice_ended", selectedLanguage);
+                }
+            };
+        }
+    </script>
 </body>
 </html>
