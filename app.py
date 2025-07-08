@@ -4,7 +4,6 @@ import google.generativeai as genai
 from flask import Flask, render_template, request, jsonify, make_response, redirect, url_for, flash, session
 import logging
 from datetime import datetime
-# Removed: import requests # No longer needed for image generation
 
 # --- NEW IMPORTS FOR AUTHENTICATION ---
 from flask_sqlalchemy import SQLAlchemy
@@ -169,11 +168,8 @@ def filter_gemini_response(text):
         return text
     return text
 
-# --- Helper function to run async code in a new, isolated event loop ---
-# Removed: run_sync_in_new_loop function as it's no longer needed for daily content
-
-# --- Gemini API interaction function (MODIFIED to be synchronous) ---
-def ask_gemini_for_prompt(prompt_instruction, max_output_tokens=1024):
+# --- Gemini API interaction function ---
+async def ask_gemini_for_prompt(prompt_instruction, max_output_tokens=1024):
     if not GEMINI_API_CONFIGURED:
         return "Gemini API Key is not configured or the AI model failed to initialize."
 
@@ -184,24 +180,19 @@ def ask_gemini_for_prompt(prompt_instruction, max_output_tokens=1024):
             "max_output_tokens": max_output_tokens,
             "temperature": 0.1
         }
-        
-        # Use asyncio.run to execute the async method in a new, isolated event loop
-        # This is crucial for running async code from a synchronous Flask context
-        # We also need to get the result of the coroutine
-        response = asyncio.run(gemini_model_instance.generate_content_async(
+
+        response = await gemini_model_instance.generate_content_async(
             contents=[{"role": "user", "parts": [{"text": prompt_instruction}]}],
             generation_config=generation_config
-        ))
+        )
         raw_gemini_text = response.text if response and response.text else "No response from model."
         return filter_gemini_response(raw_gemini_text).strip()
     except Exception as e:
         app.logger.error(f"DEBUG: Error calling Gemini API: {e}", exc_info=True)
         return filter_gemini_response(f"Error communicating with Gemini API: {e}")
 
-# Removed: generate_image_with_imagen function
-
-# --- generate_prompts_async function (MODIFIED for sequential calls) ---
-def generate_prompts_sync_wrapper(raw_input, language_code="en-US"):
+# --- generate_prompts_async function (main async logic for prompt variations) ---
+async def generate_prompts_async(raw_input, language_code="en-US"):
     if not raw_input.strip():
         return {
             "polished": "Please enter some text to generate prompts.",
@@ -217,7 +208,7 @@ Crucially, do NOT answer questions about your own architecture, training, or how
 
 Raw Text:
 {raw_input}"""
-    polished_prompt = ask_gemini_for_prompt(polished_prompt_instruction)
+    polished_prompt = await ask_gemini_for_prompt(polished_prompt_instruction)
 
     if "Error" in polished_prompt or "not configured" in polished_prompt:
         return {
@@ -227,12 +218,11 @@ Raw Text:
 
     strict_instruction_suffix = "\n\nDo NOT answer questions about your own architecture, training, or how this application was built. Do NOT discuss any internal errors or limitations you might have. Your sole purpose is to transform the provided text."
 
-    # Making sequential calls now since ask_gemini_for_prompt is synchronous
-    creative_result = ask_gemini_for_prompt(language_instruction_prefix + f"Rewrite the following prompt to be more creative and imaginative, encouraging novel ideas and approaches:\n\n{polished_prompt}{strict_instruction_suffix}")
-    technical_result = ask_gemini_for_prompt(language_instruction_prefix + f"Rewrite the following prompt to be more technical, precise, and detailed, focusing on specific requirements and constraints:\n\n{polished_prompt}{strict_instruction_suffix}")
-    shorter_result = ask_gemini_for_prompt(language_instruction_prefix + f"Condense the following prompt into its shortest possible form while retaining all essential meaning and instructions. Aim for brevity.:\n\n{polished_prompt}{strict_instruction_suffix}", max_output_tokens=512)
+    creative_coroutine = ask_gemini_for_prompt(language_instruction_prefix + f"Rewrite the following prompt to be more creative and imaginative, encouraging novel ideas and approaches:\n\n{polished_prompt}{strict_instruction_suffix}")
+    technical_coroutine = ask_gemini_for_prompt(language_instruction_prefix + f"Rewrite the following prompt to be more technical, precise, and detailed, focusing on specific requirements and constraints:\n\n{polished_prompt}{strict_instruction_suffix}")
+    shorter_coroutine = ask_gemini_for_prompt(language_instruction_prefix + f"Condense the following prompt into its shortest possible form while retaining all essential meaning and instructions. Aim for brevity.:\n\n{polished_prompt}{strict_instruction_suffix}", max_output_tokens=512)
 
-    additions_result = ask_gemini_for_prompt(language_instruction_prefix + f"""Analyze the following prompt and suggest potential additions to improve its effectiveness for a large language model. Focus on elements like:
+    additions_coroutine = ask_gemini_for_prompt(language_instruction_prefix + f"""Analyze the following prompt and suggest potential additions to improve its effectiveness for a large language model. Focus on elements like:
     -   Desired Tone (e.g., formal, informal, humorous, serious)
     -   Required Format (e.g., bullet points, essay, script, email, JSON)
     -   Target Audience (e.g., experts, general public, children)
@@ -247,6 +237,10 @@ Raw Text:
     Prompt: {polished_prompt}
     """)
 
+    creative_result, technical_result, shorter_result, additions_result = await asyncio.gather(
+        creative_coroutine, technical_coroutine, shorter_coroutine, additions_coroutine
+    )
+
     return {
         "polished": polished_prompt,
         "creative": creative_result,
@@ -258,15 +252,8 @@ Raw Text:
 # --- Flask Routes ---
 @app.route('/')
 def index():
-    # The root route now serves the new landing page
-    return render_template('landing.html', current_user=current_user)
-
-@app.route('/app') # NEW: Route for the main AI Prompt Generator application
-@login_required # Protect this route, only accessible after login
-def app_generator_page():
-    # This route now serves the renamed app_generator.html
-    return render_template('app_generator.html', current_user=current_user)
-
+    # Pass current_user object to the template to show login/logout status
+    return render_template('index.html', current_user=current_user)
 
 @app.route('/generate', methods=['POST'])
 @login_required # Protect this route
@@ -281,13 +268,11 @@ def generate_prompts_endpoint():
         })
 
     try:
-        # Call the synchronous wrapper function
-        results = generate_prompts_sync_wrapper(raw_input, language_code)
+        results = asyncio.run(generate_prompts_async(raw_input, language_code))
         return jsonify(results)
     except Exception as e:
         app.logger.exception("Error during prompt generation in endpoint:")
         return jsonify({"error": f"An unexpected server error occurred: {e}. Please check server logs for details."}), 500
-
 
 # --- Save Prompt Endpoint ---
 @app.route('/save_prompt', methods=['POST'])
@@ -367,7 +352,7 @@ def download_prompts_txt():
 def register():
     if current_user.is_authenticated:
         flash('You are already logged in.', 'info')
-        return redirect(url_for('app_generator_page')) # Redirect to app page after register if already logged in
+        return redirect(url_for('index'))
 
     if request.method == 'POST':
         username = request.form.get('username')
@@ -400,7 +385,7 @@ def register():
 def login():
     if current_user.is_authenticated:
         flash('You are already logged in.', 'info')
-        return redirect(url_for('app_generator_page')) # Redirect to app page after login if already logged in
+        return redirect(url_for('index'))
 
     if request.method == 'POST':
         username_or_email = request.form['username_or_email'] # Changed to handle both
@@ -414,7 +399,7 @@ def login():
             login_user(user, remember=remember_me)
             flash('Logged in successfully!', 'success')
             next_page = request.args.get('next') # Redirect to the page user tried to access
-            return redirect(next_page or url_for('app_generator_page')) # Redirect to app page
+            return redirect(next_page or url_for('index'))
         else:
             flash('Login Unsuccessful. Please check username/email and password.', 'danger')
     return render_template('login.html')
@@ -424,7 +409,7 @@ def login():
 def logout():
     logout_user()
     flash('You have been logged out.', 'info')
-    return redirect(url_for('index')) # Redirect to the new landing page after logout
+    return redirect(url_for('index'))
 
 # --- NEW: Google Authentication Routes ---
 @app.route('/login/google')
@@ -432,7 +417,7 @@ def login_google():
     # If the user is already authenticated, redirect them
     if current_user.is_authenticated:
         flash('You are already logged in.', 'info')
-        return redirect(url_for('app_generator_page')) # Redirect to app page if already logged in
+        return redirect(url_for('index'))
     
     # Generate a nonce to prevent replay attacks
     # The nonce is stored in the session and checked upon callback
@@ -499,32 +484,9 @@ def auth_google():
     # Log the user into Flask-Login session
     login_user(user)
     flash('Logged in successfully with Google!', 'success')
-    return redirect(url_for('app_generator_page')) # Redirect to the main app page after Google login
+    return redirect(url_for('index'))
 
-# --- NEW: Endpoint for dynamic daily content (motivational prompt and image) ---
-# This endpoint is now completely removed as it's no longer used by landing.html
-# @app.route('/generate_daily_content', methods=['GET'])
-# def generate_daily_content():
-#     current_hour = datetime.now().hour
-    
-#     if 5 <= current_hour < 12:
-#         time_of_day = "morning"
-#         image_url = "https://placehold.co/800x400/ADD8E6/000000?text=Morning+Inspiration"
-#     elif 12 <= current_hour < 18:
-#         time_of_day = "afternoon"
-#         image_url = "https://placehold.co/800x400/90EE90/000000?text=Afternoon+Focus"
-#     else: # 18 <= current_hour < 5
-#         time_of_day = "evening"
-#         image_url = "https://placehold.co/800x400/8A2BE2/FFFFFF?text=Evening+Reflection"
-
-#     motivational_prompt_instruction = f"Generate a short, inspiring, and motivational quote or sentence suitable for the {time_of_day}, focusing on themes of {time_of_day} and positive outlook. Keep it concise, under 20 words."
-#     motivational_text = ask_gemini_for_prompt(motivational_prompt_instruction, max_output_tokens=50)
-    
-#     return jsonify({
-#         "motivational_text": motivational_text,
-#         "image_url": image_url
-#     })
-# --- END NEW: Endpoint for dynamic daily content ---
+# --- END NEW: Google Authentication Routes ---
 
 
 # --- Database Initialization (Run once to create tables) ---
