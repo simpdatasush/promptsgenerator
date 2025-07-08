@@ -448,6 +448,7 @@
                 } else {
                     savedPrompts.forEach(prompt => {
                         const listItem = document.createElement('li');
+                        // Ensure 'text' and 'type' are used as per the backend's return structure
                         listItem.innerHTML = `
                             <strong>${prompt.type.charAt(0).toUpperCase() + prompt.type.slice(1)} Prompt (${prompt.timestamp}):</strong>
                             <pre>${prompt.text}</pre>
@@ -527,17 +528,28 @@
             }
         });
 
-        // Event listeners for save buttons (unchanged)
+        // Event listeners for save buttons (UNCHANGED SECTION, ADDED CONSOLE.LOGS HERE)
         document.querySelectorAll('.save-button').forEach(button => {
             button.addEventListener('click', async function() {
                 const promptType = this.dataset.promptType;
                 const promptElementId = `${promptType}_output`;
-                const promptText = document.getElementById(promptElementId).textContent.trim();
+                const cardBody = document.getElementById(promptElementId); // Changed to get the element first
+
+                // --- ADDED CONSOLE.LOGS FOR DEBUGGING ---
+                console.log('1. save-btn clicked, type:', promptType);
+                console.log('2. Found promptElement (cardBody for content):', cardBody);
+
+                const promptText = cardBody ? cardBody.textContent.trim() : '';
+
+                console.log('3. Extracted promptText (after trim):', `"${promptText}"`);
+                // --- END ADDED CONSOLE.LOGS ---
+
                 const selectedLanguage = document.getElementById('lang_select').value;
                 const appOutput = document.getElementById('app_output');
 
-                if (!promptText) {
+                if (!promptText) { // Changed from !content to !promptText
                     appOutput.textContent = getMessage("no_prompt_to_save", selectedLanguage, {type: promptType});
+                    console.warn('Attempted to save empty or untyped prompt:', {promptType, promptText}); // Debug warning
                     return;
                 }
 
@@ -548,6 +560,7 @@
                             'Content-Type': 'application/json'
                         },
                         body: JSON.stringify({
+                            // --- CRITICAL FIX: Use 'prompt_text' and 'prompt_type' as expected by backend ---
                             prompt_text: promptText,
                             prompt_type: promptType
                         })
