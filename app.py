@@ -25,13 +25,15 @@ app = Flask(__name__)
 # On Render, this database file will be ephemeral unless you attach a persistent disk.
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///site.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False # Suppress a warning
-app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'a_very_secret_key_that_should_be_in_env') # Needed for Flask-Login sessions
+
 # --- IMPORTANT: Ensure SECRET_KEY is set as a proper, long, random environment variable in production! ---
 # If not set, Flask will use the default, which can cause session issues in multi-worker
 # environments (like Gunicorn) as each worker might generate a different default key.
 # This is the MOST LIKELY cause of 'invalid_claim: Invalid claim "nonce"' if nonce=True is used.
 # Generate a strong key: import os; os.urandom(24).hex()
 # Example: app.config['SECRET_KEY'] = 'your_long_random_secret_key_here'
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'a_very_secret_key_that_should_be_in_env_PLEASE_CHANGE_ME_IN_PRODUCTION') # Needed for Flask-Login sessions
+
 db = SQLAlchemy(app)
 # --- END NEW: Flask-SQLAlchemy Configuration ---
 
@@ -45,6 +47,8 @@ app.config['SESSION_PERMANENT'] = True
 app.config['SESSION_COOKIE_SECURE'] = True # Only send cookies over HTTPS
 app.config['SESSION_COOKIE_HTTPONLY'] = True # Prevent client-side JavaScript access to session cookie
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax' # Protect against CSRF, 'Strict' for more security (may affect cross-site navigation)
+# If you are using a custom domain and facing issues, you might need to uncomment and set this:
+# app.config['SESSION_COOKIE_DOMAIN'] = '.yourdomain.com' # e.g., '.promptsgenerator.onrender.com'
 # --- END NEW: Flask Session Configuration ---
 
 
@@ -119,6 +123,16 @@ def configure_gemini_api():
         app.logger.warning("Please set the GEMINI_API_KEY environment variable on Render.")
         app.logger.warning("="*80 + "\n")
         GEMINI_API_CONFIGURED = False
+
+    # --- NEW: Log the SECRET_KEY being used for debugging nonce issue ---
+    current_secret_key = app.config['SECRET_KEY']
+    if current_secret_key == 'a_very_secret_key_that_should_be_in_env_PLEASE_CHANGE_ME_IN_PRODUCTION':
+        app.logger.error("\n" + "="*80)
+        app.logger.error("CRITICAL ERROR: SECRET_KEY is still using the default value. This WILL cause 'invalid_claim: Invalid claim nonce' errors in production with multiple workers.")
+        app.logger.error("Please set a strong, random SECRET_KEY environment variable on Render.com!")
+        app.logger.error("="*80 + "\n")
+    else:
+        app.logger.info(f"SECRET_KEY is set (first 5 chars): {current_secret_key[:5]}...")
 
 configure_gemini_api()
 
