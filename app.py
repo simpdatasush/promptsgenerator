@@ -1,35 +1,56 @@
 import asyncio
 import os
 import google.generativeai as genai
-from flask import Flask, render_template, request, jsonify, make_response, redirect, url_for, flash, session
+from flask import Flask, render_template, request, jsonify, make_response, redirect, url_for, flash
 import logging
 from datetime import datetime
 
+# --- NEW IMPORTS FOR AUTHENTICATION ---
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
-from asgiref.sync import async_to_sync
-
-# --- NEW IMPORTS FOR GOOGLE AUTHENTICATION ---
-from oauthlib.oauth2 import WebApplicationClient
-import requests
-import json # For parsing Google discovery document
+# --- NEW: Authlib for Google OAuth ---
+from authlib.integrations.flask_client import OAuth
+import json # Ensure json is imported
 # --- END NEW IMPORTS ---
 
 
 app = Flask(__name__)
 
-# --- Flask-SQLAlchemy Configuration ---
+# --- NEW: Flask-SQLAlchemy Configuration ---
+# Configure SQLite database. This file will be created in your project directory.
+# On Render, this database file will be ephemeral unless you attach a persistent disk.
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///site.db'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'a_very_secret_key_that_should_be_in_env')
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False # Suppress a warning
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'a_very_secret_key_that_should_be_in_env') # Needed for Flask-Login sessions
 db = SQLAlchemy(app)
+# --- END NEW: Flask-SQLAlchemy Configuration ---
 
-# --- Flask-Login Configuration ---
+# --- NEW: Flask-Login Configuration ---
 login_manager = LoginManager()
 login_manager.init_app(app)
-login_manager.login_view = 'login'
-login_manager.login_message_category = 'info'
+login_manager.login_view = 'login' # The view Flask-Login should redirect to for login
+# --- END NEW: Flask-Login Configuration ---
+
+# --- NEW: Google OAuth Configuration ---
+oauth = OAuth(app)
+
+# Load Google Client ID and Client Secret from environment variables
+GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
+GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
+
+# Register Google OAuth client
+# server_metadata_url automatically discovers endpoints from Google's OpenID Connect discovery document
+# client_kwargs specifies the requested scopes: openid (for ID token), email, and profile information
+oauth.register(
+    name='google',
+    client_id=GOOGLE_CLIENT_ID,
+    client_secret=GOOGLE_CLIENT_SECRET,
+    server_metadata_url='https://accounts.google.com/.well-known/openid-configuration',
+    client_kwargs={'scope': 'openid email profile'},
+)
+# --- END NEW: Google OAuth Configuration ---
+
 
 # Configure logging for the Flask app
 app.logger.setLevel(logging.INFO)
@@ -38,10 +59,12 @@ formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(messag
 handler.setFormatter(formatter)
 app.logger.addHandler(handler)
 
-# --- Temporary In-Memory Storage for Saved Prompts ---
+# --- Temporary In-Memory Storage for Saved Prompts (Unchanged) ---
+# Note: For production, this should be replaced with a persistent database
+# and linked to the User model for proper per-user storage.
 saved_prompts_in_memory = []
 
-# --- Language Mapping for Gemini Instructions ---
+# --- Language Mapping for Gemini Instructions (Unchanged) ---
 LANGUAGE_MAP = {
     "en-US": "English",
     "en-GB": "English (UK)",
@@ -56,7 +79,7 @@ LANGUAGE_MAP = {
 }
 
 
-# --- Gemini API Key and Configuration ---
+# --- Gemini API Key and Configuration (Unchanged) ---
 GEMINI_API_CONFIGURED = False
 GEMINI_API_KEY = None
 
@@ -75,30 +98,24 @@ def configure_gemini_api():
             GEMINI_API_CONFIGURED = False
     else:
         app.logger.warning("\n" + "="*80)
-        app.logger.warning("WARNING: GEMINI_API_KEY environment variable not set. AI generation features will be disabled.")
+        app.logger.warning("WARNING: GEMINI_API_KEY environment variable not set. Prompt generation features will be disabled.")
         app.logger.warning("Please set the GEMINI_API_KEY environment variable on Render.")
         app.logger.warning("="*80 + "\n")
         GEMINI_API_CONFIGURED = False
 
 configure_gemini_api()
 
-# --- NEW: Google OAuth Configuration ---
-app.config['GOOGLE_CLIENT_ID'] = os.getenv("GOOGLE_CLIENT_ID")
-app.config['GOOGLE_CLIENT_SECRET'] = os.getenv("GOOGLE_CLIENT_SECRET")
-app.config['GOOGLE_DISCOVERY_URL'] = "https://accounts.google.com/.well-known/openid-configuration"
-
-# OAuth 2 client setup
-google_client = WebApplicationClient(app.config['GOOGLE_CLIENT_ID'])
-# --- END NEW: Google OAuth Configuration ---
-
-
-# --- User Model for SQLAlchemy and Flask-Login ---
+# --- NEW: User Model for SQLAlchemy and Flask-Login (MODIFIED for Google) ---
 class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(80), unique=True, nullable=False)
-    password_hash = db.Column(db.String(128), nullable=True) # Make nullable for Google-only users
-    google_id = db.Column(db.String(120), unique=True, nullable=True) # New field for Google ID
-    email = db.Column(db.String(120), unique=True, nullable=True) # New field for email (from Google or manual)
+    # Username is nullable as Google users might not have a traditional username
+    username = db.Column(db.String(80), unique=True, nullable=True) 
+    # Email is crucial for both local and Google users, must be unique
+    email = db.Column(db.String(120), unique=True, nullable=False) 
+    # password_hash is nullable for users who only log in via Google
+    password_hash = db.Column(db.String(128), nullable=True) 
+    # google_id stores the unique identifier from Google OAuth
+    google_id = db.Column(db.String(128), unique=True, nullable=True) 
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -107,14 +124,15 @@ class User(db.Model, UserMixin):
         return check_password_hash(self.password_hash, password)
 
     def __repr__(self):
-        if self.google_id:
-            return f'<User {self.username} (Google ID: {self.google_id})>'
-        return f'<User {self.username}>'
+        # Representation updated to show username or email for Google users
+        return f'<User {self.username or self.email}>'
 
-# --- Flask-Login User Loader ---
+# --- NEW: Flask-Login User Loader ---
 @login_manager.user_loader
 def load_user(user_id):
-    return db.session.get(User, int(user_id))
+    # Use db.session.get for primary key lookup, which is more efficient
+    return db.session.get(User, int(user_id)) 
+# --- END NEW: User Model and Loader ---
 
 
 # --- Response Filtering Function (Unchanged) ---
@@ -128,10 +146,11 @@ def filter_gemini_response(text):
         "i am not able to", "i cannot process", "i cannot provide", "i am not programmed",
         "i cannot generate", "i cannot give you details about my internal workings",
         "i cannot discuss my creation or operation", "i cannot explain the development of this tool",
-        "my purpose is to", "i am designed to", "i don't have enough information to", "i lack the ability to"
+        "my purpose is to", "i am designed to", "i don't have enough information to" # Keep this last, as it's more general
     ]
     for phrase in unauthorized_phrases:
         if phrase in text_lower:
+            # Special handling for "i don't have enough information to" to allow legitimate responses
             if phrase == "i don't have enough information to" and \
                ("about the provided prompt" in text_lower or "based on your input" in text_lower or "to understand the context" in text_lower):
                 continue
@@ -143,26 +162,26 @@ def filter_gemini_response(text):
     ]
     for phrase in bug_phrases:
         if phrase in text_lower:
-            return text # Keep the error message for debugging purposes
+            return unauthorized_message
     
     if "no response from model." in text_lower or "error communicating with gemini api:" in text_lower:
         return text
     return text
 
-# --- Gemini API interaction function (Creates model instance per call) ---
+# --- Gemini API interaction function ---
 async def ask_gemini_for_prompt(prompt_instruction, max_output_tokens=1024):
     if not GEMINI_API_CONFIGURED:
         return "Gemini API Key is not configured or the AI model failed to initialize."
 
     try:
-        model = genai.GenerativeModel('gemini-2.0-flash') 
+        gemini_model_instance = genai.GenerativeModel('gemini-2.0-flash') 
 
         generation_config = {
             "max_output_tokens": max_output_tokens,
             "temperature": 0.1
         }
 
-        response = await model.generate_content_async(
+        response = await gemini_model_instance.generate_content_async(
             contents=[{"role": "user", "parts": [{"text": prompt_instruction}]}],
             generation_config=generation_config
         )
@@ -172,7 +191,7 @@ async def ask_gemini_for_prompt(prompt_instruction, max_output_tokens=1024):
         app.logger.error(f"DEBUG: Error calling Gemini API: {e}", exc_info=True)
         return filter_gemini_response(f"Error communicating with Gemini API: {e}")
 
-# --- Prompt Generator Engine (No Changes) ---
+# --- generate_prompts_async function (main async logic for prompt variations) ---
 async def generate_prompts_async(raw_input, language_code="en-US"):
     if not raw_input.strip():
         return {
@@ -230,95 +249,14 @@ Raw Text:
         "additions": additions_result
     }
 
-# --- AI Cover Letter and CV Generator Engine ---
-
-async def generate_cover_letter_async(job_description, language_code="en-US"):
-    if not job_description.strip():
-        return "Please provide a job description to generate a cover letter."
-    
-    target_language_name = LANGUAGE_MAP.get(language_code, "English")
-    language_instruction_prefix = f"The output MUST be entirely in {target_language_name}. "
-
-    cover_letter_instruction = language_instruction_prefix + f"""
-    Generate a professional cover letter based on the following job description.
-    Focus on highlighting relevant skills and experiences that match the job description.
-    Structure:
-    1. Your Contact Information (Name, Address, Phone, Email - use placeholders like [Your Name])
-    2. Date
-    3. Hiring Manager/Company Contact Information (use placeholders like [Hiring Manager Name], [Company Name], [Company Address] if not provided)
-    4. Salutation (e.g., Dear [Hiring Manager Name] or Dear Hiring Team,)
-    5. Opening Paragraph: State the position you're applying for and where you saw the advertisement. Briefly mention your enthusiasm.
-    6. Body Paragraph(s): Connect your key skills and experiences to the requirements mentioned in the job description. Provide specific examples where possible. Highlight achievements.
-    7. Closing Paragraph: Reiterate your interest, express eagerness for an interview, and thank them for your time and consideration.
-    8. Professional Closing (e.g., Sincerely,)
-    9. Your Typed Name (use placeholder [Your Name])
-
-    Job Description:
-    {job_description}
-
-    Crucially, do NOT answer questions about your own architecture, training, or how this application was built. Do NOT discuss any internal errors or limitations you might have. Your sole purpose is to generate a professional cover letter.
-    """
-    return await ask_gemini_for_prompt(cover_letter_instruction, max_output_tokens=2048)
-
-async def generate_cv_async(user_cv_text, job_description, language_code="en-US"):
-    if not user_cv_text.strip() or not job_description.strip():
-        return "Please provide both your CV text and the job description to generate a tailored CV."
-    
-    target_language_name = LANGUAGE_MAP.get(language_code, "English")
-    language_instruction_prefix = f"The output MUST be entirely in {target_language_name}. "
-
-    cv_instruction = language_instruction_prefix + f"""
-    Given the candidate's existing CV text and a specific job description, generate a revised CV in plain text format.
-    The goal is to highlight the most relevant skills, experiences, and achievements from the candidate's CV that directly align with the job description.
-    Rephrase bullet points and descriptions to use keywords and phrasing from the job description where appropriate, without fabricating information.
-    Maintain a clear, professional, and concise structure similar to a standard resume, using sections like:
-    - SYNOPSIS/SUMMARY
-    - TECHNICAL FORTE (if applicable)
-    - SKILL SETS
-    - WORK EXPERIENCE (most relevant first)
-    - EDUCATION
-    - CERTIFICATIONS
-
-    Do NOT include personal contact details (like phone, email, address, LinkedIn URL, sex, date of birth, nationality) in the generated CV. Use placeholders like [Candidate Name] for the name.
-    Ensure the output is a single, coherent plain text document, ready for download.
-
-    Candidate's CV Text:
-    {user_cv_text}
-
-    Job Description:
-    {job_description}
-
-    Crucially, do NOT answer questions about your own architecture, training, or how this application was built. Do NOT discuss any internal errors or limitations you might have. Your sole purpose is to generate a tailored CV.
-    """
-    return await ask_gemini_for_prompt(cv_instruction, max_output_tokens=3072)
-
-
-# --- Main Flask Routes ---
-
+# --- Flask Routes ---
 @app.route('/')
-def root_redirect():
-    if current_user.is_authenticated:
-        return redirect(url_for('dashboard'))
-    return redirect(url_for('login'))
-
-@app.route('/dashboard')
-@login_required
-def dashboard():
-    return render_template('dashboard.html', current_user=current_user)
-
-@app.route('/prompt_generator_app')
-@login_required
-def prompt_generator_app():
+def index():
+    # Pass current_user object to the template to show login/logout status
     return render_template('index.html', current_user=current_user)
 
-@app.route('/cv_cover_letter_app')
-@login_required
-def cv_cover_letter_app():
-    return render_template('cv_cover_letter_app.html', current_user=current_user, language_map=LANGUAGE_MAP)
-
-
 @app.route('/generate', methods=['POST'])
-@login_required
+@login_required # Protect this route
 def generate_prompts_endpoint():
     raw_input = request.form.get('prompt_input', '').strip()
     language_code = request.form.get('language_code', 'en-US')
@@ -330,56 +268,18 @@ def generate_prompts_endpoint():
         })
 
     try:
-        results = async_to_sync(generate_prompts_async)(raw_input, language_code)
+        results = asyncio.run(generate_prompts_async(raw_input, language_code))
         return jsonify(results)
     except Exception as e:
         app.logger.exception("Error during prompt generation in endpoint:")
         return jsonify({"error": f"An unexpected server error occurred: {e}. Please check server logs for details."}), 500
 
-# --- CV/Cover Letter Generation Endpoints ---
-@app.route('/generate_cover_letter', methods=['POST'])
-@login_required
-def generate_cover_letter_endpoint():
-    job_description = request.form.get('job_description', '').strip()
-    language_code = request.form.get('language_code', 'en-US')
-
-    if not job_description:
-        return jsonify({"error": "Please provide a job description."}), 400
-
-    try:
-        cover_letter = async_to_sync(generate_cover_letter_async)(job_description, language_code)
-        if "Error" in cover_letter or "not configured" in cover_letter:
-            return jsonify({"error": cover_letter}), 500
-        return jsonify({"cover_letter": cover_letter})
-    except Exception as e:
-        app.logger.exception("Error during cover letter generation:")
-        return jsonify({"error": f"An unexpected server error occurred: {e}. Please check server logs for details."}), 500
-
-
-@app.route('/generate_cv', methods=['POST'])
-@login_required
-def generate_cv_endpoint():
-    user_cv_text = request.form.get('user_cv_text', '').strip()
-    job_description = request.form.get('job_description', '').strip()
-    language_code = request.form.get('language_code', 'en-US')
-
-    if not user_cv_text or not job_description:
-        return jsonify({"error": "Please provide both your CV text and the job description."}), 400
-
-    try:
-        tailored_cv = async_to_sync(generate_cv_async)(user_cv_text, job_description, language_code)
-        if "Error" in tailored_cv or "not configured" in tailored_cv:
-            return jsonify({"error": tailored_cv}), 500
-        return jsonify({"tailored_cv": tailored_cv})
-    except Exception as e:
-        app.logger.exception("Error during CV generation:")
-        return jsonify({"error": f"An unexpected server error occurred: {e}. Please check server logs for details."}), 500
-
-
 # --- Save Prompt Endpoint ---
 @app.route('/save_prompt', methods=['POST'])
-@login_required
+@login_required # Protect this route
 def save_prompt_endpoint():
+    # For now, saved prompts are still in-memory and not tied to users.
+    # If persistent per-user storage is needed, this would require a DB change.
     prompt_data = request.get_json()
     prompt_text = prompt_data.get('prompt_text')
     prompt_type = prompt_data.get('prompt_type', 'unknown')
@@ -393,27 +293,36 @@ def save_prompt_endpoint():
         "timestamp": timestamp,
         "type": prompt_type,
         "text": prompt_text,
-        "user_id": current_user.id # Store user ID for association
+        "user": current_user.username if current_user.is_authenticated else "anonymous" # Track user
     })
 
-    app.logger.info(f"Prompt of type '{prompt_type}' saved to memory at {timestamp} by user ID {current_user.id}.")
+    app.logger.info(f"Prompt of type '{prompt_type}' saved to memory at {timestamp} by {current_user.username if current_user.is_authenticated else 'anonymous'}.")
     return jsonify({"success": True, "message": "Prompt saved temporarily!"}), 200
 
 # --- Get Saved Prompts Endpoint ---
 @app.route('/get_saved_prompts', methods=['GET'])
-@login_required
+@login_required # Protect this route
 def get_saved_prompts_endpoint():
-    # Only return prompts saved by the current user
-    user_prompts = [p for p in saved_prompts_in_memory if p.get('user_id') == current_user.id]
-    return jsonify(user_prompts), 200
+    # Only return prompts saved by the current user if authenticated
+    if current_user.is_authenticated:
+        user_prompts = [p for p in saved_prompts_in_memory if p.get('user') == current_user.username]
+        return jsonify(user_prompts), 200
+    else:
+        # If not authenticated, return only anonymous prompts or deny access
+        # For this basic setup, let's just return anonymous ones if not logged in
+        anonymous_prompts = [p for p in saved_prompts_in_memory if p.get('user') == "anonymous"]
+        return jsonify(anonymous_prompts), 200
 
 
 # --- Download Prompts as TXT Endpoint ---
 @app.route('/download_prompts_txt', methods=['GET'])
-@login_required
+@login_required # Protect this route
 def download_prompts_txt():
     # Filter prompts by current user for download
-    prompts_to_download = [p for p in saved_prompts_in_memory if p.get('user_id') == current_user.id]
+    if current_user.is_authenticated:
+        prompts_to_download = [p for p in saved_prompts_in_memory if p.get('user') == current_user.username]
+    else:
+        prompts_to_download = [p for p in saved_prompts_in_memory if p.get('user') == "anonymous"]
 
     if not prompts_to_download:
         return "No prompts to download for this user.", 404
@@ -429,7 +338,7 @@ def download_prompts_txt():
         lines.append("\n")
 
     text_content = "\n".join(lines).strip()
-    filename = f"saved_prompts_{current_user.username}.txt"
+    filename = f"saved_prompts_{current_user.username if current_user.is_authenticated else 'anonymous'}.txt"
 
     response = make_response(text_content)
     response.headers["Content-Disposition"] = f"attachment; filename={filename}"
@@ -443,43 +352,56 @@ def download_prompts_txt():
 def register():
     if current_user.is_authenticated:
         flash('You are already logged in.', 'info')
-        return redirect(url_for('dashboard')) # Changed redirect to dashboard
+        return redirect(url_for('index'))
 
     if request.method == 'POST':
-        username = request.form['username']
+        username = request.form.get('username')
         password = request.form['password']
+        email = request.form.get('email') # Assuming you add an email field to register.html
 
-        user = User.query.filter_by(username=username).first()
-        if user:
+        if not username and not email:
+            flash('Username or Email is required.', 'danger')
+            return render_template('register.html')
+
+        # Check for existing username (if provided)
+        if username and User.query.filter_by(username=username).first():
             flash('Username already exists. Please choose a different one.', 'danger')
-        else:
-            new_user = User(username=username)
-            new_user.set_password(password)
-            db.session.add(new_user)
-            db.session.commit()
-            flash('Registration successful! Please log in.', 'success')
-            return redirect(url_for('login'))
+            return render_template('register.html')
+        
+        # Check for existing email
+        if User.query.filter_by(email=email).first():
+            flash('An account with this email already exists. Please log in or use a different email.', 'danger')
+            return render_template('register.html')
+
+        new_user = User(username=username, email=email)
+        new_user.set_password(password)
+        db.session.add(new_user)
+        db.session.commit()
+        flash('Registration successful! Please log in.', 'success')
+        return redirect(url_for('login'))
     return render_template('register.html')
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if current_user.is_authenticated:
         flash('You are already logged in.', 'info')
-        return redirect(url_for('dashboard')) # Changed redirect to dashboard
+        return redirect(url_for('index'))
 
     if request.method == 'POST':
-        username = request.form['username']
+        username_or_email = request.form['username_or_email'] # Changed to handle both
         password = request.form['password']
         remember_me = 'remember_me' in request.form
 
-        user = User.query.filter_by(username=username).first()
+        # Try to find user by username or email
+        user = User.query.filter((User.username == username_or_email) | (User.email == username_or_email)).first()
+
         if user and user.check_password(password):
             login_user(user, remember=remember_me)
             flash('Logged in successfully!', 'success')
-            next_page = request.args.get('next')
-            return redirect(next_page or url_for('dashboard')) # Changed redirect to dashboard
+            next_page = request.args.get('next') # Redirect to the page user tried to access
+            return redirect(next_page or url_for('index'))
         else:
-            flash('Login Unsuccessful. Please check username and password.', 'danger')
+            flash('Login Unsuccessful. Please check username/email and password.', 'danger')
     return render_template('login.html')
 
 @app.route('/logout')
@@ -487,126 +409,80 @@ def login():
 def logout():
     logout_user()
     flash('You have been logged out.', 'info')
-    return redirect(url_for('login')) # Changed redirect to login page after logout
+    return redirect(url_for('index'))
 
-# --- NEW: Google Login Routes ---
-@app.route('/google_login')
-def google_login():
+# --- NEW: Google Authentication Routes ---
+@app.route('/login/google')
+def login_google():
+    # If the user is already authenticated, redirect them
     if current_user.is_authenticated:
         flash('You are already logged in.', 'info')
-        return redirect(url_for('dashboard'))
+        return redirect(url_for('index'))
+    
+    # Generate the redirect URI for Google OAuth callback
+    # _external=True ensures a full URL is generated, necessary for OAuth
+    redirect_uri = url_for('auth_google', _external=True)
+    
+    # Redirect the user to Google's authorization endpoint
+    return oauth.google.authorize_redirect(redirect_uri)
 
-    # Get Google's OpenID Connect discovery document
+@app.route('/auth/google')
+def auth_google():
     try:
-        resp = requests.get(app.config['GOOGLE_DISCOVERY_URL'])
-        resp.raise_for_status()
-        google_config = resp.json()
-    except requests.exceptions.RequestException as e:
-        app.logger.error(f"Error fetching Google discovery document: {e}")
-        flash('Failed to connect to Google for login. Please try again later.', 'danger')
-        return redirect(url_for('login'))
-
-    # Prepare the OAuth request
-    request_uri = google_client.prepare_request_uri(
-        google_config['authorization_endpoint'],
-        redirect_uri=request.base_url + '/callback',
-        scope=["openid", "email", "profile"],
-        prompt="select_account" # Force account selection
-    )
-    return redirect(request_uri)
-
-@app.route('/google_login/callback')
-def google_callback():
-    # Get the authorization code from the request
-    code = request.args.get('code')
-    if not code:
-        flash('Google login failed: No authorization code received.', 'danger')
-        return redirect(url_for('login'))
-
-    # Get Google's OpenID Connect discovery document
-    try:
-        resp = requests.get(app.config['GOOGLE_DISCOVERY_URL'])
-        resp.raise_for_status()
-        google_config = resp.json()
-    except requests.exceptions.RequestException as e:
-        app.logger.error(f"Error fetching Google discovery document in callback: {e}")
-        flash('Failed to connect to Google for login. Please try again later.', 'danger')
-        return redirect(url_for('login'))
-
-    try:
-        # Prepare and send token request
-        token_url, headers, body = google_client.prepare_token_request(
-            google_config['token_endpoint'],
-            authorization_response=request.url,
-            redirect_url=request.base_url,
-            code=code,
-            client_id=app.config['GOOGLE_CLIENT_ID'],
-            client_secret=app.config['GOOGLE_CLIENT_SECRET']
-        )
-        token_response = requests.post(
-            token_url,
-            headers=headers,
-            data=body,
-            auth=(app.config['GOOGLE_CLIENT_ID'], app.config['GOOGLE_CLIENT_SECRET']),
-        )
-        token_response.raise_for_status()
-        google_client.parse_request_body_response(token_response.text)
-
-        # Get user info from ID token
-        userinfo_endpoint = google_config['userinfo_endpoint']
-        uri, headers, body = google_client.add_token(userinfo_endpoint)
-        userinfo_response = requests.get(uri, headers=headers, data=body)
-        userinfo_response.raise_for_status()
-        user_info = userinfo_response.json()
-
-        google_id = user_info['sub']
-        email = user_info.get('email')
-        username_from_google = user_info.get('name', user_info.get('email', f"google_user_{google_id[:8]}")) # Fallback username
-
-        # Find or create user
-        user = User.query.filter_by(google_id=google_id).first()
-        if not user:
-            # Check if an existing user with the same email already exists (for linking accounts)
-            if email:
-                existing_user_with_email = User.query.filter_by(email=email).first()
-                if existing_user_with_email:
-                    # Link existing account to Google
-                    existing_user_with_email.google_id = google_id
-                    db.session.commit()
-                    user = existing_user_with_email
-                    flash(f'Your existing account ({user.username}) has been linked with Google!', 'success')
-                else:
-                    # Create new user
-                    user = User(username=username_from_google, email=email, google_id=google_id, password_hash=None) # No password for Google-only
-                    db.session.add(user)
-                    db.session.commit()
-                    flash('Registered and logged in with Google successfully!', 'success')
-            else:
-                # Fallback if no email provided by Google (less common, but possible)
-                flash('Google login failed: Could not retrieve email. Please ensure your Google account has an email associated.', 'danger')
-                return redirect(url_for('login'))
-        else:
-            flash('Logged in with Google successfully!', 'success')
-
-        login_user(user)
-        return redirect(url_for('dashboard'))
-
-    except requests.exceptions.RequestException as e:
-        app.logger.error(f"Error during Google OAuth token/userinfo exchange: {e}")
-        flash('Google login failed due to a network error. Please try again.', 'danger')
-        return redirect(url_for('login'))
+        # Attempt to authorize the access token from Google's response
+        token = oauth.google.authorize_access_token()
     except Exception as e:
-        app.logger.exception("An unexpected error occurred during Google callback:")
-        flash('An unexpected error occurred during Google login. Please try again.', 'danger')
+        # Log any errors during the OAuth token exchange
+        app.logger.error(f"Error during Google authentication: {e}")
+        flash('Google login failed. Please try again.', 'danger')
         return redirect(url_for('login'))
-# --- END NEW: Google Login Routes ---
+
+    # Parse the ID token to get user information (email, name, Google ID 'sub')
+    userinfo = oauth.google.parse_id_token(token)
+    
+    # Check if a user already exists in our database with this Google ID
+    user = User.query.filter_by(google_id=userinfo['sub']).first()
+
+    if user is None:
+        # If no user found by Google ID, check if a user exists with this email
+        # This handles cases where a user might have a local account and then tries Google login
+        user = User.query.filter_by(email=userinfo['email']).first()
+        if user:
+            # If an existing local account is found with the same email, link the Google ID
+            user.google_id = userinfo['sub']
+            # Update username if it was null or generic, using Google's provided name
+            if not user.username:
+                user.username = userinfo.get('name', userinfo['email'].split('@')[0])
+            db.session.commit()
+            flash('Your Google account has been linked to your existing account!', 'success')
+        else:
+            # If no existing account (local or Google) is found, create a new user
+            user = User(
+                google_id=userinfo['sub'],
+                email=userinfo['email'],
+                # Use Google's provided name as username, or derive from email if name is not available
+                username=userinfo.get('name', userinfo['email'].split('@')[0]) 
+            )
+            db.session.add(user)
+            db.session.commit()
+            flash('Account created successfully via Google!', 'success')
+
+    # Log the user into Flask-Login session
+    login_user(user)
+    flash('Logged in successfully with Google!', 'success')
+    return redirect(url_for('index'))
+
+# --- END NEW: Google Authentication Routes ---
 
 
 # --- Database Initialization (Run once to create tables) ---
+# This block ensures tables are created when the app starts.
+# In production, you might use Flask-Migrate or a separate script.
 with app.app_context():
     db.create_all()
     app.logger.info("Database tables created/checked.")
 
 # --- Main App Run ---
 if __name__ == '__main__':
+    # Run the Flask app in debug mode, accessible from any IP on port 5000 (or specified by PORT env var)
     app.run(debug=True, host='0.0.0.0', port=os.getenv("PORT", 5000))
