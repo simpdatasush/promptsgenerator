@@ -1,7 +1,7 @@
 import asyncio
 import os
 import google.generativeai as genai
-from flask import Flask, render_template, request, jsonify, make_response, redirect, url_for, flash
+from flask import Flask, render_template, request, jsonify, make_response, redirect, url_for, flash, session
 import logging
 from datetime import datetime
 
@@ -419,12 +419,17 @@ def login_google():
         flash('You are already logged in.', 'info')
         return redirect(url_for('index'))
     
+    # Generate a nonce to prevent replay attacks
+    # The nonce is stored in the session and checked upon callback
+    nonce = os.urandom(16).hex()
+    session['oauth_nonce'] = nonce
+
     # Generate the redirect URI for Google OAuth callback
     # _external=True ensures a full URL is generated, necessary for OAuth
     redirect_uri = url_for('auth_google', _external=True)
     
-    # Redirect the user to Google's authorization endpoint
-    return oauth.google.authorize_redirect(redirect_uri)
+    # Redirect the user to Google's authorization endpoint, including the nonce
+    return oauth.google.authorize_redirect(redirect_uri, nonce=nonce)
 
 @app.route('/auth/google')
 def auth_google():
@@ -437,8 +442,17 @@ def auth_google():
         flash('Google login failed. Please try again.', 'danger')
         return redirect(url_for('login'))
 
+    # Retrieve the nonce from the session
+    nonce = session.pop('oauth_nonce', None)
+    if not nonce:
+        # If nonce is missing from session, it could be a security issue or session problem
+        app.logger.error("Nonce missing from session during Google OAuth callback.")
+        flash('Google login failed due to a security issue. Please try again.', 'danger')
+        return redirect(url_for('login'))
+
     # Parse the ID token to get user information (email, name, Google ID 'sub')
-    userinfo = oauth.google.parse_id_token(token)
+    # Pass the retrieved nonce to the parse_id_token method
+    userinfo = oauth.google.parse_id_token(token, nonce=nonce)
     
     # Check if a user already exists in our database with this Google ID
     user = User.query.filter_by(google_id=userinfo['sub']).first()
