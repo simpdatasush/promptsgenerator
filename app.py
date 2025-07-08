@@ -246,44 +246,72 @@ async def generate_prompts_endpoint(): # This remains async
 @login_required
 def save_prompt():
     data = request.get_json()
-    prompt_type = data.get('type')
-    prompt_content = data.get('content')
+    # --- FIX: Match frontend keys 'prompt_text' and 'prompt_type' ---
+    prompt_type = data.get('prompt_type')
+    prompt_content = data.get('prompt_text')
 
     if not prompt_content or not prompt_type:
+        app.logger.warning(f"Attempted to save empty prompt text or type. Type: '{prompt_type}', Content: '{prompt_content[:50] if prompt_content else ''}'")
         return jsonify({"success": False, "message": "No content or type provided for saving."}), 400
 
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     saved_prompts_in_memory.append({
         "timestamp": timestamp,
-        "type": prompt_type,
-        "content": prompt_content
+        "type": prompt_type, # Store as 'type' for consistency with existing display logic
+        "text": prompt_content, # Store as 'text' for consistency with existing display logic
+        "user": current_user.username if current_user.is_authenticated else "anonymous" # Track user
     })
-    app.logger.info(f"Saved prompt: Type={prompt_type}, Content={prompt_content[:50]}...")
-    return jsonify({"success": True, "message": "Prompt saved temporarily!"})
+
+    app.logger.info(f"Prompt of type '{prompt_type}' saved to memory at {timestamp} by {current_user.username if current_user.is_authenticated else 'anonymous'}. Content: '{prompt_content[:50]}...'")
+    return jsonify({"success": True, "message": "Prompt saved temporarily!"}), 200
 
 # --- Get Saved Prompts Endpoint ---
 @app.route('/get_saved_prompts', methods=['GET'])
-@login_required
-def get_saved_prompts():
-    # Return saved prompts, reverse to show most recent first
-    return jsonify(list(reversed(saved_prompts_in_memory)))
+@login_required # Protect this route
+def get_saved_prompts_endpoint():
+    # Only return prompts saved by the current user if authenticated
+    if current_user.is_authenticated:
+        user_prompts = [p for p in saved_prompts_in_memory if p.get('user') == current_user.username]
+        return jsonify(user_prompts), 200
+    else:
+        # If not authenticated, return only anonymous prompts or deny access
+        # For this basic setup, let's just return anonymous ones if not logged in
+        anonymous_prompts = [p for p in saved_prompts_in_memory if p.get('user') == "anonymous"]
+        return jsonify(anonymous_prompts), 200
 
-# --- Download Prompts Endpoint (as TXT) ---
-@app.route('/download_prompts_txt')
-@login_required
+
+# --- Download Prompts as TXT Endpoint ---
+@app.route('/download_prompts_txt', methods=['GET'])
+@login_required # Protect this route
 def download_prompts_txt():
-    output = "Saved Prompts from AI Prompt Generator\n"
-    output += "="*40 + "\n\n"
-    for prompt in saved_prompts_in_memory:
-        output += f"Timestamp: {prompt['timestamp']}\n"
-        output += f"Type: {prompt['type'].replace('_', ' ').title()} Prompt\n"
-        output += f"Content:\n{prompt['content']}\n\n"
-        output += "-"*30 + "\n\n"
+    # Filter prompts by current user for download
+    if current_user.is_authenticated:
+        prompts_to_download = [p for p in saved_prompts_in_memory if p.get('user') == current_user.username]
+    else:
+        prompts_to_download = [p for p in saved_prompts_in_memory if p.get('user') == "anonymous"]
 
-    response = make_response(output)
-    response.headers["Content-Disposition"] = "attachment; filename=saved_prompts.txt"
+    if not prompts_to_download:
+        return "No prompts to download for this user.", 404
+
+    lines = []
+    for i, prompt in enumerate(prompts_to_download):
+        lines.append(f"--- PROMPT {i+1} ---")
+        lines.append(f"Type: {prompt['type'].capitalize()}")
+        lines.append(f"Saved: {prompt['timestamp']}")
+        lines.append("-" * 30)
+        lines.append(prompt['text'])
+        lines.append("-" * 30)
+        lines.append("\n")
+
+    text_content = "\n".join(lines).strip()
+    filename = f"saved_prompts_{current_user.username if current_user.is_authenticated else 'anonymous'}.txt"
+
+    response = make_response(text_content)
+    response.headers["Content-Disposition"] = f"attachment; filename={filename}"
     response.headers["Content-type"] = "text/plain"
+    app.logger.info(f"Generated and sending {filename} for download.")
     return response
+
 
 # --- NEW: Authentication Routes ---
 @app.route('/register', methods=['GET', 'POST'])
