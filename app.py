@@ -8,6 +8,7 @@ import google.generativeai as genai
 from flask import Flask, render_template, request, jsonify, make_response, redirect, url_for, flash, session
 import logging
 from datetime import datetime
+from datetime import timedelta # Import timedelta for session lifetime
 
 # --- NEW IMPORTS FOR AUTHENTICATION AND OAUTH ---
 from flask_sqlalchemy import SQLAlchemy
@@ -25,8 +26,27 @@ app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///site.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False # Suppress a warning
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'a_very_secret_key_that_should_be_in_env') # Needed for Flask-Login sessions
+# --- IMPORTANT: Ensure SECRET_KEY is set as a proper, long, random environment variable in production! ---
+# If not set, Flask will use the default, which can cause session issues in multi-worker
+# environments (like Gunicorn) as each worker might generate a different default key.
+# This is the MOST LIKELY cause of 'invalid_claim: Invalid claim "nonce"' if nonce=True is used.
+# Generate a strong key: import os; os.urandom(24).hex()
+# Example: app.config['SECRET_KEY'] = 'your_long_random_secret_key_here'
 db = SQLAlchemy(app)
 # --- END NEW: Flask-SQLAlchemy Configuration ---
+
+# --- NEW: Flask Session Configuration for Robustness ---
+# Set session to permanent (optional, but can help with longer sessions)
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=7) # Example: 7 days
+# Ensure session is saved permanently (required for PERMANENT_SESSION_LIFETIME to take effect)
+app.config['SESSION_PERMANENT'] = True
+# Cookie settings for production (HTTPS)
+# These are crucial for proper session cookie handling in a deployed environment
+app.config['SESSION_COOKIE_SECURE'] = True # Only send cookies over HTTPS
+app.config['SESSION_COOKIE_HTTPONLY'] = True # Prevent client-side JavaScript access to session cookie
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax' # Protect against CSRF, 'Strict' for more security (may affect cross-site navigation)
+# --- END NEW: Flask Session Configuration ---
+
 
 # --- NEW: Flask-Login Configuration ---
 login_manager = LoginManager()
