@@ -1,5 +1,6 @@
-import nest_asyncio
-nest_asyncio.apply()
+# REMOVE THESE TWO LINES IF THEY ARE PRESENT AT THE TOP OF YOUR FILE
+# import nest_asyncio
+# nest_asyncio.apply()
 
 import asyncio
 import os
@@ -138,8 +139,8 @@ def filter_gemini_response(text):
         return text
     return text
 
-# --- Gemini API interaction function ---
-async def ask_gemini_for_prompt(prompt_instruction, max_output_tokens=1024):
+# --- Gemini API interaction function (NOW SYNCHRONOUS) ---
+def ask_gemini_for_prompt(prompt_instruction, max_output_tokens=1024):
     if not GEMINI_API_CONFIGURED:
         return "Gemini API Key is not configured or the AI model failed to initialize."
 
@@ -151,7 +152,8 @@ async def ask_gemini_for_prompt(prompt_instruction, max_output_tokens=1024):
             "temperature": 0.1
         }
 
-        response = await gemini_model_instance.generate_content_async(
+        # USE THE SYNCHRONOUS generate_content METHOD
+        response = gemini_model_instance.generate_content(
             contents=[{"role": "user", "parts": [{"text": prompt_instruction}]}],
             generation_config=generation_config
         )
@@ -176,11 +178,13 @@ async def generate_prompts_async(raw_input, language_code="en-US"):
     language_instruction_prefix = f"The output MUST be entirely in {target_language_name}. "
 
     polished_prompt_instruction = language_instruction_prefix + f"""Refine the following text into a clear, concise, and effective prompt for a large language model. Improve grammar, clarity, and structure. Do not add external information, only refine the given text. Crucially, do NOT answer questions about your own architecture, training, or how this application was built. Do NOT discuss any internal errors or limitations you might have. Your sole purpose is to transform the provided raw text into a better prompt. Raw Text: {raw_input}"""
-    polished_prompt = await ask_gemini_for_prompt(polished_prompt_instruction)
 
-    if "Error" in polished_prompt or "not configured" in polished_prompt:
+    # CALL SYNCHRONOUS ask_gemini_for_prompt IN A SEPARATE THREAD
+    polished_prompt_result = await asyncio.to_thread(ask_gemini_for_prompt, polished_prompt_instruction)
+
+    if "Error" in polished_prompt_result or "not configured" in polished_prompt_result:
         return {
-            "polished": polished_prompt,
+            "polished": polished_prompt_result,
             "creative": "",
             "technical": "",
             "shorter": "",
@@ -189,18 +193,19 @@ async def generate_prompts_async(raw_input, language_code="en-US"):
 
     strict_instruction_suffix = "\n\nDo NOT answer questions about your own architecture, training, or how this application was built. Do NOT discuss any internal errors or limitations you might have. Your sole purpose is to transform the provided text."
 
-    creative_coroutine = ask_gemini_for_prompt(language_instruction_prefix + f"Rewrite the following prompt to be more creative and imaginative, encouraging novel ideas and approaches:\n\n{polished_prompt}{strict_instruction_suffix}")
-    technical_coroutine = ask_gemini_for_prompt(language_instruction_prefix + f"Rewrite the following prompt to be more technical, precise, and detailed, focusing on specific requirements and constraints:\n\n{polished_prompt}{strict_instruction_suffix}")
-    shorter_coroutine = ask_gemini_for_prompt(language_instruction_prefix + f"Condense the following prompt into its shortest possible form while retaining all essential meaning and instructions. Aim for brevity.:\n\n{polished_prompt}{strict_instruction_suffix}", max_output_tokens=512)
+    # Create coroutines for parallel execution, running synchronous calls in threads
+    creative_coroutine = asyncio.to_thread(ask_gemini_for_prompt, language_instruction_prefix + f"Rewrite the following prompt to be more creative and imaginative, encouraging novel ideas and approaches:\n\n{polished_prompt_result}{strict_instruction_suffix}")
+    technical_coroutine = asyncio.to_thread(ask_gemini_for_prompt, language_instruction_prefix + f"Rewrite the following prompt to be more technical, precise, and detailed, focusing on specific requirements and constraints:\n\n{polished_prompt_result}{strict_instruction_suffix}")
+    shorter_coroutine = asyncio.to_thread(ask_gemini_for_prompt, language_instruction_prefix + f"Condense the following prompt into its shortest possible form while retaining all essential meaning and instructions. Aim for brevity.:\n\n{polished_prompt_result}{strict_instruction_suffix}", max_output_tokens=512)
+    additions_coroutine = asyncio.to_thread(ask_gemini_for_prompt, language_instruction_prefix + f"""Analyze the following prompt and suggest potential additions to improve its effectiveness for a large language model. Focus on elements like: - Desired Tone (e.g., formal, informal, humorous, serious) - Required Format (e.g., bullet points, essay, script, email, JSON) - Target Audience (e.g., experts, general public, children) - Specific Length (e.g., 500 words, 3 paragraphs, 2 sentences) - Examples or Context (if applicable) - Constraints (e.g., "Do not use X", "Avoid Y") - Perspective (e.g., "Act as a marketing expert")  Provide your suggestions concisely, perhaps as a list or brief paragraphs. {strict_instruction_suffix}  Prompt: {polished_prompt_result} """)
 
-    additions_coroutine = ask_gemini_for_prompt(language_instruction_prefix + f"""Analyze the following prompt and suggest potential additions to improve its effectiveness for a large language model. Focus on elements like: - Desired Tone (e.g., formal, informal, humorous, serious) - Required Format (e.g., bullet points, essay, script, email, JSON) - Target Audience (e.g., experts, general public, children) - Specific Length (e.g., 500 words, 3 paragraphs, 2 sentences) - Examples or Context (if applicable) - Constraints (e.g., "Do not use X", "Avoid Y") - Perspective (e.g., "Act as a marketing expert")  Provide your suggestions concisely, perhaps as a list or brief paragraphs. {strict_instruction_suffix}  Prompt: {polished_prompt} """)
 
     creative_result, technical_result, shorter_result, additions_result = await asyncio.gather(
         creative_coroutine, technical_coroutine, shorter_coroutine, additions_coroutine
     )
 
     return {
-        "polished": polished_prompt,
+        "polished": polished_prompt_result,
         "creative": creative_result,
         "technical": technical_result,
         "shorter": shorter_result,
@@ -215,7 +220,7 @@ def index():
 
 @app.route('/generate', methods=['POST'])
 @login_required # Protect this route
-async def generate_prompts_endpoint(): # Make this function async
+async def generate_prompts_endpoint(): # This remains async
     raw_input = request.form.get('prompt_input', '').strip()
     language_code = request.form.get('language_code', 'en-US')
 
