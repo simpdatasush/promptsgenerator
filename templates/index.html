@@ -249,9 +249,9 @@
             {% if current_user.is_authenticated %}
                 <span>Logged in as: <strong class="username">{{ current_user.username }}</strong></span>
                 <a href="{{ url_for('logout') }}">Logout</a>
-                <a href="{{ url_for('home') }}">Home</a> {# Link back to the main app page #}
             {% else %}
-                <a href="{{ url_for('landing') }}">Login / Register</a> {# Link back to landing page #}
+                <a href="{{ url_for('login') }}">Login</a>
+                <a href="{{ url_for('register') }}">Register</a>
             {% endif %}
         </div>
         <!-- END NEW: Auth Links -->
