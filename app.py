@@ -5,16 +5,14 @@
 import asyncio
 import os
 import google.generativeai as genai
-from flask import Flask, render_template, request, jsonify, make_response, redirect, url_for, flash, session
+from flask import Flask, render_template, request, jsonify, make_response, redirect, url_for, flash
 import logging
 from datetime import datetime
-from datetime import timedelta # Import timedelta for session lifetime
 
-# --- NEW IMPORTS FOR AUTHENTICATION AND OAUTH ---
+# --- NEW IMPORTS FOR AUTHENTICATION ---
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
-from authlib.integrations.flask_client import OAuth # Import Authlib OAuth
 # --- END NEW IMPORTS ---
 
 
@@ -25,54 +23,15 @@ app = Flask(__name__)
 # On Render, this database file will be ephemeral unless you attach a persistent disk.
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///site.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False # Suppress a warning
-
-# --- IMPORTANT: Ensure SECRET_KEY is set as a proper, long, random environment variable in production! ---
-# If not set, Flask will use the default, which can cause session issues in multi-worker
-# environments (like Gunicorn) as each worker might generate a different default key.
-# This is the MOST LIKELY cause of 'invalid_claim: Invalid claim "nonce"' if nonce=True is used.
-# Generate a strong key: import os; os.urandom(24).hex()
-# Example: app.config['SECRET_KEY'] = 'your_long_random_secret_key_here'
-app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'a_very_secret_key_that_should_be_in_env_PLEASE_CHANGE_ME_IN_PRODUCTION') # Needed for Flask-Login sessions
-
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'a_very_secret_key_that_should_be_in_env') # Needed for Flask-Login sessions
 db = SQLAlchemy(app)
 # --- END NEW: Flask-SQLAlchemy Configuration ---
-
-# --- NEW: Flask Session Configuration for Robustness ---
-# Set session to permanent (optional, but can help with longer sessions)
-app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=7) # Example: 7 days
-# Ensure session is saved permanently (required for PERMANENT_SESSION_LIFETIME to take effect)
-app.config['SESSION_PERMANENT'] = True
-# Cookie settings for production (HTTPS)
-# These are crucial for proper session cookie handling in a deployed environment
-app.config['SESSION_COOKIE_SECURE'] = True # Only send cookies over HTTPS
-app.config['SESSION_COOKIE_HTTPONLY'] = True # Prevent client-side JavaScript access to session cookie
-app.config['SESSION_COOKIE_SAMESITE'] = 'Lax' # Protect against CSRF, 'Strict' for more security (may affect cross-site navigation)
-# If you are using a custom domain and facing issues, you might need to uncomment and set this:
-# app.config['SESSION_COOKIE_DOMAIN'] = '.yourdomain.com' # e.g., '.promptsgenerator.onrender.com'
-# --- END NEW: Flask Session Configuration ---
-
 
 # --- NEW: Flask-Login Configuration ---
 login_manager = LoginManager()
 login_manager.init_app(app)
-login_manager.login_view = 'landing' # Redirect to landing page for login
+login_manager.login_view = 'login' # The view Flask-Login should redirect to for login
 # --- END NEW: Flask-Login Configuration ---
-
-# --- NEW: Authlib OAuth Configuration for Google ---
-oauth = OAuth(app)
-google = oauth.register(
-    name='google',
-    client_id=os.getenv("GOOGLE_CLIENT_ID"),
-    client_secret=os.getenv("GOOGLE_CLIENT_SECRET"),
-    access_token_url='https://accounts.google.com/o/oauth2/token',
-    access_token_params=None,
-    authorize_url='https://accounts.google.com/o/oauth2/auth',
-    authorize_params=None,
-    api_base_url='https://www.googleapis.com/oauth2/v1/',
-    client_kwargs={'scope': 'openid email profile'},
-    jwks_uri='https://www.googleapis.com/oauth2/v3/certs', # Required for OIDC
-)
-# --- END NEW: Authlib OAuth Configuration ---
 
 
 # Configure logging for the Flask app
@@ -124,25 +83,13 @@ def configure_gemini_api():
         app.logger.warning("="*80 + "\n")
         GEMINI_API_CONFIGURED = False
 
-    # --- NEW: Log the SECRET_KEY being used for debugging nonce issue ---
-    current_secret_key = app.config['SECRET_KEY']
-    if current_secret_key == 'a_very_secret_key_that_should_be_in_env_PLEASE_CHANGE_ME_IN_PRODUCTION':
-        app.logger.error("\n" + "="*80)
-        app.logger.error("CRITICAL ERROR: SECRET_KEY is still using the default value. This WILL cause 'invalid_claim: Invalid claim nonce' errors in production with multiple workers.")
-        app.logger.error("Please set a strong, random SECRET_KEY environment variable on Render.com!")
-        app.logger.error("="*80 + "\n")
-    else:
-        app.logger.info(f"SECRET_KEY is set (first 5 chars): {current_secret_key[:5]}...")
-
 configure_gemini_api()
 
 # --- NEW: User Model for SQLAlchemy and Flask-Login ---
 class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
-    password_hash = db.Column(db.String(128), nullable=False) # Still needed for local login
-    # For Google OAuth, we can use the email as username, or add a google_id column for robust linking
-    # google_id = db.Column(db.String(120), unique=True, nullable=True) # Optional: if you want to store Google ID
+    password_hash = db.Column(db.String(128), nullable=False)
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -265,17 +212,9 @@ async def generate_prompts_async(raw_input, language_code="en-US"):
         "additions": additions_result
     }
 
-# --- NEW: Landing Page Route ---
+# --- Flask Routes ---
 @app.route('/')
-def landing():
-    if current_user.is_authenticated:
-        return redirect(url_for('home')) # Redirect to the main app if logged in
-    return render_template('landing.html')
-
-# --- Flask Routes (renamed index to home) ---
-@app.route('/home')
-@login_required # Protect this route
-def home():
+def index():
     # Pass current_user object to the template to show login/logout status
     return render_template('index.html', current_user=current_user)
 
@@ -379,7 +318,8 @@ def download_prompts_txt():
 def register():
     if current_user.is_authenticated:
         flash('You are already registered and logged in.', 'info')
-        return redirect(url_for('home')) # Redirect to home
+        return redirect(url_for('index'))
+
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
@@ -392,7 +332,7 @@ def register():
             new_user.set_password(password)
             db.session.add(new_user)
             db.session.commit()
-            flash('Registration successful! Please log in.', 'success')
+            flash('Registration successful! You can now log in.', 'success')
             return redirect(url_for('login'))
     return render_template('register.html')
 
@@ -400,7 +340,7 @@ def register():
 def login():
     if current_user.is_authenticated:
         flash('You are already logged in.', 'info')
-        return redirect(url_for('home')) # Redirect to home
+        return redirect(url_for('index'))
 
     if request.method == 'POST':
         username = request.form['username']
@@ -412,7 +352,7 @@ def login():
             login_user(user, remember=remember_me)
             flash('Logged in successfully!', 'success')
             next_page = request.args.get('next') # Redirect to the page user tried to access
-            return redirect(next_page or url_for('home')) # Redirect to home
+            return redirect(next_page or url_for('index'))
         else:
             flash('Login Unsuccessful. Please check username and password.', 'danger')
     return render_template('login.html')
@@ -422,46 +362,8 @@ def login():
 def logout():
     logout_user()
     flash('You have been logged out.', 'info')
-    return redirect(url_for('landing')) # Redirect to landing page after logout
-
-# --- NEW: Google OAuth Routes ---
-@app.route('/login/google')
-def login_google():
-    if current_user.is_authenticated:
-        flash('You are already logged in.', 'info')
-        return redirect(url_for('home'))
-    redirect_uri = url_for('authorize_google', _external=True)
-    # --- FIX: Pass nonce=True to authorize_redirect for OpenID Connect security ---
-    return google.authorize_redirect(redirect_uri, nonce=True)
-
-@app.route('/login/google/authorized')
-def authorize_google():
-    try:
-        # --- FIX: Explicitly set nonce=None to bypass nonce validation for debugging ---
-        # IMPORTANT: This reduces security against replay attacks. Use only for debugging.
-        # For production, ensure SECRET_KEY is consistent and session cookies are handled correctly.
-        token = google.authorize_access_token()
-        userinfo = google.parse_id_token(token, nonce=None) # <--- CHANGE IS HERE
-
-        # Check if user exists in your DB using email as username
-        user = User.query.filter_by(username=userinfo['email']).first()
-        if not user:
-            # Register new user if not exists
-            user = User(username=userinfo['email'])
-            # For OAuth users, password_hash can be a dummy or random, as they won't use password login
-            user.set_password(os.urandom(16).hex()) # Set a dummy password
-            db.session.add(user)
-            db.session.commit()
-            flash('Account created via Google!', 'success')
-
-        login_user(user)
-        flash('Logged in successfully with Google!', 'success')
-        return redirect(url_for('home'))
-    except Exception as e:
-        app.logger.error(f"Google OAuth authorization failed: {e}", exc_info=True)
-        flash(f'Google login failed: {e}', 'danger')
-        return redirect(url_for('landing'))
-# --- END NEW: Google OAuth Routes ---
+    return redirect(url_for('index'))
+# --- END NEW: Authentication Routes ---
 
 
 # --- Database Initialization (Run once to create tables) ---
