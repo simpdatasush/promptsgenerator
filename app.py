@@ -4,6 +4,7 @@ import google.generativeai as genai
 from flask import Flask, render_template, request, jsonify, make_response, redirect, url_for, flash, session
 import logging
 from datetime import datetime
+import requests # NEW: For making HTTP requests to Imagen API
 
 # --- NEW IMPORTS FOR AUTHENTICATION ---
 from flask_sqlalchemy import SQLAlchemy
@@ -191,6 +192,35 @@ async def ask_gemini_for_prompt(prompt_instruction, max_output_tokens=1024):
         app.logger.error(f"DEBUG: Error calling Gemini API: {e}", exc_info=True)
         return filter_gemini_response(f"Error communicating with Gemini API: {e}")
 
+# --- NEW: Imagen API interaction function ---
+async def generate_image_with_imagen(prompt):
+    # The API key is automatically provided by Canvas if empty string
+    apiKey = "" 
+    apiUrl = f"https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key={apiKey}"
+    
+    payload = { "instances": { "prompt": prompt }, "parameters": { "sampleCount": 1} }
+
+    try:
+        # Use asyncio.to_thread to run synchronous requests.post in an async context
+        response = await asyncio.to_thread(
+            requests.post,
+            apiUrl,
+            headers={ 'Content-Type': 'application/json' },
+            json=payload
+        )
+        response.raise_for_status() # Raise an exception for bad status codes (4xx or 5xx)
+        result = response.json()
+
+        if result.get('predictions') and len(result['predictions']) > 0 and result['predictions'][0].get('bytesBase64Encoded'):
+            image_base64 = result['predictions'][0]['bytesBase64Encoded']
+            return f"data:image/png;base64,{image_base64}"
+        else:
+            app.logger.warning("Imagen API did not return a valid image.")
+            return None
+    except Exception as e:
+        app.logger.error(f"Error calling Imagen API: {e}", exc_info=True)
+        return None
+
 # --- generate_prompts_async function (main async logic for prompt variations) ---
 async def generate_prompts_async(raw_input, language_code="en-US"):
     if not raw_input.strip():
@@ -252,8 +282,15 @@ Raw Text:
 # --- Flask Routes ---
 @app.route('/')
 def index():
-    # Pass current_user object to the template to show login/logout status
-    return render_template('index.html', current_user=current_user)
+    # The root route now serves the new landing page
+    return render_template('landing.html', current_user=current_user)
+
+@app.route('/app') # NEW: Route for the main AI Prompt Generator application
+@login_required # Protect this route, only accessible after login
+def app_generator_page():
+    # This route now serves the renamed app_generator.html
+    return render_template('app_generator.html', current_user=current_user)
+
 
 @app.route('/generate', methods=['POST'])
 @login_required # Protect this route
@@ -352,7 +389,7 @@ def download_prompts_txt():
 def register():
     if current_user.is_authenticated:
         flash('You are already logged in.', 'info')
-        return redirect(url_for('index'))
+        return redirect(url_for('app_generator_page')) # Redirect to app page after register if already logged in
 
     if request.method == 'POST':
         username = request.form.get('username')
@@ -385,7 +422,7 @@ def register():
 def login():
     if current_user.is_authenticated:
         flash('You are already logged in.', 'info')
-        return redirect(url_for('index'))
+        return redirect(url_for('app_generator_page')) # Redirect to app page after login if already logged in
 
     if request.method == 'POST':
         username_or_email = request.form['username_or_email'] # Changed to handle both
@@ -399,7 +436,7 @@ def login():
             login_user(user, remember=remember_me)
             flash('Logged in successfully!', 'success')
             next_page = request.args.get('next') # Redirect to the page user tried to access
-            return redirect(next_page or url_for('index'))
+            return redirect(next_page or url_for('app_generator_page')) # Redirect to app page
         else:
             flash('Login Unsuccessful. Please check username/email and password.', 'danger')
     return render_template('login.html')
@@ -409,7 +446,7 @@ def login():
 def logout():
     logout_user()
     flash('You have been logged out.', 'info')
-    return redirect(url_for('index'))
+    return redirect(url_for('index')) # Redirect to the new landing page after logout
 
 # --- NEW: Google Authentication Routes ---
 @app.route('/login/google')
@@ -417,7 +454,7 @@ def login_google():
     # If the user is already authenticated, redirect them
     if current_user.is_authenticated:
         flash('You are already logged in.', 'info')
-        return redirect(url_for('index'))
+        return redirect(url_for('app_generator_page')) # Redirect to app page if already logged in
     
     # Generate a nonce to prevent replay attacks
     # The nonce is stored in the session and checked upon callback
@@ -484,9 +521,47 @@ def auth_google():
     # Log the user into Flask-Login session
     login_user(user)
     flash('Logged in successfully with Google!', 'success')
-    return redirect(url_for('index'))
+    return redirect(url_for('app_generator_page')) # Redirect to the main app page after Google login
 
-# --- END NEW: Google Authentication Routes ---
+# --- NEW: Endpoint for dynamic daily content (motivational prompt and image) ---
+@app.route('/generate_daily_content', methods=['GET'])
+def generate_daily_content():
+    current_hour = datetime.now().hour
+    
+    # Determine time of day for prompt/image context
+    if 5 <= current_hour < 12:
+        time_of_day = "morning"
+        prompt_theme = "new beginnings, fresh start, productivity, sunrise"
+    elif 12 <= current_hour < 18:
+        time_of_day = "afternoon"
+        prompt_theme = "focus, progress, overcoming challenges, bright sky"
+    else: # 18 <= current_hour < 5
+        time_of_day = "evening"
+        prompt_theme = "reflection, relaxation, future dreams, starry night"
+
+    # Generate motivational prompt using Gemini
+    motivational_prompt_instruction = f"Generate a short, inspiring, and motivational quote or sentence suitable for the {time_of_day}, focusing on themes of {prompt_theme}. Keep it concise, under 20 words."
+    motivational_text = asyncio.run(ask_gemini_for_prompt(motivational_prompt_instruction, max_output_tokens=50))
+
+    # Generate image using Imagen
+    image_prompt = f"A beautiful, inspiring image representing a {time_of_day} with elements of {prompt_theme}. Artistic, serene, high quality. Digital art."
+    
+    image_url = asyncio.run(generate_image_with_imagen(image_prompt))
+    
+    if not image_url:
+        # Fallback to a placeholder if image generation fails
+        if time_of_day == "morning":
+            image_url = "https://placehold.co/800x400/ADD8E6/000000?text=Morning+Inspiration"
+        elif time_of_day == "afternoon":
+            image_url = "https://placehold.co/800x400/90EE90/000000?text=Afternoon+Focus"
+        else: # evening
+            image_url = "https://placehold.co/800x400/8A2BE2/FFFFFF?text=Evening+Reflection"
+
+    return jsonify({
+        "motivational_text": motivational_text,
+        "image_url": image_url
+    })
+# --- END NEW: Endpoint for dynamic daily content ---
 
 
 # --- Database Initialization (Run once to create tables) ---
