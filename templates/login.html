@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css"> <!-- For Google icon -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css"> <!-- Added for Google icon -->
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -31,24 +31,15 @@
         .form-group label {
             font-weight: bold;
         }
-        .google-btn {
-            background-color: #db4437; /* Google Red */
+        /* Style for Google button */
+        .btn-google {
+            background-color: #db4437; /* Google red */
             color: white;
             border: none;
-            padding: 10px 15px;
-            border-radius: 5px;
-            font-size: 1rem;
-            cursor: pointer;
-            width: 100%;
-            margin-top: 15px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            transition: background-color 0.2s ease;
         }
-        .google-btn:hover {
-            background-color: #c0392b;
+        .btn-google:hover {
+            background-color: #c23321; /* Darker red on hover */
+            color: white;
         }
     </style>
 </head>
@@ -64,8 +55,8 @@
         {% endwith %}
         <form method="POST">
             <div class="form-group">
-                <label for="username">Username:</label>
-                <input type="text" class="form-control" id="username" name="username" required>
+                <label for="username_or_email">Username or Email:</label>
+                <input type="text" class="form-control" id="username_or_email" name="username_or_email" required>
             </div>
             <div class="form-group">
                 <label for="password">Password:</label>
@@ -78,11 +69,12 @@
             <button type="submit" class="btn btn-primary btn-block">Login</button>
             <p class="text-center mt-3">Don't have an account? <a href="{{ url_for('register') }}">Register here</a></p>
         </form>
-
-        <hr>
-        <a href="{{ url_for('google_login') }}" class="google-btn">
-            <i class="fab fa-google"></i> Login with Google
+        <!-- NEW: Google Login Button -->
+        <p class="text-center mt-3">Or login with:</p>
+        <a href="{{ url_for('login_google') }}" class="btn btn-google btn-block">
+            <i class="fab fa-google mr-2"></i> Login with Google
         </a>
+        <!-- END NEW: Google Login Button -->
     </div>
 </body>
 </html>
