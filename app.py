@@ -170,31 +170,7 @@ def filter_gemini_response(text):
     return text
 
 # --- Helper function to run async code in a new, isolated event loop ---
-def run_sync_in_new_loop(coro):
-    """
-    Runs a coroutine in a new, isolated event loop.
-    Ensures the loop is always closed and a fresh default loop is set.
-    """
-    loop = None
-    try:
-        # Attempt to get the current loop if it exists and is not closed
-        try:
-            loop = asyncio.get_event_loop()
-            if loop.is_closed():
-                raise RuntimeError("Existing event loop is closed, creating a new one.")
-        except RuntimeError: # No current loop, or it's closed
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-        
-        return loop.run_until_complete(coro)
-    finally:
-        # Ensure the loop is closed and a new one is set for the thread
-        if loop and not loop.is_closed():
-            loop.close()
-        # Always set a new event loop for the current thread to prevent issues
-        # with subsequent async operations that might try to access a closed loop.
-        asyncio.set_event_loop(asyncio.new_event_loop())
-
+# Removed: run_sync_in_new_loop function as it's no longer needed for daily content
 
 # --- Gemini API interaction function (MODIFIED to be synchronous) ---
 def ask_gemini_for_prompt(prompt_instruction, max_output_tokens=1024):
@@ -209,8 +185,10 @@ def ask_gemini_for_prompt(prompt_instruction, max_output_tokens=1024):
             "temperature": 0.1
         }
         
-        # Use the helper function to run async code in a new loop
-        response = run_sync_in_new_loop(gemini_model_instance.generate_content_async(
+        # Use asyncio.run to execute the async method in a new, isolated event loop
+        # This is crucial for running async code from a synchronous Flask context
+        # We also need to get the result of the coroutine
+        response = asyncio.run(gemini_model_instance.generate_content_async(
             contents=[{"role": "user", "parts": [{"text": prompt_instruction}]}],
             generation_config=generation_config
         ))
@@ -524,34 +502,28 @@ def auth_google():
     return redirect(url_for('app_generator_page')) # Redirect to the main app page after Google login
 
 # --- NEW: Endpoint for dynamic daily content (motivational prompt and image) ---
-@app.route('/generate_daily_content', methods=['GET'])
-def generate_daily_content():
-    current_hour = datetime.now().hour
+# This endpoint is now completely removed as it's no longer used by landing.html
+# @app.route('/generate_daily_content', methods=['GET'])
+# def generate_daily_content():
+#     current_hour = datetime.now().hour
     
-    # Determine time of day for prompt/image context
-    if 5 <= current_hour < 12:
-        time_of_day = "morning"
-        # Removed image-specific prompt_theme parts
-        image_url = "https://placehold.co/800x400/ADD8E6/000000?text=Morning+Inspiration"
-    elif 12 <= current_hour < 18:
-        time_of_day = "afternoon"
-        # Removed image-specific prompt_theme parts
-        image_url = "https://placehold.co/800x400/90EE90/000000?text=Afternoon+Focus"
-    else: # 18 <= current_hour < 5
-        time_of_day = "evening"
-        # Removed image-specific prompt_theme parts
-        image_url = "https://placehold.co/800x400/8A2BE2/FFFFFF?text=Evening+Reflection"
+#     if 5 <= current_hour < 12:
+#         time_of_day = "morning"
+#         image_url = "https://placehold.co/800x400/ADD8E6/000000?text=Morning+Inspiration"
+#     elif 12 <= current_hour < 18:
+#         time_of_day = "afternoon"
+#         image_url = "https://placehold.co/800x400/90EE90/000000?text=Afternoon+Focus"
+#     else: # 18 <= current_hour < 5
+#         time_of_day = "evening"
+#         image_url = "https://placehold.co/800x400/8A2BE2/FFFFFF?text=Evening+Reflection"
 
-    # Generate motivational prompt using Gemini (now synchronous)
-    motivational_prompt_instruction = f"Generate a short, inspiring, and motivational quote or sentence suitable for the {time_of_day}, focusing on themes of {time_of_day} and positive outlook. Keep it concise, under 20 words."
-    motivational_text = ask_gemini_for_prompt(motivational_prompt_instruction, max_output_tokens=50)
-
-    # Image generation removed, using static placeholder
+#     motivational_prompt_instruction = f"Generate a short, inspiring, and motivational quote or sentence suitable for the {time_of_day}, focusing on themes of {time_of_day} and positive outlook. Keep it concise, under 20 words."
+#     motivational_text = ask_gemini_for_prompt(motivational_prompt_instruction, max_output_tokens=50)
     
-    return jsonify({
-        "motivational_text": motivational_text,
-        "image_url": image_url # Now always a placeholder
-    })
+#     return jsonify({
+#         "motivational_text": motivational_text,
+#         "image_url": image_url
+#     })
 # --- END NEW: Endpoint for dynamic daily content ---
 
 
