@@ -1,6 +1,7 @@
 Flask[async]
 google-generativeai>=0.7.2
 gunicorn==21.2.0
+uvicorn
 ##Flask-Limiter==3.12
 grpcio==1.62.0
 Flask-Login==0.6.3
