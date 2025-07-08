@@ -5,14 +5,15 @@
 import asyncio
 import os
 import google.generativeai as genai
-from flask import Flask, render_template, request, jsonify, make_response, redirect, url_for, flash
+from flask import Flask, render_template, request, jsonify, make_response, redirect, url_for, flash, session
 import logging
 from datetime import datetime
 
-# --- NEW IMPORTS FOR AUTHENTICATION ---
+# --- NEW IMPORTS FOR AUTHENTICATION AND OAUTH ---
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
+from authlib.integrations.flask_client import OAuth # Import Authlib OAuth
 # --- END NEW IMPORTS ---
 
 
@@ -30,8 +31,24 @@ db = SQLAlchemy(app)
 # --- NEW: Flask-Login Configuration ---
 login_manager = LoginManager()
 login_manager.init_app(app)
-login_manager.login_view = 'login' # The view Flask-Login should redirect to for login
+login_manager.login_view = 'landing' # Redirect to landing page for login
 # --- END NEW: Flask-Login Configuration ---
+
+# --- NEW: Authlib OAuth Configuration for Google ---
+oauth = OAuth(app)
+google = oauth.register(
+    name='google',
+    client_id=os.getenv("GOOGLE_CLIENT_ID"),
+    client_secret=os.getenv("GOOGLE_CLIENT_SECRET"),
+    access_token_url='https://accounts.google.com/o/oauth2/token',
+    access_token_params=None,
+    authorize_url='https://accounts.google.com/o/oauth2/auth',
+    authorize_params=None,
+    api_base_url='https://www.googleapis.com/oauth2/v1/',
+    client_kwargs={'scope': 'openid email profile'},
+    jwks_uri='https://www.googleapis.com/oauth2/v3/certs', # Required for OIDC
+)
+# --- END NEW: Authlib OAuth Configuration ---
 
 
 # Configure logging for the Flask app
@@ -89,7 +106,9 @@ configure_gemini_api()
 class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
-    password_hash = db.Column(db.String(128), nullable=False)
+    password_hash = db.Column(db.String(128), nullable=False) # Still needed for local login
+    # For Google OAuth, we can use the email as username, or add a google_id column for robust linking
+    # google_id = db.Column(db.String(120), unique=True, nullable=True) # Optional: if you want to store Google ID
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -212,9 +231,17 @@ async def generate_prompts_async(raw_input, language_code="en-US"):
         "additions": additions_result
     }
 
-# --- Flask Routes ---
+# --- NEW: Landing Page Route ---
 @app.route('/')
-def index():
+def landing():
+    if current_user.is_authenticated:
+        return redirect(url_for('home')) # Redirect to the main app if logged in
+    return render_template('landing.html')
+
+# --- Flask Routes (renamed index to home) ---
+@app.route('/home')
+@login_required # Protect this route
+def home():
     # Pass current_user object to the template to show login/logout status
     return render_template('index.html', current_user=current_user)
 
@@ -318,8 +345,7 @@ def download_prompts_txt():
 def register():
     if current_user.is_authenticated:
         flash('You are already registered and logged in.', 'info')
-        return redirect(url_for('index'))
-
+        return redirect(url_for('home')) # Redirect to home
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
@@ -332,7 +358,7 @@ def register():
             new_user.set_password(password)
             db.session.add(new_user)
             db.session.commit()
-            flash('Registration successful! You can now log in.', 'success')
+            flash('Registration successful! Please log in.', 'success')
             return redirect(url_for('login'))
     return render_template('register.html')
 
@@ -340,7 +366,7 @@ def register():
 def login():
     if current_user.is_authenticated:
         flash('You are already logged in.', 'info')
-        return redirect(url_for('index'))
+        return redirect(url_for('home')) # Redirect to home
 
     if request.method == 'POST':
         username = request.form['username']
@@ -352,7 +378,7 @@ def login():
             login_user(user, remember=remember_me)
             flash('Logged in successfully!', 'success')
             next_page = request.args.get('next') # Redirect to the page user tried to access
-            return redirect(next_page or url_for('index'))
+            return redirect(next_page or url_for('home')) # Redirect to home
         else:
             flash('Login Unsuccessful. Please check username and password.', 'danger')
     return render_template('login.html')
@@ -362,8 +388,42 @@ def login():
 def logout():
     logout_user()
     flash('You have been logged out.', 'info')
-    return redirect(url_for('index'))
-# --- END NEW: Authentication Routes ---
+    return redirect(url_for('landing')) # Redirect to landing page after logout
+
+# --- NEW: Google OAuth Routes ---
+@app.route('/login/google')
+def login_google():
+    if current_user.is_authenticated:
+        flash('You are already logged in.', 'info')
+        return redirect(url_for('home'))
+    redirect_uri = url_for('authorize_google', _external=True)
+    return google.authorize_redirect(redirect_uri)
+
+@app.route('/login/google/authorized')
+def authorize_google():
+    try:
+        token = google.authorize_access_token()
+        userinfo = google.parse_id_token(token) # Gets user info from ID token
+
+        # Check if user exists in your DB using email as username
+        user = User.query.filter_by(username=userinfo['email']).first()
+        if not user:
+            # Register new user if not exists
+            user = User(username=userinfo['email'])
+            # For OAuth users, password_hash can be a dummy or random, as they won't use password login
+            user.set_password(os.urandom(16).hex()) # Set a dummy password
+            db.session.add(user)
+            db.session.commit()
+            flash('Account created via Google!', 'success')
+
+        login_user(user)
+        flash('Logged in successfully with Google!', 'success')
+        return redirect(url_for('home'))
+    except Exception as e:
+        app.logger.error(f"Google OAuth authorization failed: {e}", exc_info=True)
+        flash(f'Google login failed: {e}', 'danger')
+        return redirect(url_for('landing'))
+# --- END NEW: Google OAuth Routes ---
 
 
 # --- Database Initialization (Run once to create tables) ---
