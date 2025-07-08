@@ -397,11 +397,13 @@ def login_google():
         flash('You are already logged in.', 'info')
         return redirect(url_for('home'))
     redirect_uri = url_for('authorize_google', _external=True)
-    return google.authorize_redirect(redirect_uri)
+    # --- FIX: Pass nonce=True to authorize_redirect for OpenID Connect security ---
+    return google.authorize_redirect(redirect_uri, nonce=True)
 
 @app.route('/login/google/authorized')
 def authorize_google():
     try:
+        # Authlib's authorize_access_token should now handle nonce verification internally
         token = google.authorize_access_token()
         userinfo = google.parse_id_token(token) # Gets user info from ID token
 
