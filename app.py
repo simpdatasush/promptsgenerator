@@ -4,7 +4,7 @@ import google.generativeai as genai
 from flask import Flask, render_template, request, jsonify, make_response, redirect, url_for, flash, session
 import logging
 from datetime import datetime
-import requests # NEW: For making HTTP requests to Imagen API
+# Removed: import requests # No longer needed for image generation
 
 # --- NEW IMPORTS FOR AUTHENTICATION ---
 from flask_sqlalchemy import SQLAlchemy
@@ -220,38 +220,7 @@ def ask_gemini_for_prompt(prompt_instruction, max_output_tokens=1024):
         app.logger.error(f"DEBUG: Error calling Gemini API: {e}", exc_info=True)
         return filter_gemini_response(f"Error communicating with Gemini API: {e}")
 
-# --- NEW: Imagen API interaction function (MODIFIED to be synchronous and fix .json() error) ---
-def generate_image_with_imagen(prompt):
-    # The API key is automatically provided by Canvas if empty string
-    apiKey = "" 
-    apiUrl = f"https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key={apiKey}"
-    
-    payload = { "instances": { "prompt": prompt }, "parameters": { "sampleCount": 1} }
-
-    try:
-        # Define a synchronous helper function that uses requests.post
-        def _sync_request_and_json():
-            response = requests.post(
-                apiUrl,
-                headers={ 'Content-Type': 'application/json' },
-                json=payload
-            )
-            response.raise_for_status() # Raise an exception for bad status codes (4xx or 5xx)
-            return response.json() # Call .json() on the response object directly
-
-        # Use the helper function to run the synchronous requests call in a new thread,
-        # preventing event loop issues.
-        result = run_sync_in_new_loop(asyncio.to_thread(_sync_request_and_json))
-        
-        if result.get('predictions') and len(result['predictions']) > 0 and result['predictions'][0].get('bytesBase64Encoded'):
-            image_base64 = result['predictions'][0]['bytesBase64Encoded']
-            return f"data:image/png;base64,{image_base64}"
-        else:
-            app.logger.warning("Imagen API did not return a valid image.")
-            return None
-    except Exception as e:
-        app.logger.error(f"Error calling Imagen API: {e}", exc_info=True)
-        return None
+# Removed: generate_image_with_imagen function
 
 # --- generate_prompts_async function (MODIFIED for sequential calls) ---
 def generate_prompts_sync_wrapper(raw_input, language_code="en-US"):
@@ -562,34 +531,26 @@ def generate_daily_content():
     # Determine time of day for prompt/image context
     if 5 <= current_hour < 12:
         time_of_day = "morning"
-        prompt_theme = "new beginnings, fresh start, productivity, sunrise"
+        # Removed image-specific prompt_theme parts
+        image_url = "https://placehold.co/800x400/ADD8E6/000000?text=Morning+Inspiration"
     elif 12 <= current_hour < 18:
         time_of_day = "afternoon"
-        prompt_theme = "focus, progress, overcoming challenges, bright sky"
+        # Removed image-specific prompt_theme parts
+        image_url = "https://placehold.co/800x400/90EE90/000000?text=Afternoon+Focus"
     else: # 18 <= current_hour < 5
         time_of_day = "evening"
-        prompt_theme = "reflection, relaxation, future dreams, starry night"
+        # Removed image-specific prompt_theme parts
+        image_url = "https://placehold.co/800x400/8A2BE2/FFFFFF?text=Evening+Reflection"
 
     # Generate motivational prompt using Gemini (now synchronous)
-    motivational_prompt_instruction = f"Generate a short, inspiring, and motivational quote or sentence suitable for the {time_of_day}, focusing on themes of {prompt_theme}. Keep it concise, under 20 words."
+    motivational_prompt_instruction = f"Generate a short, inspiring, and motivational quote or sentence suitable for the {time_of_day}, focusing on themes of {time_of_day} and positive outlook. Keep it concise, under 20 words."
     motivational_text = ask_gemini_for_prompt(motivational_prompt_instruction, max_output_tokens=50)
 
-    # Generate image using Imagen (now synchronous)
-    image_prompt = f"A beautiful, inspiring image representing a {time_of_day} with elements of {prompt_theme}. Artistic, serene, high quality. Digital art."
-    image_url = generate_image_with_imagen(image_prompt)
+    # Image generation removed, using static placeholder
     
-    if not image_url:
-        # Fallback to a placeholder if image generation fails
-        if time_of_day == "morning":
-            image_url = "https://placehold.co/800x400/ADD8E6/000000?text=Morning+Inspiration"
-        elif time_of_day == "afternoon":
-            image_url = "https://placehold.co/800x400/90EE90/000000?text=Afternoon+Focus"
-        else: # evening
-            image_url = "https://placehold.co/800x400/8A2BE2/FFFFFF?text=Evening+Reflection"
-
     return jsonify({
         "motivational_text": motivational_text,
-        "image_url": image_url
+        "image_url": image_url # Now always a placeholder
     })
 # --- END NEW: Endpoint for dynamic daily content ---
 
