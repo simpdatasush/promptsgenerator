@@ -1,502 +1,664 @@
-import asyncio
-import os
-import google.generativeai as genai
-from flask import Flask, render_template, request, jsonify, make_response, redirect, url_for, flash, session
-import logging
-from datetime import datetime
-
-# --- NEW IMPORTS FOR AUTHENTICATION ---
-from flask_sqlalchemy import SQLAlchemy
-from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
-from werkzeug.security import generate_password_hash, check_password_hash
-# --- NEW: Authlib for Google OAuth ---
-from authlib.integrations.flask_client import OAuth
-import json # Ensure json is imported
-# --- END NEW IMPORTS ---
-
-
-app = Flask(__name__)
-
-# --- NEW: Flask-SQLAlchemy Configuration ---
-# Configure SQLite database. This file will be created in your project directory.
-# On Render, this database file will be ephemeral unless you attach a persistent disk.
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///site.db'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False # Suppress a warning
-app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'a_very_secret_key_that_should_be_in_env') # Needed for Flask-Login sessions
-db = SQLAlchemy(app)
-# --- END NEW: Flask-SQLAlchemy Configuration ---
-
-# --- NEW: Flask-Login Configuration ---
-login_manager = LoginManager()
-login_manager.init_app(app)
-login_manager.login_view = 'login' # The view Flask-Login should redirect to for login
-# --- END NEW: Flask-Login Configuration ---
-
-# --- NEW: Google OAuth Configuration ---
-oauth = OAuth(app)
-
-# Load Google Client ID and Client Secret from environment variables
-GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
-GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
-
-# Register Google OAuth client
-# server_metadata_url automatically discovers endpoints from Google's OpenID Connect discovery document
-# client_kwargs specifies the requested scopes: openid (for ID token), email, and profile information
-oauth.register(
-    name='google',
-    client_id=GOOGLE_CLIENT_ID,
-    client_secret=GOOGLE_CLIENT_SECRET,
-    server_metadata_url='https://accounts.google.com/.well-known/openid-configuration',
-    client_kwargs={'scope': 'openid email profile'},
-)
-# --- END NEW: Google OAuth Configuration ---
-
-
-# Configure logging for the Flask app
-app.logger.setLevel(logging.INFO)
-handler = logging.StreamHandler()
-formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-handler.setFormatter(formatter)
-app.logger.addHandler(handler)
-
-# --- Temporary In-Memory Storage for Saved Prompts (Unchanged) ---
-# Note: For production, this should be replaced with a persistent database
-# and linked to the User model for proper per-user storage.
-saved_prompts_in_memory = []
-
-# --- Language Mapping for Gemini Instructions (Unchanged) ---
-LANGUAGE_MAP = {
-    "en-US": "English",
-    "en-GB": "English (UK)",
-    "es-ES": "Spanish",
-    "fr-FR": "French",
-    "de-DE": "German",
-    "it-IT": "Italian",
-    "ja-JP": "Japanese",
-    "ko-KR": "Korean",
-    "zh-CN": "Simplified Chinese",
-    "hi-IN": "Hindi"
-}
-
-
-# --- Gemini API Key and Configuration (Unchanged) ---
-GEMINI_API_CONFIGURED = False
-GEMINI_API_KEY = None
-
-def configure_gemini_api():
-    global GEMINI_API_KEY, GEMINI_API_CONFIGURED
-    GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-
-    if GEMINI_API_KEY:
-        try:
-            genai.configure(api_key=GEMINI_API_KEY)
-            GEMINI_API_CONFIGURED = True
-            app.logger.info("Gemini API configured successfully.")
-        except Exception as e:
-            app.logger.error(f"ERROR: Failed to configure Gemini API: {e}")
-            app.logger.error("Please ensure your API key environment variable (GEMINI_API_KEY) is correct and valid.")
-            GEMINI_API_CONFIGURED = False
-    else:
-        app.logger.warning("\n" + "="*80)
-        app.logger.warning("WARNING: GEMINI_API_KEY environment variable not set. Prompt generation features will be disabled.")
-        app.logger.warning("Please set the GEMINI_API_KEY environment variable on Render.")
-        app.logger.warning("="*80 + "\n")
-        GEMINI_API_CONFIGURED = False
-
-configure_gemini_api()
-
-# --- NEW: User Model for SQLAlchemy and Flask-Login (MODIFIED for Google) ---
-class User(db.Model, UserMixin):
-    id = db.Column(db.Integer, primary_key=True)
-    # Username is nullable as Google users might not have a traditional username
-    username = db.Column(db.String(80), unique=True, nullable=True) 
-    # Email is crucial for both local and Google users, must be unique
-    email = db.Column(db.String(120), unique=True, nullable=False) 
-    # password_hash is nullable for users who only log in via Google
-    password_hash = db.Column(db.String(128), nullable=True) 
-    # google_id stores the unique identifier from Google OAuth
-    google_id = db.Column(db.String(128), unique=True, nullable=True) 
-
-    def set_password(self, password):
-        self.password_hash = generate_password_hash(password)
-
-    def check_password(self, password):
-        return check_password_hash(self.password_hash, password)
-
-    def __repr__(self):
-        # Representation updated to show username or email for Google users
-        return f'<User {self.username or self.email}>'
-
-# --- NEW: Flask-Login User Loader ---
-@login_manager.user_loader
-def load_user(user_id):
-    # Use db.session.get for primary key lookup, which is more efficient
-    return db.session.get(User, int(user_id)) 
-# --- END NEW: User Model and Loader ---
-
-
-# --- Response Filtering Function (Unchanged) ---
-def filter_gemini_response(text):
-    unauthorized_message = "I am not authorised to answer this question. My purpose is solely to refine your raw prompt into a machine-readable format."
-    text_lower = text.lower()
-    unauthorized_phrases = [
-        "as a large language model", "i am an ai", "i was trained by", "my training data",
-        "this application was built using", "the code for this app", "i cannot fulfill this request because",
-        "i apologize, but i cannot", "i'm sorry, but i cannot", "i am unable to", "i do not have access",
-        "i am not able to", "i cannot process", "i cannot provide", "i am not programmed",
-        "i cannot generate", "i cannot give you details about my internal workings",
-        "i cannot discuss my creation or operation", "i cannot explain the development of this tool",
-        "my purpose is to", "i am designed to", "i don't have enough information to" # Keep this last, as it's more general
-    ]
-    for phrase in unauthorized_phrases:
-        if phrase in text_lower:
-            # Special handling for "i don't have enough information to" to allow legitimate responses
-            if phrase == "i don't have enough information to" and \
-               ("about the provided prompt" in text_lower or "based on your input" in text_lower or "to understand the context" in text_lower):
-                continue
-            return unauthorized_message
-    
-    bug_phrases = [
-        "a bug occurred", "i encountered an error", "there was an issue in my processing",
-        "i made an error", "my apologies", "i cannot respond to that"
-    ]
-    for phrase in bug_phrases:
-        if phrase in text_lower:
-            return unauthorized_message
-    
-    if "no response from model." in text_lower or "error communicating with gemini api:" in text_lower:
-        return text
-    return text
-
-# --- Gemini API interaction function ---
-async def ask_gemini_for_prompt(prompt_instruction, max_output_tokens=1024):
-    if not GEMINI_API_CONFIGURED:
-        return "Gemini API Key is not configured or the AI model failed to initialize."
-
-    try:
-        gemini_model_instance = genai.GenerativeModel('gemini-2.0-flash') 
-
-        generation_config = {
-            "max_output_tokens": max_output_tokens,
-            "temperature": 0.1
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Prompt Generator</title>
+    <!-- NEW: Bootstrap CSS for better styling of auth forms and alerts -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <!-- NEW: Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f0f2f5;
+            color: #333;
+            line-height: 1.6;
         }
-
-        response = await gemini_model_instance.generate_content_async(
-            contents=[{"role": "user", "parts": [{"text": prompt_instruction}]}],
-            generation_config=generation_config
-        )
-        raw_gemini_text = response.text if response and response.text else "No response from model."
-        return filter_gemini_response(raw_gemini_text).strip()
-    except Exception as e:
-        app.logger.error(f"DEBUG: Error calling Gemini API: {e}", exc_info=True)
-        return filter_gemini_response(f"Error communicating with Gemini API: {e}")
-
-# --- generate_prompts_async function (main async logic for prompt variations) ---
-async def generate_prompts_async(raw_input, language_code="en-US"):
-    if not raw_input.strip():
-        return {
-            "polished": "Please enter some text to generate prompts.",
-            "creative": "", "technical": "", "shorter": "", "additions": ""
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
         }
-
-    target_language_name = LANGUAGE_MAP.get(language_code, "English")
-    language_instruction_prefix = f"The output MUST be entirely in {target_language_name}. "
-
-    polished_prompt_instruction = language_instruction_prefix + f"""Refine the following text into a clear, concise, and effective prompt for a large language model. Improve grammar, clarity, and structure. Do not add external information, only refine the given text.
-
-Crucially, do NOT answer questions about your own architecture, training, or how this application was built. Do NOT discuss any internal errors or limitations you might have. Your sole purpose is to transform the provided raw text into a better prompt.
-
-Raw Text:
-{raw_input}"""
-    polished_prompt = await ask_gemini_for_prompt(polished_prompt_instruction)
-
-    if "Error" in polished_prompt or "not configured" in polished_prompt:
-        return {
-            "polished": polished_prompt,
-            "creative": "", "technical": "", "shorter": "", "additions": ""
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 20px;
         }
-
-    strict_instruction_suffix = "\n\nDo NOT answer questions about your own architecture, training, or how this application was built. Do NOT discuss any internal errors or limitations you might have. Your sole purpose is to transform the provided text."
-
-    creative_coroutine = ask_gemini_for_prompt(language_instruction_prefix + f"Rewrite the following prompt to be more creative and imaginative, encouraging novel ideas and approaches:\n\n{polished_prompt}{strict_instruction_suffix}")
-    technical_coroutine = ask_gemini_for_prompt(language_instruction_prefix + f"Rewrite the following prompt to be more technical, precise, and detailed, focusing on specific requirements and constraints:\n\n{polished_prompt}{strict_instruction_suffix}")
-    shorter_coroutine = ask_gemini_for_prompt(language_instruction_prefix + f"Condense the following prompt into its shortest possible form while retaining all essential meaning and instructions. Aim for brevity.:\n\n{polished_prompt}{strict_instruction_suffix}", max_output_tokens=512)
-
-    additions_coroutine = ask_gemini_for_prompt(language_instruction_prefix + f"""Analyze the following prompt and suggest potential additions to improve its effectiveness for a large language model. Focus on elements like:
-    -   Desired Tone (e.g., formal, informal, humorous, serious)
-    -   Required Format (e.g., bullet points, essay, script, email, JSON)
-    -   Target Audience (e.g., experts, general public, children)
-    -   Specific Length (e.g., 500 words, 3 paragraphs, 2 sentences)
-    -   Examples or Context (if applicable)
-    -   Constraints (e.g., "Do not use X", "Avoid Y")
-    -   Perspective (e.g., "Act as a marketing expert")
-
-    Provide your suggestions concisely, perhaps as a list or brief paragraphs.
-    {strict_instruction_suffix}
-
-    Prompt: {polished_prompt}
-    """)
-
-    creative_result, technical_result, shorter_result, additions_result = await asyncio.gather(
-        creative_coroutine, technical_coroutine, shorter_coroutine, additions_coroutine
-    )
-
-    return {
-        "polished": polished_prompt,
-        "creative": creative_result,
-        "technical": technical_result,
-        "shorter": shorter_result,
-        "additions": additions_result
-    }
-
-# --- Flask Routes ---
-@app.route('/')
-def index():
-    # Pass current_user object to the template to show login/logout status
-    return render_template('index.html', current_user=current_user)
-
-@app.route('/generate', methods=['POST'])
-@login_required # Protect this route
-def generate_prompts_endpoint():
-    raw_input = request.form.get('prompt_input', '').strip()
-    language_code = request.form.get('language_code', 'en-US')
-
-    if not raw_input:
-        return jsonify({
-            "polished": "Please enter some text to generate prompts.",
-            "creative": "", "technical": "", "shorter": "", "additions": ""
-        })
-
-    try:
-        results = asyncio.run(generate_prompts_async(raw_input, language_code))
-        return jsonify(results)
-    except Exception as e:
-        app.logger.exception("Error during prompt generation in endpoint:")
-        return jsonify({"error": f"An unexpected server error occurred: {e}. Please check server logs for details."}), 500
-
-# --- Save Prompt Endpoint ---
-@app.route('/save_prompt', methods=['POST'])
-@login_required # Protect this route
-def save_prompt_endpoint():
-    # For now, saved prompts are still in-memory and not tied to users.
-    # If persistent per-user storage is needed, this would require a DB change.
-    prompt_data = request.get_json()
-    prompt_text = prompt_data.get('prompt_text')
-    prompt_type = prompt_data.get('prompt_type', 'unknown')
-
-    if not prompt_text:
-        app.logger.warning("Attempted to save empty prompt text.")
-        return jsonify({"success": False, "message": "No prompt text provided"}), 400
-
-    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    saved_prompts_in_memory.append({
-        "timestamp": timestamp,
-        "type": prompt_type,
-        "text": prompt_text,
-        "user": current_user.username if current_user.is_authenticated else "anonymous" # Track user
-    })
-
-    app.logger.info(f"Prompt of type '{prompt_type}' saved to memory at {timestamp} by {current_user.username if current_user.is_authenticated else 'anonymous'}.")
-    return jsonify({"success": True, "message": "Prompt saved temporarily!"}), 200
-
-# --- Get Saved Prompts Endpoint ---
-@app.route('/get_saved_prompts', methods=['GET'])
-@login_required # Protect this route
-def get_saved_prompts_endpoint():
-    # Only return prompts saved by the current user if authenticated
-    if current_user.is_authenticated:
-        user_prompts = [p for p in saved_prompts_in_memory if p.get('user') == current_user.username]
-        return jsonify(user_prompts), 200
-    else:
-        # If not authenticated, return only anonymous prompts or deny access
-        # For this basic setup, let's just return anonymous ones if not logged in
-        anonymous_prompts = [p for p in saved_prompts_in_memory if p.get('user') == "anonymous"]
-        return jsonify(anonymous_prompts), 200
-
-
-# --- Download Prompts as TXT Endpoint ---
-@app.route('/download_prompts_txt', methods=['GET'])
-@login_required # Protect this route
-def download_prompts_txt():
-    # Filter prompts by current user for download
-    if current_user.is_authenticated:
-        prompts_to_download = [p for p in saved_prompts_in_memory if p.get('user') == current_user.username]
-    else:
-        prompts_to_download = [p for p in saved_prompts_in_memory if p.get('user') == "anonymous"]
-
-    if not prompts_to_download:
-        return "No prompts to download for this user.", 404
-
-    lines = []
-    for i, prompt in enumerate(prompts_to_download):
-        lines.append(f"--- PROMPT {i+1} ---")
-        lines.append(f"Type: {prompt['type'].capitalize()}")
-        lines.append(f"Saved: {prompt['timestamp']}")
-        lines.append("-" * 30)
-        lines.append(prompt['text'])
-        lines.append("-" * 30)
-        lines.append("\n")
-
-    text_content = "\n".join(lines).strip()
-    filename = f"saved_prompts_{current_user.username if current_user.is_authenticated else 'anonymous'}.txt"
-
-    response = make_response(text_content)
-    response.headers["Content-Disposition"] = f"attachment; filename={filename}"
-    response.headers["Content-type"] = "text/plain"
-    app.logger.info(f"Generated and sending {filename} for download.")
-    return response
-
-
-# --- NEW: Authentication Routes ---
-@app.route('/register', methods=['GET', 'POST'])
-def register():
-    if current_user.is_authenticated:
-        flash('You are already logged in.', 'info')
-        return redirect(url_for('index'))
-
-    if request.method == 'POST':
-        username = request.form.get('username')
-        password = request.form['password']
-        email = request.form.get('email') # Assuming you add an email field to register.html
-
-        if not username and not email:
-            flash('Username or Email is required.', 'danger')
-            return render_template('register.html')
-
-        # Check for existing username (if provided)
-        if username and User.query.filter_by(username=username).first():
-            flash('Username already exists. Please choose a different one.', 'danger')
-            return render_template('register.html')
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #555;
+        }
+        textarea {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            box-sizing: border-box; /* Include padding in width */
+            font-size: 1rem;
+            resize: vertical;
+            min-height: 100px;
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.06);
+        }
         
-        # Check for existing email
-        if User.query.filter_by(email=email).first():
-            flash('An account with this email already exists. Please log in or use a different email.', 'danger')
-            return render_template('register.html')
+        /* GENERAL BUTTON STYLE - applies to both "Generate Prompts" and "Start Voice Input" */
+        button {
+            display: block;
+            width: 100%; /* Full width */
+            padding: 12px 20px; /* Consistent padding */
+            background-color: #D32F2F; /* Red color */
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 1.1rem; /* Consistent font size */
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.1s ease;
+        }
+        button:hover {
+            background-color: #C62828; /* Darker Red on hover */
+            transform: translateY(-1px);
+        }
+        button:active {
+            transform: translateY(0);
+        }
 
-        new_user = User(username=username, email=email)
-        new_user.set_password(password)
-        db.session.add(new_user)
-        db.session.commit()
-        flash('Registration successful! Please log in.', 'success')
-        return redirect(url_for('login'))
-    return render_template('register.html')
+        .results-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-top: 30px;
+        }
+        .result-box {
+            background-color: #f9f9f9;
+            border: 1px solid #eee;
+            border-radius: 6px;
+            padding: 15px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+            min-height: 150px;
+            display: flex;
+            flex-direction: column;
+        }
+        .result-box h3 {
+            margin-top: 0;
+            color: #3f51b5;
+            font-size: 1.1rem;
+            margin-bottom: 10px;
+        }
+        .result-box pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-family: 'Consolas', 'Menlo', 'Courier New', monospace;
+            font-size: 0.9rem;
+            background-color: #eef1f4;
+            padding: 10px;
+            border-radius: 4px;
+            border: 1px solid #e0e2e5;
+            flex-grow: 1;
+            overflow-y: auto;
+        }
+        .suggestions {
+            grid-column: span 2;
+        }
+        #app_output {
+            margin-top: 20px;
+            font-size: 0.9em;
+            color: #666;
+            background-color: #eef1f4;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #e0e2e5;
+            min-height: 60px;
+            overflow-y: auto;
+        }
+        /* Style for new save button */
+        .save-button {
+            background-color: #007bff; /* Blue for save */
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 10px;
+            align-self: flex-end; /* Puts button to the right */
+            font-size: 0.9rem;
+            transition: background-color 0.2s ease;
+        }
+        .save-button:hover {
+            background-color: #0056b3;
+        }
+        .saved-prompts-section {
+            background-color: #e6f7ff; /* Light blue background */
+            border: 1px solid #b3e0ff;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 30px;
+        }
+        .saved-prompts-list {
+            list-style-type: none;
+            padding: 0;
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #cceeff;
+            border-radius: 5px;
+            background-color: #ffffff;
+        }
+        .saved-prompts-list li {
+            padding: 10px;
+            border-bottom: 1px solid #e0e0e0;
+            font-family: 'Consolas', 'Menlo', 'Courier New', monospace;
+            font-size: 0.85rem;
+            color: #444;
+            display: flex;
+            flex-direction: column;
+        }
+        .saved-prompts-list li:last-child {
+            border-bottom: none;
+        }
+        .saved-prompts-list li strong {
+            color: #3f51b5;
+            margin-bottom: 5px;
+            font-size: 0.9rem;
+        }
+        /* Specific styles for voice input button - only what differentiates it */
+        .voice-button {
+            margin-top: 10px;
+        }
+        .voice-button.recording {
+            background-color: #FF1744;
+        }
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 20px;
+        }
+        /* Language selector styling */
+        .language-selector {
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            background-color: #e9ecef;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #dee2e6;
+        }
+        .language-selector label {
+            margin-bottom: 0;
+            font-weight: normal;
+        }
+        .language-selector select {
+            padding: 8px 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 0.95rem;
+            background-color: #fff;
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.06);
+        }
 
-@app.route('/login', methods=['GET', 'POST'])
-def login():
-    if current_user.is_authenticated:
-        flash('You are already logged in.', 'info')
-        return redirect(url_for('index'))
+        /* Style for download button in saved prompts section */
+        .download-all-button {
+            display: block;
+            width: 100%;
+            padding: 10px 15px;
+            background-color: #28a745; /* Green color for download */
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            margin-top: 15px;
+        }
+        .download-all-button:hover {
+            background-color: #218838;
+        }
+        /* NEW: Styles for login/logout/register links */
+        .auth-links {
+            text-align: right;
+            margin-bottom: 15px;
+        }
+        .auth-links a, .auth-links span {
+            margin-left: 15px;
+            color: #007bff;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        .auth-links a:hover {
+            text-decoration: underline;
+        }
+        .auth-links .username {
+            color: #28a745; /* Green for logged-in username */
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- NEW: Auth Links -->
+        <div class="auth-links">
+            {% if current_user.is_authenticated %}
+                <span>Logged in as: <strong class="username">{{ current_user.username }}</strong></span>
+                <a href="{{ url_for('logout') }}">Logout</a>
+            {% else %}
+                <a href="{{ url_for('login') }}">Login</a>
+                <a href="{{ url_for('register') }}">Register</a>
+            {% endif %}
+        </div>
+        <!-- END NEW: Auth Links -->
 
-    if request.method == 'POST':
-        username_or_email = request.form['username_or_email'] # Changed to handle both
-        password = request.form['password']
-        remember_me = 'remember_me' in request.form
+        <!-- NEW: Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        <!-- END NEW: Flash Messages -->
 
-        # Try to find user by username or email
-        user = User.query.filter((User.username == username_or_email) | (User.email == username_or_email)).first()
+        <h1>AI Prompt Generator</h1>
 
-        if user and user.check_password(password):
-            login_user(user, remember=remember_me)
-            flash('Logged in successfully!', 'success')
-            next_page = request.args.get('next') # Redirect to the page user tried to access
-            return redirect(next_page or url_for('index'))
-        else:
-            flash('Login Unsuccessful. Please check username/email and password.', 'danger')
-    return render_template('login.html')
+        <!-- Language Selector -->
+        <div class="language-selector">
+            <label for="lang_select">Voice Input & Output Language:</label>
+            <select id="lang_select">
+                <option value="en-US">English (US)</option>
+                <option value="en-GB">English (UK)</option>
+                <option value="es-ES">Español (España)</option>
+                <option value="fr-FR">Français (France)</option>
+                <option value="de-DE">Deutsch (Deutschland)</option>
+                <option value="it-IT">Italiano (Italia)</option>
+                <option value="ja-JP">日本語 (日本)</option>
+                <option value="ko-KR">한국어 (대한민국)</option>
+                <option value="zh-CN">中文 (普通话, 简体)</option>
+                <option value="hi-IN">हिन्दी (भारत)</option>
+                <!-- Add more languages as needed -->
+            </select>
+        </div>
 
-@app.route('/logout')
-@login_required # Only logged-in users can log out
-def logout():
-    logout_user()
-    flash('You have been logged out.', 'info')
-    return redirect(url_for('index'))
+        <form id="promptForm">
+            <label for="prompt_input">Enter your raw prompt idea:</label>
+            <div class="input-group">
+                <textarea id="prompt_input" name="prompt_input" rows="8" placeholder="e.g., Write a story about a robot who wants to be a chef."></textarea>
+                
+                <button type="button" id="voice_input_button" class="voice-button">🎤 Start Voice Input</button>
+            </div>
+            <button type="submit">Generate Prompts</button>
+        </form>
 
-# --- NEW: Google Authentication Routes ---
-@app.route('/login/google')
-def login_google():
-    # If the user is already authenticated, redirect them
-    if current_user.is_authenticated:
-        flash('You are already logged in.', 'info')
-        return redirect(url_for('index'))
-    
-    # Generate a nonce to prevent replay attacks
-    # The nonce is stored in the session and checked upon callback
-    nonce = os.urandom(16).hex()
-    session['oauth_nonce'] = nonce
+        <div id="app_output">Application messages will appear here.</div>
 
-    # Generate the redirect URI for Google OAuth callback
-    # _external=True ensures a full URL is generated, necessary for OAuth
-    redirect_uri = url_for('auth_google', _external=True)
-    
-    # Redirect the user to Google's authorization endpoint, including the nonce
-    return oauth.google.authorize_redirect(redirect_uri, nonce=nonce)
+        <div class="results-grid">
+            <div class="result-box">
+                <h3>Polished Prompt</h3>
+                <pre id="polished_output"></pre>
+                <button class="save-button" data-prompt-type="polished">Save Polished Prompt</button>
+            </div>
+            <div class="result-box">
+                <h3>Creative Variant</h3>
+                <pre id="creative_output"></pre>
+                <button class="save-button" data-prompt-type="creative">Save Creative Prompt</button>
+            </div>
+            <div class="result-box">
+                <h3>Technical Variant</h3>
+                <pre id="technical_output"></pre>
+                <button class="save-button" data-prompt-type="technical">Save Technical Prompt</button>
+            </div>
+            <div class="result-box">
+                <h3>Shorter Variant</h3>
+                <pre id="shorter_output"></pre>
+                <button class="save-button" data-prompt-type="shorter">Save Shorter Prompt</button>
+            </div>
+            <div class="result-box suggestions">
+                <h3>Suggested Additions</h3>
+                <pre id="additions_output"></pre>
+                <button class="save-button" data-prompt-type="additions">Save Additions</button>
+            </div>
+        </div>
 
-@app.route('/auth/google')
-def auth_google():
-    try:
-        # Attempt to authorize the access token from Google's response
-        token = oauth.google.authorize_access_token()
-    except Exception as e:
-        # Log any errors during the OAuth token exchange
-        app.logger.error(f"Error during Google authentication: {e}")
-        flash('Google login failed. Please try again.', 'danger')
-        return redirect(url_for('login'))
+        <div class="saved-prompts-section">
+            <h2>Saved Prompts (Temporary)</h2>
+            <ul id="saved_prompts_list" class="saved-prompts-list">
+                <!-- Saved prompts will be loaded here -->
+            </ul>
+            <!-- Download Button -->
+            <button class="download-all-button" onclick="window.location.href='/download_prompts_txt'">
+                ⬇️ Download All Prompts (TXT)
+            </button>
+        </div>
 
-    # Retrieve the nonce from the session
-    nonce = session.pop('oauth_nonce', None)
-    if not nonce:
-        # If nonce is missing from session, it could be a security issue or session problem
-        app.logger.error("Nonce missing from session during Google OAuth callback.")
-        flash('Google login failed due to a security issue. Please try again.', 'danger')
-        return redirect(url_for('login'))
+    </div>
 
-    # Parse the ID token to get user information (email, name, Google ID 'sub')
-    # Pass the retrieved nonce to the parse_id_token method
-    userinfo = oauth.google.parse_id_token(token, nonce=nonce)
-    
-    # Check if a user already exists in our database with this Google ID
-    user = User.query.filter_by(google_id=userinfo['sub']).first()
+    <script>
+        // --- Message Translations (unchanged) ---
+        const MESSAGES = {
+            "en-US": {
+                "generating": "🚀 Generating prompts and variants...",
+                "voice_not_supported": "Warning: Your browser does not support Web Speech API for voice input.",
+                "listening": "🗣️ Listening (English). Speak now.",
+                "voice_captured": "✅ Voice input captured. Click \"Generate Prompts\".",
+                "voice_error": "❌ Voice input error:",
+                "voice_start_error": "❌ Error starting voice input:",
+                "voice_ended": "Voice input session ended.",
+                "no_prompt_to_save": "❗ No {type} prompt to save. Generate one first.",
+                "prompt_saved": "✅ Prompt saved temporarily!",
+                "save_failed": "❌ Failed to save prompt:",
+                "network_error_save": "❌ Error communicating with server to save prompt:",
+                "api_error": "❌ Error: {error}",
+                "generation_failed": "❌ Failed to generate prompts:",
+                "generation_complete": "✨ All prompt generation tasks complete.",
+                "no_input_text": "Please enter some text to generate prompts.",
+                "api_key_not_configured": "Gemini API Key is not configured or the AI model failed to initialize."
+            },
+            "es-ES": {
+                "generating": "🚀 Generando indicaciones y variantes...",
+                "voice_not_supported": "Advertencia: Su navegador no soporta la API de Voz para entrada de voz.",
+                "listening": "🗣️ Escuchando (Español). Hable ahora.",
+                "voice_captured": "✅ Entrada de voz capturada. Haga clic en \"Generar Indicaciones\".",
+                "voice_error": "❌ Error de entrada de voz:",
+                "voice_start_error": "❌ Error al iniciar la entrada de voz:",
+                "voice_ended": "Sesión de entrada de voz finalizada.",
+                "no_prompt_to_save": "❗ No hay indicación {type} para guardar. Genere una primero.",
+                "prompt_saved": "✅ ¡Indicación guardada temporalmente!",
+                "save_failed": "❌ Error al guardar la indicación:",
+                "network_error_save": "❌ Error de comunicación con el servidor al guardar la indicación:",
+                "api_error": "❌ Error: {error}",
+                "generation_failed": "❌ Fallo al generar indicaciones:",
+                "generation_complete": "✨ Todas las tareas de generación de indicaciones completadas.",
+                "no_input_text": "Por favor, introduzca texto para generar indicaciones.",
+                "api_key_not_configured": "La clave API de Gemini no está configurada o el modelo de IA no se pudo inicializar."
+            },
+            "fr-FR": {
+                "generating": "🚀 Génération des invites et variantes...",
+                "voice_not_supported": "Avertissement: Votre navigateur ne prend pas en charge l'API vocale pour la saisie vocale.",
+                "listening": "🗣️ À l'écoute (Français). Parlez maintenant.",
+                "voice_captured": "✅ Saisie vocale capturée. Cliquez sur \"Générer les invites\".",
+                "voice_error": "❌ Erreur de saisie vocale :",
+                "voice_start_error": "❌ Erreur au démarrage de la saisie vocale :",
+                "voice_ended": "Session de saisie vocale terminée.",
+                "no_prompt_to_save": "❗ Aucune invite {type} à enregistrer. Générez-en une d'abord.",
+                "prompt_saved": "✅ Invite enregistrée temporairement !",
+                "save_failed": "❌ Échec de l'enregistrement de l'invite :",
+                "network_error_save": "❌ Erreur de communication avec le serveur lors de l'enregistrement de l'invite :",
+                "api_error": "❌ Erreur : {error}",
+                "generation_failed": "❌ Échec de la génération des invites :",
+                "generation_complete": "✨ Toutes les tâches de génération d'invites terminées.",
+                "no_input_text": "Veuillez saisir du texte pour générer des invites.",
+                "api_key_not_configured": "La clé API Gemini n'est pas configurée ou le modèle d'IA n'a pas pu être initialisé."
+            },
+            "de-DE": {
+                "generating": "🚀 Prompts und Varianten werden generiert...",
+                "voice_not_supported": "Warnung: Ihr Browser unterstützt die Web Speech API für die Spracheingabe nicht.",
+                "listening": "🗣️ Höre zu (Deutsch). Sprechen Sie jetzt.",
+                "voice_captured": "✅ Spracheingabe erfasst. Klicken Sie auf „Prompts generieren“.",
+                "voice_error": "❌ Fehler bei der Spracheingabe:",
+                "voice_start_error": "❌ Fehler beim Starten der Spracheingabe:",
+                "voice_ended": "Spracheingabesitzung beendet.",
+                "no_prompt_to_save": "❗ Kein {type}-Prompt zum Speichern vorhanden. Generieren Sie zuerst einen.",
+                "prompt_saved": "✅ Prompt temporär gespeichert!",
+                "save_failed": "❌ Speichern des Prompts fehlgeschlagen:",
+                "network_error_save": "❌ Fehler bei der Kommunikation mit dem Server beim Speichern des Prompts:",
+                "api_error": "❌ Fehler: {error}",
+                "generation_failed": "❌ Generierung der Prompts fehlgeschlagen:",
+                "generation_complete": "✨ Alle Prompt-Generierungsaufgaben abgeschlossen.",
+                "no_input_text": "Bitte geben Sie Text ein, um Prompts zu generieren.",
+                "api_key_not_configured": "Der Gemini-API-Schlüssel ist nicht konfiguriert oder das KI-Modell konnte nicht initialisiert werden."
+            },
+        };
 
-    if user is None:
-        # If no user found by Google ID, check if a user exists with this email
-        # This handles cases where a user might have a local account and then tries Google login
-        user = User.query.filter_by(email=userinfo['email']).first()
-        if user:
-            # If an existing local account is found with the same email, link the Google ID
-            user.google_id = userinfo['sub']
-            # Update username if it was null or generic, using Google's provided name
-            if not user.username:
-                user.username = userinfo.get('name', userinfo['email'].split('@')[0])
-            db.session.commit()
-            flash('Your Google account has been linked to your existing account!', 'success')
-        else:
-            # If no existing account (local or Google) is found, create a new user
-            user = User(
-                google_id=userinfo['sub'],
-                email=userinfo['email'],
-                # Use Google's provided name as username, or derive from email if name is not available
-                username=userinfo.get('name', userinfo['email'].split('@')[0]) 
-            )
-            db.session.add(user)
-            db.session.commit()
-            flash('Account created successfully via Google!', 'success')
-
-    # Log the user into Flask-Login session
-    login_user(user)
-    flash('Logged in successfully with Google!', 'success')
-    return redirect(url_for('index'))
-
-# --- END NEW: Google Authentication Routes ---
+        function getMessage(key, langCode, replacements = {}) {
+            const messages = MESSAGES[langCode] || MESSAGES["en-US"];
+            let message = messages[key] || MESSAGES["en-US"][key] || key;
+            for (const placeholder in replacements) {
+                message = message.replace(`{${placeholder}}`, replacements[placeholder]);
+            }
+            return message;
+        }
 
 
-# --- Database Initialization (Run once to create tables) ---
-# This block ensures tables are created when the app starts.
-# In production, you might use Flask-Migrate or a separate script.
-with app.app_context():
-    db.create_all()
-    app.logger.info("Database tables created/checked.")
+        // Function to fetch and display saved prompts (unchanged)
+        async function fetchAndDisplaySavedPrompts() {
+            const savedPromptsListElement = document.getElementById('saved_prompts_list');
+            savedPromptsListElement.innerHTML = '';
 
-# --- Main App Run ---
-if __name__ == '__main__':
-    # Run the Flask app in debug mode, accessible from any IP on port 5000 (or specified by PORT env var)
-    app.run(debug=True, host='0.0.0.0', port=os.getenv("PORT", 5000))
+            try {
+                // NEW: Fetch saved prompts only if user is authenticated or for anonymous
+                const response = await fetch('/get_saved_prompts');
+                if (!response.ok) {
+                    // If not logged in, this might return 401/403, handle gracefully
+                    // For now, just log and show empty list.
+                    console.warn(`Could not fetch saved prompts: HTTP status ${response.status}`);
+                    savedPromptsListElement.innerHTML = '<li>Please log in to view your saved prompts.</li>';
+                    return;
+                }
+                const savedPrompts = await response.json();
+
+                if (savedPrompts.length === 0) {
+                    savedPromptsListElement.innerHTML = '<li>No prompts saved yet.</li>';
+                } else {
+                    savedPrompts.forEach(prompt => {
+                        const listItem = document.createElement('li');
+                        listItem.innerHTML = `
+                            <strong>${prompt.type.charAt(0).toUpperCase() + prompt.type.slice(1)} Prompt (${prompt.timestamp}):</strong>
+                            <pre>${prompt.text}</pre>
+                        `;
+                        savedPromptsListElement.appendChild(listItem);
+                    });
+                }
+            } catch (error) {
+                console.error("Error fetching saved prompts:", error);
+                savedPromptsListElement.innerHTML = '<li>Error loading saved prompts.</li>';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', fetchAndDisplaySavedPrompts);
+
+
+        document.getElementById('promptForm').addEventListener('submit', async function(event) {
+            event.preventDefault();
+
+            const promptInput = document.getElementById('prompt_input').value;
+            const selectedLanguage = document.getElementById('lang_select').value;
+            const appOutput = document.getElementById('app_output');
+            const generateButton = document.querySelector('button[type="submit"]');
+
+            document.getElementById('polished_output').textContent = '';
+            document.getElementById('creative_output').textContent = '';
+            document.getElementById('technical_output').textContent = '';
+            document.getElementById('shorter_output').textContent = '';
+            document.getElementById('additions_output').textContent = '';
+
+            appOutput.textContent = getMessage("generating", selectedLanguage);
+            generateButton.disabled = true;
+            generateButton.textContent = 'Generating...';
+
+            try {
+                const formData = new FormData();
+                formData.append('prompt_input', promptInput);
+                formData.append('language_code', selectedLanguage);
+
+                const response = await fetch('/generate', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    // If Flask-Login redirects to login, this will not be JSON.
+                    // Check if it's a redirect (status 302) or a JSON error.
+                    if (response.status === 302) {
+                        window.location.href = response.url; // Redirect to login page
+                        return; // Stop further execution
+                    }
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                if (data.error) {
+                    appOutput.textContent = getMessage("api_error", selectedLanguage, {error: data.error});
+                    console.error("Backend error:", data.error);
+                } else {
+                    document.getElementById('polished_output').textContent = data.polished;
+                    document.getElementById('creative_output').textContent = data.creative;
+                    document.getElementById('technical_output').textContent = data.technical;
+                    document.getElementById('shorter_output').textContent = data.shorter;
+                    document.getElementById('additions_output').textContent = data.additions;
+
+                    appOutput.textContent = getMessage("generation_complete", selectedLanguage);
+                }
+
+            } catch (error) {
+                appOutput.textContent = getMessage("generation_failed", selectedLanguage) + ` ${error.message}`;
+                console.error("Fetch error:", error);
+            } finally {
+                generateButton.disabled = false;
+                generateButton.textContent = 'Generate Prompts';
+            }
+        });
+
+        // Event listeners for save buttons (unchanged)
+        document.querySelectorAll('.save-button').forEach(button => {
+            button.addEventListener('click', async function() {
+                const promptType = this.dataset.promptType;
+                const promptElementId = `${promptType}_output`;
+                const promptText = document.getElementById(promptElementId).textContent.trim();
+                const selectedLanguage = document.getElementById('lang_select').value;
+                const appOutput = document.getElementById('app_output');
+
+                if (!promptText) {
+                    appOutput.textContent = getMessage("no_prompt_to_save", selectedLanguage, {type: promptType});
+                    return;
+                }
+
+                try {
+                    const response = await fetch('/save_prompt', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            prompt_text: promptText,
+                            prompt_type: promptType
+                        })
+                    });
+
+                    if (!response.ok) {
+                        if (response.status === 302) {
+                            window.location.href = response.url; // Redirect to login page
+                            return;
+                        }
+                        const errorData = await response.json();
+                        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+                    }
+
+                    const data = await response.json();
+                    if (data.success) {
+                        appOutput.textContent = getMessage("prompt_saved", selectedLanguage);
+                        fetchAndDisplaySavedPrompts();
+                    } else {
+                        appOutput.textContent = getMessage("save_failed", selectedLanguage) + ` ${data.message}`;
+                        console.error("Save error:", data.message);
+                    }
+                } catch (error) {
+                    appOutput.textContent = getMessage("network_error_save", selectedLanguage) + ` ${error.message}`;
+                    console.error("Network error saving prompt:", error);
+                }
+            });
+        });
+
+        // --- Web Speech API for Voice Input with Language Selector (unchanged) ---
+        const voiceInputButton = document.getElementById('voice_input_button');
+        const promptInputTextarea = document.getElementById('prompt_input');
+        const langSelect = document.getElementById('lang_select');
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+        if (!SpeechRecognition) {
+            voiceInputButton.disabled = true;
+            voiceInputButton.textContent = '🎤 Voice Input Not Supported';
+            appOutput.textContent = getMessage("voice_not_supported", "en-US");
+            langSelect.disabled = true;
+        } else {
+            const recognition = new SpeechRecognition();
+            recognition.continuous = false;
+            recognition.interimResults = false;
+            recognition.lang = langSelect.value;
+
+            let isRecording = false;
+
+            langSelect.addEventListener('change', () => {
+                const selectedLanguage = langSelect.value;
+                recognition.lang = selectedLanguage;
+                const langName = langSelect.options[langSelect.selectedIndex].text;
+                appOutput.textContent = `Voice input language set to ${langName}. Remember to click "Generate" to get prompts in this language.`;
+                if (isRecording) {
+                    recognition.stop();
+                }
+            });
+
+            voiceInputButton.addEventListener('click', () => {
+                const selectedLanguage = langSelect.value;
+                if (isRecording) {
+                    recognition.stop();
+                    return;
+                }
+
+                if (!recognition.continuous) {
+                    promptInputTextarea.value = '';
+                }
+
+                try {
+                    recognition.start();
+                    isRecording = true;
+                    voiceInputButton.textContent = '🔴 Stop Recording';
+                    voiceInputButton.classList.add('recording');
+                    const langName = langSelect.options[langSelect.selectedIndex].text;
+                    appOutput.textContent = getMessage("listening", selectedLanguage).replace("(English)", `(${langName})`);
+                } catch (error) {
+                    console.error("Error starting speech recognition:", error);
+                    appOutput.textContent = getMessage("voice_start_error", selectedLanguage) + ` ${error.message}`;
+                    isRecording = false;
+                    voiceInputButton.textContent = '🎤 Start Voice Input';
+                    voiceInputButton.classList.remove('recording');
+                }
+            });
+
+            recognition.onresult = (event) => {
+                const selectedLanguage = langSelect.value;
+                const transcript = event.results[0][0].transcript;
+                promptInputTextarea.value = transcript;
+                appOutput.textContent = getMessage("voice_captured", selectedLanguage);
+            };
+
+            recognition.onerror = (event) => {
+                const selectedLanguage = langSelect.value;
+                console.error('Speech recognition error:', event.error);
+                appOutput.textContent = getMessage("voice_error", selectedLanguage) + ` ${event.error}`;
+                isRecording = false;
+                voiceInputButton.textContent = '🎤 Start Voice Input';
+                voiceInputButton.classList.remove('recording');
+            };
+
+            recognition.onend = () => {
+                const selectedLanguage = langSelect.value;
+                isRecording = false;
+                voiceInputButton.textContent = '🎤 Start Voice Input';
+                voiceInputButton.classList.remove('recording');
+                if (!appOutput.textContent.startsWith('❌') && !appOutput.textContent.startsWith('✅')) {
+                    appOutput.textContent = getMessage("voice_ended", selectedLanguage);
+                }
+            };
+        }
+    </script>
+</body>
+</html>
