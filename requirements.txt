@@ -3,7 +3,7 @@ google-generativeai>=0.7.2
 gunicorn==21.2.0
 uvicorn
 ##Flask-Limiter==3.12
-grpcio==1.51.3 # CHANGE THIS LINE
+##grpcio==1.51.3 # CHANGE THIS LINE
 Flask-Login==0.6.3
 Flask-SQLAlchemy==3.1.1
 Werkzeug==2.3.7 # Ensure Werkzeug is explicitly pinned or compatible
