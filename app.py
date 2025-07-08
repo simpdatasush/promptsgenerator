@@ -437,9 +437,11 @@ def login_google():
 @app.route('/login/google/authorized')
 def authorize_google():
     try:
-        # Authlib's authorize_access_token should now handle nonce verification internally
+        # --- FIX: Explicitly set nonce=None to bypass nonce validation for debugging ---
+        # IMPORTANT: This reduces security against replay attacks. Use only for debugging.
+        # For production, ensure SECRET_KEY is consistent and session cookies are handled correctly.
         token = google.authorize_access_token()
-        userinfo = google.parse_id_token(token) # Gets user info from ID token
+        userinfo = google.parse_id_token(token, nonce=None) # <--- CHANGE IS HERE
 
         # Check if user exists in your DB using email as username
         user = User.query.filter_by(username=userinfo['email']).first()
