@@ -49,65 +49,6 @@
         .auth-links a:hover {
             text-decoration: underline;
         }
-        .dynamic-content-section {
-            margin-top: 40px;
-            padding: 20px;
-            background-color: #e6f7ff;
-            border-radius: 8px;
-            box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.05);
-        }
-        .dynamic-image-container {
-            width: 100%;
-            height: 400px; /* Fixed height for image container */
-            background-color: #ccc;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            border-radius: 8px;
-            overflow: hidden;
-            margin-bottom: 20px;
-            position: relative; /* For loading overlay */
-        }
-        .dynamic-image {
-            max-width: 100%;
-            max-height: 100%;
-            object-fit: cover; /* Cover the container without distortion */
-            border-radius: 8px;
-            display: block;
-        }
-        .loading-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(255, 255, 255, 0.8);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-size: 1.2rem;
-            color: #555;
-            border-radius: 8px;
-            z-index: 10;
-        }
-        .loading-spinner {
-            border: 4px solid rgba(0, 0, 0, 0.1);
-            border-left-color: #007bff;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        .motivational-text {
-            font-size: 1.5rem;
-            font-weight: bold;
-            color: #3f51b5;
-            margin-top: 20px;
-        }
         .btn-app {
             display: inline-block;
             padding: 12px 25px;
@@ -145,18 +86,6 @@
             {% endif %}
         </div>
 
-        <div class="dynamic-content-section">
-            <h2>Daily Inspiration</h2>
-            <div class="dynamic-image-container">
-                <div id="loading-overlay" class="loading-overlay">
-                    <div class="loading-spinner"></div>
-                    <p class="ml-3">Generating daily inspiration...</p>
-                </div>
-                <img id="daily-image" class="dynamic-image" src="" alt="Daily Inspirational Image" style="display: none;">
-            </div>
-            <p id="motivational-quote" class="motivational-text">Loading...</p>
-        </div>
-
         {% if current_user.is_authenticated %}
             <a href="{{ url_for('app_generator_page') }}" class="btn btn-app">Go to Prompt Generator</a>
         {% else %}
@@ -166,49 +95,8 @@
     </div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', async () => {
-            const motivationalQuoteElement = document.getElementById('motivational-quote');
-            const dailyImageElement = document.getElementById('daily-image');
-            const loadingOverlay = document.getElementById('loading-overlay');
-
-            try {
-                const response = await fetch('/generate_daily_content');
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                const data = await response.json();
-
-                if (data.motivational_text) {
-                    motivationalQuoteElement.textContent = data.motivational_text;
-                } else {
-                    motivationalQuoteElement.textContent = "Embrace the day with a positive mindset!";
-                }
-
-                if (data.image_url) {
-                    dailyImageElement.src = data.image_url;
-                    dailyImageElement.onload = () => {
-                        loadingOverlay.style.display = 'none'; // Hide loading overlay
-                        dailyImageElement.style.display = 'block'; // Show image
-                    };
-                    dailyImageElement.onerror = () => {
-                        dailyImageElement.src = "https://placehold.co/800x400/CCCCCC/000000?text=Image+Load+Error";
-                        loadingOverlay.style.display = 'none';
-                        dailyImageElement.style.display = 'block';
-                    };
-                } else {
-                    dailyImageElement.src = "https://placehold.co/800x400/CCCCCC/000000?text=No+Image+Generated";
-                    loadingOverlay.style.display = 'none';
-                    dailyImageElement.style.display = 'block';
-                }
-
-            } catch (error) {
-                console.error("Error fetching daily content:", error);
-                motivationalQuoteElement.textContent = "Failed to load daily inspiration. Please try again later.";
-                dailyImageElement.src = "https://placehold.co/800x400/CCCCCC/000000?text=Error+Loading+Image";
-                loadingOverlay.style.display = 'none';
-                dailyImageElement.style.display = 'block';
-            }
-        });
+        // All JavaScript related to daily inspiration generation and display has been removed.
+        // No script needed here for dynamic content.
     </script>
 </body>
 </html>
