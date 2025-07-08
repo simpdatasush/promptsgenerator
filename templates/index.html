@@ -247,7 +247,7 @@
         <!-- NEW: Auth Links -->
         <div class="auth-links">
             {% if current_user.is_authenticated %}
-                <span>Logged in as: <strong class="username">{{ current_user.username or current_user.email }}</strong></span>
+                <span>Logged in as: <strong class="username">{{ current_user.username }}</strong></span>
                 <a href="{{ url_for('logout') }}">Logout</a>
             {% else %}
                 <a href="{{ url_for('login') }}">Login</a>
