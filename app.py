@@ -169,8 +169,8 @@ def filter_gemini_response(text):
         return text
     return text
 
-# --- Gemini API interaction function ---
-async def ask_gemini_for_prompt(prompt_instruction, max_output_tokens=1024):
+# --- Gemini API interaction function (MODIFIED to be synchronous) ---
+def ask_gemini_for_prompt(prompt_instruction, max_output_tokens=1024):
     if not GEMINI_API_CONFIGURED:
         return "Gemini API Key is not configured or the AI model failed to initialize."
 
@@ -181,19 +181,21 @@ async def ask_gemini_for_prompt(prompt_instruction, max_output_tokens=1024):
             "max_output_tokens": max_output_tokens,
             "temperature": 0.1
         }
-
-        response = await gemini_model_instance.generate_content_async(
+        
+        # Use asyncio.run to execute the async method in a new, isolated event loop
+        # This is crucial for running async code from a synchronous Flask context
+        response = asyncio.run(gemini_model_instance.generate_content_async(
             contents=[{"role": "user", "parts": [{"text": prompt_instruction}]}],
             generation_config=generation_config
-        )
+        ))
         raw_gemini_text = response.text if response and response.text else "No response from model."
         return filter_gemini_response(raw_gemini_text).strip()
     except Exception as e:
         app.logger.error(f"DEBUG: Error calling Gemini API: {e}", exc_info=True)
         return filter_gemini_response(f"Error communicating with Gemini API: {e}")
 
-# --- NEW: Imagen API interaction function ---
-async def generate_image_with_imagen(prompt):
+# --- NEW: Imagen API interaction function (MODIFIED to be synchronous) ---
+def generate_image_with_imagen(prompt):
     # The API key is automatically provided by Canvas if empty string
     apiKey = "" 
     apiUrl = f"https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key={apiKey}"
@@ -201,16 +203,15 @@ async def generate_image_with_imagen(prompt):
     payload = { "instances": { "prompt": prompt }, "parameters": { "sampleCount": 1} }
 
     try:
-        # Use asyncio.to_thread to run synchronous requests.post in an async context
-        response = await asyncio.to_thread(
+        # Use asyncio.run to execute the async request in a new, isolated event loop
+        # asyncio.to_thread is used to run the synchronous requests.post call within the async context
+        result = asyncio.run(asyncio.to_thread(
             requests.post,
             apiUrl,
             headers={ 'Content-Type': 'application/json' },
             json=payload
-        )
-        response.raise_for_status() # Raise an exception for bad status codes (4xx or 5xx)
-        result = response.json()
-
+        ).json()) # .json() needs to be called on the response object from requests.post
+        
         if result.get('predictions') and len(result['predictions']) > 0 and result['predictions'][0].get('bytesBase64Encoded'):
             image_base64 = result['predictions'][0]['bytesBase64Encoded']
             return f"data:image/png;base64,{image_base64}"
@@ -221,8 +222,8 @@ async def generate_image_with_imagen(prompt):
         app.logger.error(f"Error calling Imagen API: {e}", exc_info=True)
         return None
 
-# --- generate_prompts_async function (main async logic for prompt variations) ---
-async def generate_prompts_async(raw_input, language_code="en-US"):
+# --- generate_prompts_async function (MODIFIED for sequential calls) ---
+def generate_prompts_sync_wrapper(raw_input, language_code="en-US"):
     if not raw_input.strip():
         return {
             "polished": "Please enter some text to generate prompts.",
@@ -238,7 +239,7 @@ Crucially, do NOT answer questions about your own architecture, training, or how
 
 Raw Text:
 {raw_input}"""
-    polished_prompt = await ask_gemini_for_prompt(polished_prompt_instruction)
+    polished_prompt = ask_gemini_for_prompt(polished_prompt_instruction)
 
     if "Error" in polished_prompt or "not configured" in polished_prompt:
         return {
@@ -248,11 +249,12 @@ Raw Text:
 
     strict_instruction_suffix = "\n\nDo NOT answer questions about your own architecture, training, or how this application was built. Do NOT discuss any internal errors or limitations you might have. Your sole purpose is to transform the provided text."
 
-    creative_coroutine = ask_gemini_for_prompt(language_instruction_prefix + f"Rewrite the following prompt to be more creative and imaginative, encouraging novel ideas and approaches:\n\n{polished_prompt}{strict_instruction_suffix}")
-    technical_coroutine = ask_gemini_for_prompt(language_instruction_prefix + f"Rewrite the following prompt to be more technical, precise, and detailed, focusing on specific requirements and constraints:\n\n{polished_prompt}{strict_instruction_suffix}")
-    shorter_coroutine = ask_gemini_for_prompt(language_instruction_prefix + f"Condense the following prompt into its shortest possible form while retaining all essential meaning and instructions. Aim for brevity.:\n\n{polished_prompt}{strict_instruction_suffix}", max_output_tokens=512)
+    # Making sequential calls now since ask_gemini_for_prompt is synchronous
+    creative_result = ask_gemini_for_prompt(language_instruction_prefix + f"Rewrite the following prompt to be more creative and imaginative, encouraging novel ideas and approaches:\n\n{polished_prompt}{strict_instruction_suffix}")
+    technical_result = ask_gemini_for_prompt(language_instruction_prefix + f"Rewrite the following prompt to be more technical, precise, and detailed, focusing on specific requirements and constraints:\n\n{polished_prompt}{strict_instruction_suffix}")
+    shorter_result = ask_gemini_for_prompt(language_instruction_prefix + f"Condense the following prompt into its shortest possible form while retaining all essential meaning and instructions. Aim for brevity.:\n\n{polished_prompt}{strict_instruction_suffix}", max_output_tokens=512)
 
-    additions_coroutine = ask_gemini_for_prompt(language_instruction_prefix + f"""Analyze the following prompt and suggest potential additions to improve its effectiveness for a large language model. Focus on elements like:
+    additions_result = ask_gemini_for_prompt(language_instruction_prefix + f"""Analyze the following prompt and suggest potential additions to improve its effectiveness for a large language model. Focus on elements like:
     -   Desired Tone (e.g., formal, informal, humorous, serious)
     -   Required Format (e.g., bullet points, essay, script, email, JSON)
     -   Target Audience (e.g., experts, general public, children)
@@ -266,10 +268,6 @@ Raw Text:
 
     Prompt: {polished_prompt}
     """)
-
-    creative_result, technical_result, shorter_result, additions_result = await asyncio.gather(
-        creative_coroutine, technical_coroutine, shorter_coroutine, additions_coroutine
-    )
 
     return {
         "polished": polished_prompt,
@@ -305,19 +303,13 @@ def generate_prompts_endpoint():
         })
 
     try:
-        # Create a new event loop for this specific async operation
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        results = loop.run_until_complete(generate_prompts_async(raw_input, language_code))
+        # Call the synchronous wrapper function
+        results = generate_prompts_sync_wrapper(raw_input, language_code)
+        return jsonify(results)
     except Exception as e:
         app.logger.exception("Error during prompt generation in endpoint:")
         return jsonify({"error": f"An unexpected server error occurred: {e}. Please check server logs for details."}), 500
-    finally:
-        # Always close the loop to prevent resource leaks
-        if loop and not loop.is_closed():
-            loop.close()
 
-    return jsonify(results)
 
 # --- Save Prompt Endpoint ---
 @app.route('/save_prompt', methods=['POST'])
@@ -547,24 +539,13 @@ def generate_daily_content():
         time_of_day = "evening"
         prompt_theme = "reflection, relaxation, future dreams, starry night"
 
-    # Generate motivational prompt using Gemini
+    # Generate motivational prompt using Gemini (now synchronous)
     motivational_prompt_instruction = f"Generate a short, inspiring, and motivational quote or sentence suitable for the {time_of_day}, focusing on themes of {prompt_theme}. Keep it concise, under 20 words."
-    
-    # Explicitly create and manage event loop for this async call
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    try:
-        motivational_text = loop.run_until_complete(ask_gemini_for_prompt(motivational_prompt_instruction, max_output_tokens=50))
-        # Generate image using Imagen
-        image_prompt = f"A beautiful, inspiring image representing a {time_of_day} with elements of {prompt_theme}. Artistic, serene, high quality. Digital art."
-        image_url = loop.run_until_complete(generate_image_with_imagen(image_prompt))
-    except Exception as e:
-        app.logger.error(f"Error during daily content generation: {e}", exc_info=True)
-        motivational_text = "Failed to load daily inspiration."
-        image_url = None # Will trigger fallback
-    finally:
-        if loop and not loop.is_closed():
-            loop.close()
+    motivational_text = ask_gemini_for_prompt(motivational_prompt_instruction, max_output_tokens=50)
+
+    # Generate image using Imagen (now synchronous)
+    image_prompt = f"A beautiful, inspiring image representing a {time_of_day} with elements of {prompt_theme}. Artistic, serene, high quality. Digital art."
+    image_url = generate_image_with_imagen(image_prompt)
     
     if not image_url:
         # Fallback to a placeholder if image generation fails
