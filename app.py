@@ -1,3 +1,6 @@
+import nest_asyncio
+nest_asyncio.apply()
+
 import asyncio
 import os
 import google.generativeai as genai
