@@ -305,11 +305,19 @@ def generate_prompts_endpoint():
         })
 
     try:
-        results = asyncio.run(generate_prompts_async(raw_input, language_code))
-        return jsonify(results)
+        # Create a new event loop for this specific async operation
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        results = loop.run_until_complete(generate_prompts_async(raw_input, language_code))
     except Exception as e:
         app.logger.exception("Error during prompt generation in endpoint:")
         return jsonify({"error": f"An unexpected server error occurred: {e}. Please check server logs for details."}), 500
+    finally:
+        # Always close the loop to prevent resource leaks
+        if loop and not loop.is_closed():
+            loop.close()
+
+    return jsonify(results)
 
 # --- Save Prompt Endpoint ---
 @app.route('/save_prompt', methods=['POST'])
@@ -541,12 +549,22 @@ def generate_daily_content():
 
     # Generate motivational prompt using Gemini
     motivational_prompt_instruction = f"Generate a short, inspiring, and motivational quote or sentence suitable for the {time_of_day}, focusing on themes of {prompt_theme}. Keep it concise, under 20 words."
-    motivational_text = asyncio.run(ask_gemini_for_prompt(motivational_prompt_instruction, max_output_tokens=50))
-
-    # Generate image using Imagen
-    image_prompt = f"A beautiful, inspiring image representing a {time_of_day} with elements of {prompt_theme}. Artistic, serene, high quality. Digital art."
     
-    image_url = asyncio.run(generate_image_with_imagen(image_prompt))
+    # Explicitly create and manage event loop for this async call
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    try:
+        motivational_text = loop.run_until_complete(ask_gemini_for_prompt(motivational_prompt_instruction, max_output_tokens=50))
+        # Generate image using Imagen
+        image_prompt = f"A beautiful, inspiring image representing a {time_of_day} with elements of {prompt_theme}. Artistic, serene, high quality. Digital art."
+        image_url = loop.run_until_complete(generate_image_with_imagen(image_prompt))
+    except Exception as e:
+        app.logger.error(f"Error during daily content generation: {e}", exc_info=True)
+        motivational_text = "Failed to load daily inspiration."
+        image_url = None # Will trigger fallback
+    finally:
+        if loop and not loop.is_closed():
+            loop.close()
     
     if not image_url:
         # Fallback to a placeholder if image generation fails
