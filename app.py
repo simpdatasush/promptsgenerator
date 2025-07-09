@@ -213,8 +213,15 @@ async def generate_prompts_async(raw_input, language_code="en-US"):
     }
 
 # --- Flask Routes ---
+
+# NEW: Landing page route
 @app.route('/')
-def index():
+def landing():
+    return render_template('landing.html')
+
+# Renamed original index route to /app_home
+@app.route('/app_home')
+def app_home():
     # Pass current_user object to the template to show login/logout status
     return render_template('index.html', current_user=current_user)
 
@@ -318,7 +325,7 @@ def download_prompts_txt():
 def register():
     if current_user.is_authenticated:
         flash('You are already registered and logged in.', 'info')
-        return redirect(url_for('index'))
+        return redirect(url_for('app_home')) # Redirect to app_home after registration
 
     if request.method == 'POST':
         username = request.form['username']
@@ -340,7 +347,7 @@ def register():
 def login():
     if current_user.is_authenticated:
         flash('You are already logged in.', 'info')
-        return redirect(url_for('index'))
+        return redirect(url_for('app_home')) # Redirect to app_home if already logged in
 
     if request.method == 'POST':
         username = request.form['username']
@@ -352,7 +359,7 @@ def login():
             login_user(user, remember=remember_me)
             flash('Logged in successfully!', 'success')
             next_page = request.args.get('next') # Redirect to the page user tried to access
-            return redirect(next_page or url_for('index'))
+            return redirect(next_page or url_for('app_home')) # Redirect to app_home or next_page
         else:
             flash('Login Unsuccessful. Please check username and password.', 'danger')
     return render_template('login.html')
@@ -362,7 +369,7 @@ def login():
 def logout():
     logout_user()
     flash('You have been logged out.', 'info')
-    return redirect(url_for('index'))
+    return redirect(url_for('landing')) # Redirect to landing page after logout
 # --- END NEW: Authentication Routes ---
 
 
