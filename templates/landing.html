@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Prompt Generator - Home</title>
+    <!-- Bootstrap CSS for modern styling -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <!-- Font Awesome for icons (optional, but good for consistency) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f0f2f5;
+            color: #333;
+            line-height: 1.6;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh; /* Ensure full viewport height */
+        }
+        .container {
+            flex-grow: 1; /* Allow container to grow and push footer down */
+            max-width: 900px;
+            margin: 40px auto;
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            font-size: 2.5rem;
+            font-weight: 700;
+        }
+        p.lead {
+            font-size: 1.25rem;
+            color: #555;
+            margin-bottom: 30px;
+        }
+        .btn-group-custom {
+            margin-top: 20px;
+            display: flex;
+            flex-wrap: wrap; /* Allow buttons to wrap on smaller screens */
+            justify-content: center;
+            gap: 15px; /* Space between buttons */
+        }
+        .btn-group-custom .btn {
+            min-width: 150px; /* Ensure buttons have a minimum width */
+            padding: 12px 25px;
+            font-size: 1.1rem;
+            border-radius: 5px;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+        .btn-primary {
+            background-color: #007bff;
+            border-color: #007bff;
+        }
+        .btn-primary:hover {
+            background-color: #0056b3;
+            border-color: #0056b3;
+            transform: translateY(-2px);
+        }
+        .btn-success {
+            background-color: #28a745;
+            border-color: #28a745;
+        }
+        .btn-success:hover {
+            background-color: #218838;
+            border-color: #218838;
+            transform: translateY(-2px);
+        }
+        .footer {
+            width: 100%;
+            padding: 15px;
+            text-align: right; /* Align text to the right */
+            font-size: 0.8rem; /* Small font size */
+            color: #777;
+            background-color: #e9ecef;
+            border-top: 1px solid #dee2e6;
+            margin-top: auto; /* Push footer to the bottom */
+        }
+        .footer-content {
+            max-width: 900px;
+            margin: 0 auto;
+            text-align: right; /* Ensure content inside is right-aligned */
+        }
+        .footer-content a {
+            color: #007bff;
+            text-decoration: none;
+        }
+        .footer-content a:hover {
+            text-decoration: underline;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .container {
+                margin: 20px auto;
+                padding: 20px;
+            }
+            h1 {
+                font-size: 2rem;
+            }
+            p.lead {
+                font-size: 1rem;
+            }
+            .btn-group-custom .btn {
+                width: 100%; /* Full width buttons on small screens */
+                min-width: unset;
+            }
+            .footer {
+                text-align: center; /* Center footer text on small screens */
+                padding: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Welcome to AI Prompt Generator</h1>
+        <p class="lead">
+            Unleash the full potential of large language models. Our application helps you refine,
+            creatively expand, and technically enhance your raw prompt ideas into effective instructions
+            for AI models. Get polished, creative, technical, and concise prompt variants,
+            and save them for future use!
+        </p>
+        <div class="btn-group-custom">
+            <a href="{{ url_for('login') }}" class="btn btn-primary">
+                <i class="fas fa-sign-in-alt"></i> Login
+            </a>
+            <a href="{{ url_for('register') }}" class="btn btn-success">
+                <i class="fas fa-user-plus"></i> Register
+            </a>
+            <a href="{{ url_for('app_home') }}" class="btn btn-info">
+                <i class="fas fa-robot"></i> Go to App
+            </a>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <div class="footer-content">
+            This is developed by Sushrut Kulkarni &nbsp; Email: <a href="mailto:info@promptsgenerator.ai">info@promptsgenerator.ai</a>
+        </div>
+    </footer>
+</body>
+</html>
