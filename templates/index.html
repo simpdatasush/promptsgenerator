@@ -240,6 +240,38 @@
         .auth-links .username {
             color: #28a745; /* Green for logged-in username */
         }
+
+        /* NEW: Styles for Past Raw Requests section */
+        .past-requests-section {
+            background-color: #f7e6ff; /* Light purple background */
+            border: 1px solid #e0b3ff;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 30px;
+        }
+        .past-requests-list {
+            list-style-type: none;
+            padding: 0;
+            max-height: 200px; /* Limit height to prevent excessive scrolling */
+            overflow-y: auto;
+            border: 1px solid #eeddff;
+            border-radius: 5px;
+            background-color: #ffffff;
+        }
+        .past-requests-list li {
+            padding: 10px;
+            border-bottom: 1px solid #f0f0f0;
+            font-family: 'Consolas', 'Menlo', 'Courier New', monospace;
+            font-size: 0.85rem;
+            color: #444;
+        }
+        .past-requests-list li:last-child {
+            border-bottom: none;
+        }
+        .past-requests-list li strong {
+            color: #8a2be2; /* Purple for raw prompt timestamp */
+            margin-right: 5px;
+        }
     </style>
 </head>
 <body>
@@ -336,6 +368,15 @@
                 ⬇️ Download All Prompts (TXT)
             </button>
         </div>
+
+        <!-- NEW: Past Raw Requests Section -->
+        <div class="past-requests-section">
+            <h2>Past Raw Requests (Last 10)</h2>
+            <ul id="past_raw_requests_list" class="past-requests-list">
+                <!-- Past raw requests will be loaded here -->
+            </ul>
+        </div>
+        <!-- END NEW -->
 
     </div>
 
@@ -462,7 +503,45 @@
             }
         }
 
-        document.addEventListener('DOMContentLoaded', fetchAndDisplaySavedPrompts);
+        // --- NEW: Function to fetch and display past raw requests ---
+        async function fetchAndDisplayRawPrompts() {
+            const pastRawRequestsListElement = document.getElementById('past_raw_requests_list');
+            pastRawRequestsListElement.innerHTML = ''; // Clear previous entries
+
+            try {
+                const response = await fetch('/get_raw_prompts');
+                if (!response.ok) {
+                    // If not logged in, this might return 401/403, handle gracefully
+                    console.warn(`Could not fetch raw prompts: HTTP status ${response.status}`);
+                    pastRawRequestsListElement.innerHTML = '<li>Please log in to view your past raw requests.</li>';
+                    return;
+                }
+                const rawPrompts = await response.json();
+
+                if (rawPrompts.length === 0) {
+                    pastRawRequestsListElement.innerHTML = '<li>No raw requests saved yet.</li>';
+                } else {
+                    rawPrompts.forEach(prompt => {
+                        const listItem = document.createElement('li');
+                        listItem.innerHTML = `
+                            <strong>${prompt.timestamp}:</strong>
+                            <span>${prompt.raw_text}</span>
+                        `;
+                        pastRawRequestsListElement.appendChild(listItem);
+                    });
+                }
+            } catch (error) {
+                console.error("Error fetching raw prompts:", error);
+                pastRawRequestsListElement.innerHTML = '<li>Error loading past raw requests.</li>';
+            }
+        }
+        // --- END NEW ---
+
+
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchAndDisplaySavedPrompts();
+            fetchAndDisplayRawPrompts(); // NEW: Call on page load
+        });
 
 
         document.getElementById('promptForm').addEventListener('submit', async function(event) {
@@ -517,6 +596,7 @@
                     document.getElementById('additions_output').textContent = data.additions;
 
                     appOutput.textContent = getMessage("generation_complete", selectedLanguage);
+                    fetchAndDisplayRawPrompts(); // NEW: Refresh raw prompts after generation
                 }
 
             } catch (error) {
