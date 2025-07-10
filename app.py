@@ -100,6 +100,20 @@ class User(db.Model, UserMixin):
     def __repr__(self):
         return f'<User {self.username}>'
 
+# --- NEW: RawPrompt Model for storing user's raw input requests ---
+class RawPrompt(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    raw_text = db.Column(db.Text, nullable=False)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+
+    user = db.relationship('User', backref=db.backref('raw_prompts', lazy=True))
+
+    def __repr__(self):
+        return f'<RawPrompt {self.id} by User {self.user_id}>'
+# --- END NEW: RawPrompt Model ---
+
+
 # --- NEW: Flask-Login User Loader ---
 @login_manager.user_loader
 def load_user(user_id):
@@ -243,6 +257,19 @@ async def generate_prompts_endpoint(): # This remains async
     try:
         # Await the async function directly
         results = await generate_prompts_async(raw_input, language_code)
+
+        # --- NEW: Save raw_input to database ---
+        if current_user.is_authenticated:
+            try:
+                new_raw_prompt = RawPrompt(user_id=current_user.id, raw_text=raw_input)
+                db.session.add(new_raw_prompt)
+                db.session.commit()
+                app.logger.info(f"Raw prompt saved for user {current_user.username}")
+            except Exception as e:
+                app.logger.error(f"Error saving raw prompt for user {current_user.username}: {e}")
+                db.session.rollback() # Rollback in case of error
+        # --- END NEW ---
+
         return jsonify(results)
     except Exception as e:
         app.logger.exception("Error during prompt generation in endpoint:")
@@ -286,6 +313,35 @@ def get_saved_prompts_endpoint():
         anonymous_prompts = [p for p in saved_prompts_in_memory if p.get('user') == "anonymous"]
         return jsonify(anonymous_prompts), 200
 
+# --- NEW: Get Raw Prompts Endpoint ---
+@app.route('/get_raw_prompts', methods=['GET'])
+@login_required
+def get_raw_prompts_endpoint():
+    if not current_user.is_authenticated:
+        # If not logged in, return an empty list or redirect to login
+        # For this case, returning empty list is fine for UI
+        return jsonify([]), 200
+
+    try:
+        # Fetch last 10 raw prompts for the current user, ordered by timestamp descending
+        raw_prompts = RawPrompt.query.filter_by(user_id=current_user.id) \
+                                     .order_by(RawPrompt.timestamp.desc()) \
+                                     .limit(10) \
+                                     .all()
+
+        # Format for JSON response
+        formatted_prompts = [{
+            "id": p.id,
+            "raw_text": p.raw_text,
+            "timestamp": p.timestamp.strftime("%Y-%m-%d %H:%M:%S")
+        } for p in raw_prompts]
+
+        return jsonify(formatted_prompts), 200
+    except Exception as e:
+        app.logger.error(f"Error fetching raw prompts for user {current_user.username}: {e}")
+        return jsonify({"error": "Failed to retrieve past raw requests."}), 500
+# --- END NEW ---
+
 
 # --- Download Prompts as TXT Endpoint ---
 @app.route('/download_prompts_txt', methods=['GET'])
@@ -295,7 +351,7 @@ def download_prompts_txt():
     if current_user.is_authenticated:
         prompts_to_download = [p for p in saved_prompts_in_memory if p.get('user') == current_user.username]
     else:
-        prompts_to_download = [p for p in saved_prompts_in_memory if p.get('user') == "anonymous"]
+        prompts_to_download = [p for p in saved_prompts_in_memory if p.get('user') == "anonymous']
 
     if not prompts_to_download:
         return "No prompts to download for this user.", 404
