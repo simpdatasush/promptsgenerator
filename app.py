@@ -351,7 +351,7 @@ def download_prompts_txt():
     if current_user.is_authenticated:
         prompts_to_download = [p for p in saved_prompts_in_memory if p.get('user') == current_user.username]
     else:
-        prompts_to_download = [p for p in saved_prompts_in_memory if p.get('user') == "anonymous']
+        prompts_to_download = [p for p in saved_prompts_in_memory if p.get('user') == "anonymous"] # FIX: Added missing double quote
 
     if not prompts_to_download:
         return "No prompts to download for this user.", 404
