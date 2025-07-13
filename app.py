@@ -8,6 +8,8 @@ import google.generativeai as genai
 from flask import Flask, render_template, request, jsonify, make_response, redirect, url_for, flash
 import logging
 from datetime import datetime
+import base64 # Import for handling base64 image data
+import io # Import for handling image bytes
 
 # --- NEW IMPORTS FOR AUTHENTICATION ---
 from flask_sqlalchemy import SQLAlchemy
@@ -177,6 +179,35 @@ def ask_gemini_for_prompt(prompt_instruction, max_output_tokens=1024):
         app.logger.error(f"DEBUG: Error calling Gemini API: {e}", exc_info=True)
         return filter_gemini_response(f"Error communicating with Gemini API: {e}")
 
+# --- NEW: Gemini API for Image Understanding ---
+def ask_gemini_for_image_text(image_data_bytes):
+    if not GEMINI_API_CONFIGURED:
+        return "Gemini API Key is not configured or the AI model failed to initialize."
+
+    try:
+        gemini_model_instance = genai.GenerativeModel('gemini-2.0-flash')
+        
+        # Prepare the image for the Gemini API
+        image_part = {
+            "mime_type": "image/jpeg", # Assuming JPEG for simplicity, can be dynamic
+            "data": image_data_bytes
+        }
+
+        # Instruction for the model to extract text
+        prompt_parts = [
+            image_part,
+            "Extract all text from this image, including handwritten text. Provide only the extracted text, without any additional commentary or formatting."
+        ]
+
+        response = gemini_model_instance.generate_content(prompt_parts)
+        extracted_text = response.text if response and response.text else ""
+        return extracted_text.strip()
+    except Exception as e:
+        app.logger.error(f"Error calling Gemini API for image text extraction: {e}", exc_info=True)
+        return f"Error extracting text from image: {e}"
+# --- END NEW ---
+
+
 # --- generate_prompts_async function (main async logic for prompt variations) ---
 async def generate_prompts_async(raw_input, language_code="en-US"):
     if not raw_input.strip():
@@ -275,6 +306,38 @@ async def generate_prompts_endpoint(): # This remains async
         app.logger.exception("Error during prompt generation in endpoint:")
         return jsonify({"error": f"An unexpected server error occurred: {e}. Please check server logs for details."}), 500
 
+# --- NEW: Endpoint for Image Processing ---
+@app.route('/process_image_prompt', methods=['POST'])
+@login_required
+async def process_image_prompt_endpoint():
+    if not current_user.is_authenticated:
+        return jsonify({"error": "Authentication required to process images."}), 401
+
+    data = request.get_json()
+    base64_image = data.get('image_data')
+    language_code = data.get('language_code', 'en-US') # Not directly used by image OCR, but good to pass
+
+    if not base64_image:
+        return jsonify({"error": "No image data provided."}), 400
+
+    try:
+        # Decode the base64 image data
+        image_bytes = base64.b64decode(base64_image)
+
+        # Call Gemini API for image text extraction in a separate thread
+        recognized_text = await asyncio.to_thread(ask_gemini_for_image_text, image_bytes)
+
+        if "Error" in recognized_text: # Check for errors returned by the function
+            return jsonify({"error": recognized_text}), 500
+
+        return jsonify({"recognized_text": recognized_text}), 200
+
+    except Exception as e:
+        app.logger.exception("Error processing image prompt:")
+        return jsonify({"error": f"An unexpected server error occurred during image processing: {e}"}), 500
+# --- END NEW ---
+
+
 # --- Save Prompt Endpoint ---
 @app.route('/save_prompt', methods=['POST'])
 @login_required
@@ -351,7 +414,7 @@ def download_prompts_txt():
     if current_user.is_authenticated:
         prompts_to_download = [p for p in saved_prompts_in_memory if p.get('user') == current_user.username]
     else:
-        prompts_to_download = [p for p in saved_prompts_in_memory if p.get('user') == "anonymous"] # FIX: Added missing double quote
+        prompts_to_download = [p for p in saved_prompts_in_memory if p.get('user') == "anonymous"]
 
     if not prompts_to_download:
         return "No prompts to download for this user.", 404
