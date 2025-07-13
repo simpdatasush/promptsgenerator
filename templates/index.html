@@ -272,6 +272,55 @@
             color: #8a2be2; /* Purple for raw prompt timestamp */
             margin-right: 5px;
         }
+
+        /* NEW: Styles for Image Input section */
+        .image-input-section {
+            background-color: #e0f7fa; /* Light cyan background */
+            border: 1px solid #b2ebf2;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 30px;
+            text-align: center;
+        }
+        .image-input-section input[type="file"] {
+            display: block;
+            margin: 15px auto;
+            border: 1px solid #00bcd4;
+            padding: 8px;
+            border-radius: 5px;
+            width: fit-content;
+        }
+        .image-preview {
+            max-width: 100%;
+            max-height: 200px;
+            margin-top: 15px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            display: block; /* Ensure it takes its own line */
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .image-input-section button {
+            background-color: #00bcd4; /* Cyan for image processing */
+            margin-top: 15px;
+        }
+        .image-input-section button:hover {
+            background-color: #0097a7;
+        }
+        .loading-spinner {
+            display: none; /* Hidden by default */
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-left-color: #D32F2F;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+            margin: 10px auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body>
@@ -327,6 +376,19 @@
             </div>
             <button type="submit">Generate Prompts</button>
         </form>
+
+        <!-- NEW: Image Input Section -->
+        <div class="image-input-section">
+            <h2>Image Input (Handwritten Text)</h2>
+            <input type="file" id="image_input" accept="image/*">
+            <img id="image_preview" class="image-preview" src="#" alt="Image Preview" style="display: none;">
+            <div id="image_loading_spinner" class="loading-spinner"></div>
+            <button type="button" id="process_image_button">📸 Process Image Prompt</button>
+            <p style="font-size: 0.85rem; color: #555; margin-top: 10px;">
+                Upload an image containing handwritten text. The AI will attempt to recognize it and use it as your prompt.
+            </p>
+        </div>
+        <!-- END NEW -->
 
         <div id="app_output">Application messages will appear here.</div>
 
@@ -399,7 +461,11 @@
                 "generation_failed": "❌ Failed to generate prompts:",
                 "generation_complete": "✨ All prompt generation tasks complete.",
                 "no_input_text": "Please enter some text to generate prompts.",
-                "api_key_not_configured": "Gemini API Key is not configured or the AI model failed to initialize."
+                "api_key_not_configured": "Gemini API Key is not configured or the AI model failed to initialize.",
+                "image_processing": "🖼️ Processing image and extracting text...",
+                "image_success": "✅ Text extracted from image. Click \"Generate Prompts\" to refine.",
+                "image_error": "❌ Image processing error:",
+                "no_image_selected": "❗ Please select an image file first."
             },
             "es-ES": {
                 "generating": "🚀 Generando indicaciones y variantes...",
@@ -417,7 +483,11 @@
                 "generation_failed": "❌ Fallo al generar indicaciones:",
                 "generation_complete": "✨ Todas las tareas de generación de indicaciones completadas.",
                 "no_input_text": "Por favor, introduzca texto para generar indicaciones.",
-                "api_key_not_configured": "La clave API de Gemini no está configurada o el modelo de IA no se pudo inicializar."
+                "api_key_not_configured": "La clave API de Gemini no está configurada o el modelo de IA no se pudo inicializar.",
+                "image_processing": "🖼️ Procesando imagen y extrayendo texto...",
+                "image_success": "✅ Texto extraído de la imagen. Haga clic en \"Generar Indicaciones\" para refinar.",
+                "image_error": "❌ Error de procesamiento de imagen:",
+                "no_image_selected": "❗ Por favor, seleccione un archivo de imagen primero."
             },
             "fr-FR": {
                 "generating": "🚀 Génération des invites et variantes...",
@@ -435,7 +505,11 @@
                 "generation_failed": "❌ Échec de la génération des invites :",
                 "generation_complete": "✨ Toutes les tâches de génération d'invites terminées.",
                 "no_input_text": "Veuillez saisir du texte pour générer des invites.",
-                "api_key_not_configured": "La clé API Gemini n'est pas configurée ou le modèle d'IA n'a pas pu être initialisé."
+                "api_key_not_configured": "La clé API Gemini n'est pas configurée ou le modèle d'IA n'a pas pu être initialisé.",
+                "image_processing": "🖼️ Traitement de l'image et extraction du texte...",
+                "image_success": "✅ Texte extrait de l'image. Cliquez sur \"Générer les invites\" pour affiner.",
+                "image_error": "❌ Erreur de traitement d'image :",
+                "no_image_selected": "❗ Veuillez sélectionner un fichier image en premier."
             },
             "de-DE": {
                 "generating": "🚀 Prompts und Varianten werden generiert...",
@@ -453,7 +527,11 @@
                 "generation_failed": "❌ Generierung der Prompts fehlgeschlagen:",
                 "generation_complete": "✨ Alle Prompt-Generierungsaufgaben abgeschlossen.",
                 "no_input_text": "Bitte geben Sie Text ein, um Prompts zu generieren.",
-                "api_key_not_configured": "Der Gemini-API-Schlüssel ist nicht konfiguriert oder das KI-Modell konnte nicht initialisiert werden."
+                "api_key_not_configured": "Der Gemini-API-Schlüssel ist nicht konfiguriert oder das KI-Modell konnte nicht initialisiert werden.",
+                "image_processing": "🖼️ Bild wird verarbeitet und Text extrahiert...",
+                "image_success": "✅ Text aus Bild extrahiert. Klicken Sie auf „Prompts generieren“ zum Verfeinern.",
+                "image_error": "❌ Fehler bei der Bildverarbeitung:",
+                "no_image_selected": "❗ Bitte wählen Sie zuerst eine Bilddatei aus."
             },
         };
 
@@ -752,6 +830,89 @@
                 }
             };
         }
+
+        // --- NEW: Image Input JavaScript Logic ---
+        const imageInput = document.getElementById('image_input');
+        const imagePreview = document.getElementById('image_preview');
+        const processImageButton = document.getElementById('process_image_button');
+        const imageLoadingSpinner = document.getElementById('image_loading_spinner');
+
+        imageInput.addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    imagePreview.src = e.target.result;
+                    imagePreview.style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+            } else {
+                imagePreview.src = '#';
+                imagePreview.style.display = 'none';
+            }
+        });
+
+        processImageButton.addEventListener('click', async function() {
+            const file = imageInput.files[0];
+            const selectedLanguage = langSelect.value;
+            const appOutput = document.getElementById('app_output');
+
+            if (!file) {
+                appOutput.textContent = getMessage("no_image_selected", selectedLanguage);
+                return;
+            }
+
+            // Show loading spinner and disable button
+            imageLoadingSpinner.style.display = 'block';
+            processImageButton.disabled = true;
+            appOutput.textContent = getMessage("image_processing", selectedLanguage);
+
+            const reader = new FileReader();
+            reader.onloadend = async function() {
+                const base64data = reader.result.split(',')[1]; // Get only the Base64 part
+
+                try {
+                    const response = await fetch('/process_image_prompt', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            image_data: base64data,
+                            language_code: selectedLanguage
+                        })
+                    });
+
+                    if (!response.ok) {
+                        if (response.status === 302) { // Flask-Login redirect
+                            window.location.href = response.url;
+                            return;
+                        }
+                        const errorData = await response.json();
+                        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+                    }
+
+                    const data = await response.json();
+                    if (data.recognized_text) {
+                        promptInputTextarea.value = data.recognized_text;
+                        appOutput.textContent = getMessage("image_success", selectedLanguage);
+                        // Optionally, trigger generate prompts automatically
+                        // document.getElementById('promptForm').requestSubmit();
+                    } else {
+                        appOutput.textContent = getMessage("image_error", selectedLanguage) + ` No text recognized.`;
+                    }
+
+                } catch (error) {
+                    appOutput.textContent = getMessage("image_error", selectedLanguage) + ` ${error.message}`;
+                    console.error("Image processing fetch error:", error);
+                } finally {
+                    imageLoadingSpinner.style.display = 'none';
+                    processImageButton.disabled = false;
+                }
+            };
+            reader.readAsDataURL(file);
+        });
+        // --- END NEW: Image Input JavaScript Logic ---
     </script>
 </body>
 </html>
