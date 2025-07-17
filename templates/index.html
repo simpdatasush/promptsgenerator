@@ -406,7 +406,7 @@
            }
        }
 
-       /* NEW: Modal/Popup Styles */
+       /* Modal/Popup Styles */
        .modal-overlay {
            position: fixed;
            top: 0;
@@ -614,38 +614,8 @@
                     </div>
                 </div>
             </div>
-            <div class="col">
-                <div class="card">
-                    <div class="card-header">
-                        <h5>Shorter Variant</h5>
-                        <span id="shorter_token_count" class="token-count">0 chars</span>
-                        <div>
-                            <button class="btn btn-sm btn-outline-secondary mr-1" onclick="copyPromptText('shorter_output')"><i class="fas fa-copy"></i> Copy</button>
-                            <button class="btn btn-sm btn-outline-info" onclick="openFullContextView('Shorter Variant', 'shorter_output')"><i class="fas fa-expand-alt"></i> View Full</button>
-                        </div>
-                    </div>
-                    <div class="card-body">
-                        <pre id="shorter_output"></pre>
-                        <button class="save-button btn btn-sm btn-primary mt-2" data-prompt-type="shorter">Save</button>
-                    </div>
-                </div>
-            </div>
-            <div class="col">
-                <div class="card">
-                    <div class="card-header">
-                        <h5>Suggested Additions</h5>
-                        <span id="additions_token_count" class="token-count">0 chars</span>
-                        <div>
-                            <button class="btn btn-sm btn-outline-secondary mr-1" onclick="copyPromptText('additions_output')"><i class="fas fa-copy"></i> Copy</button>
-                            <button class="btn btn-sm btn-outline-info" onclick="openFullContextView('Suggested Additions', 'additions_output')"><i class="fas fa-expand-alt"></i> View Full</button>
-                        </div>
-                    </div>
-                    <div class="card-body">
-                        <pre id="additions_output"></pre>
-                        <button class="save-button btn btn-sm btn-primary mt-2" data-prompt-type="additions">Save</button>
-                    </div>
-                </div>
-            </div>
+            <!-- Removed: Shorter Variant -->
+            <!-- Removed: Suggested Additions -->
         </div>
 
         <div class="llm-buttons-section">
@@ -695,7 +665,7 @@
         </div>
     </div>
 
-    <!-- NEW: Full Context View Modal -->
+    <!-- Full Context View Modal -->
     <div id="fullContextModalOverlay" class="modal-overlay">
         <div class="modal-content-custom">
             <div class="modal-header-custom">
@@ -707,7 +677,7 @@
             </div>
         </div>
     </div>
-    <!-- END NEW: Full Context View Modal -->
+    <!-- END Full Context View Modal -->
 
    <script>
        // --- Message Translations (unchanged) ---
@@ -762,7 +732,7 @@
            },
            "fr-FR": {
                "generating": "🚀 Génération des invites et variantes...",
-               "voice_not_supported": "Avertissement: Votre navigateur ne prend pas en charge l'API vocale pour la saisie vocale.",
+               "voice_not_supported": "Avertissement: Votre navigateur ne prend pas en charge l'API vocale para la saisie vocale.",
                "listening": "🗣️ À l'écoute (Français). Parlez maintenant.",
                "voice_captured":  "✅ Saisie vocale capturée. Cliquez sur \"Générer les invites\"." ,
                "voice_error":  "❌ Erreur de saisie vocale :" ,
@@ -905,14 +875,11 @@
            document.getElementById('polished_output').textContent = '';
            document.getElementById('creative_output').textContent = '';
            document.getElementById('technical_output').textContent = '';
-           document.getElementById('shorter_output').textContent = '';
-           document.getElementById('additions_output').textContent = '';
+           // Removed: shorter_output, additions_output
 
            document.getElementById('polished_token_count').textContent = '0 chars';
            document.getElementById('creative_token_count').textContent = '0 chars';
            document.getElementById('technical_token_count').textContent = '0 chars';
-           document.getElementById('shorter_token_count').textContent = '0 chars';
-           document.getElementById('additions_token_count').textContent = '0 chars';
 
 
            appOutput.textContent = getMessage("generating", selectedLanguage);
@@ -963,15 +930,13 @@
                    document.getElementById('polished_output').textContent = data.polished;
                    document.getElementById('creative_output').textContent = data.creative;
                    document.getElementById('technical_output').textContent = data.technical;
-                   document.getElementById('shorter_output').textContent = data.shorter;
-                   document.getElementById('additions_output').textContent = data.additions;
+                   // Removed: shorter_output, additions_output
 
                    // Update token counts (using character count as a proxy)
                    document.getElementById('polished_token_count').textContent = `${data.polished.length} chars`;
                    document.getElementById('creative_token_count').textContent = `${data.creative.length} chars`;
                    document.getElementById('technical_token_count').textContent = `${data.technical.length} chars`;
-                   document.getElementById('shorter_token_count').textContent = `${data.shorter.length} chars`;
-                   document.getElementById('additions_token_count').textContent = `${data.additions.length} chars`;
+                   // Removed: shorter_token_count, additions_token_count
 
 
                    appOutput.textContent = getMessage("generation_complete", selectedLanguage);
@@ -1274,7 +1239,7 @@
            }
        }
 
-       // --- NEW: Full Context View Modal Functions ---
+       // --- Full Context View Modal Functions ---
        function openFullContextView(title, elementId) {
            const modalOverlay = document.getElementById('fullContextModalOverlay');
            const modalTitle = document.getElementById('fullContextModalTitle');
@@ -1290,7 +1255,7 @@
            const modalOverlay = document.getElementById('fullContextModalOverlay');
            modalOverlay.classList.remove('show');
        }
-       // --- END NEW FUNCTIONS ---
+       // --- END Full Context View Modal Functions ---
    </script>
 </body>
 </html>
