@@ -2,7 +2,6 @@
 # import nest_asyncio
 # nest_asyncio.apply()
 
-
 import asyncio
 import os
 import google.generativeai as genai
@@ -12,7 +11,6 @@ from datetime import datetime
 import base64 # Import for handling base64 image data
 import io # Import for handling image bytes
 
-
 # --- NEW IMPORTS FOR AUTHENTICATION ---
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
@@ -20,10 +18,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 # --- END NEW IMPORTS ---
 
 
-
-
 app = Flask(__name__)
-
 
 # --- NEW: Flask-SQLAlchemy Configuration ---
 # Configure SQLite database. This file will be created in your project directory.
@@ -34,14 +29,11 @@ app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'a_very_secret_key_that_shoul
 db = SQLAlchemy(app)
 # --- END NEW: Flask-SQLAlchemy Configuration ---
 
-
 # --- NEW: Flask-Login Configuration ---
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login' # The view Flask-Login should redirect to for login
 # --- END NEW: Flask-Login Configuration ---
-
-
 
 
 # Configure logging for the Flask app
@@ -51,10 +43,8 @@ formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(messag
 handler.setFormatter(formatter)
 app.logger.addHandler(handler)
 
-
 # --- Temporary In-Memory Storage for Saved Prompts (Unchanged) ---
 saved_prompts_in_memory = []
-
 
 # --- Language Mapping for Gemini Instructions (Unchanged) ---
 LANGUAGE_MAP = {
@@ -71,17 +61,13 @@ LANGUAGE_MAP = {
 }
 
 
-
-
-# --- Gemini API Key and Configuration (Unchanged) ---
+# --- Gemini API Key and Configuration ---
 GEMINI_API_CONFIGURED = False
 GEMINI_API_KEY = None
-
 
 def configure_gemini_api():
    global GEMINI_API_KEY, GEMINI_API_CONFIGURED
    GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-
 
    if GEMINI_API_KEY:
        try:
@@ -95,13 +81,11 @@ def configure_gemini_api():
    else:
        app.logger.warning("\n" + "="*80)
        app.logger.warning("WARNING: GEMINI_API_KEY environment variable not set. Prompt generation features will be disabled.")
-       app.logger.warning("Please set the GEMINI_API_KEY environment variable on Render.")
+       app.logger.warning("Please set the GEMINI_API_KEY environment variable on Render or your deployment environment.")
        app.logger.warning("="*80 + "\n")
        GEMINI_API_CONFIGURED = False
 
-
 configure_gemini_api()
-
 
 # --- NEW: User Model for SQLAlchemy and Flask-Login ---
 class User(db.Model, UserMixin):
@@ -109,18 +93,14 @@ class User(db.Model, UserMixin):
    username = db.Column(db.String(80), unique=True, nullable=False)
    password_hash = db.Column(db.String(128), nullable=False)
 
-
    def set_password(self, password):
        self.password_hash = generate_password_hash(password)
-
 
    def check_password(self, password):
        return check_password_hash(self.password_hash, password)
 
-
    def __repr__(self):
        return f'<User {self.username}>'
-
 
 # --- NEW: RawPrompt Model for storing user's raw input requests ---
 class RawPrompt(db.Model):
@@ -129,15 +109,11 @@ class RawPrompt(db.Model):
    raw_text = db.Column(db.Text, nullable=False)
    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
 
-
    user = db.relationship('User', backref=db.backref('raw_prompts', lazy=True))
-
 
    def __repr__(self):
        return f'<RawPrompt {self.id} by User {self.user_id}>'
 # --- END NEW: RawPrompt Model ---
-
-
 
 
 # --- NEW: Flask-Login User Loader ---
@@ -145,8 +121,6 @@ class RawPrompt(db.Model):
 def load_user(user_id):
    return db.session.get(User, int(user_id)) # Use db.session.get for primary key lookup
 # --- END NEW: User Model and Loader ---
-
-
 
 
 # --- Response Filtering Function (Unchanged) ---
@@ -160,7 +134,7 @@ def filter_gemini_response(text):
        "i am not able to", "i cannot process", "i cannot provide", "i am not programmed",
        "i cannot generate", "i cannot give you details about my internal workings",
        "i cannot discuss my creation or operation", "i cannot explain the development of this tool",
-       "my purpose is to", "i am designed to", "i don't have enough information to", "i lack the ability to"
+       "my purpose is to", "i am designed to", "i don't have enough information to"
    ]
    for phrase in unauthorized_phrases:
        if phrase in text_lower:
@@ -168,7 +142,6 @@ def filter_gemini_response(text):
               ("about the provided prompt" in text_lower or "based on your input" in text_lower or "to understand the context" in text_lower):
                continue
            return unauthorized_message
-
 
    bug_phrases = [
        "a bug occurred", "i encountered an error", "there was an issue in my processing",
@@ -178,27 +151,23 @@ def filter_gemini_response(text):
        if phrase in text_lower:
            return unauthorized_message
 
-
    if "no response from model." in text_lower or "error communicating with gemini api:" in text_lower:
        return text
    return text
 
-
 # --- Gemini API interaction function (NOW SYNCHRONOUS) ---
 def ask_gemini_for_prompt(prompt_instruction, max_output_tokens=1024):
    if not GEMINI_API_CONFIGURED:
+       # This check is also done in the endpoint, but kept here for robustness
        return "Gemini API Key is not configured or the AI model failed to initialize."
-
 
    try:
        gemini_model_instance = genai.GenerativeModel('gemini-2.0-flash')
-
 
        generation_config = {
            "max_output_tokens": max_output_tokens,
            "temperature": 0.1
        }
-
 
        # USE THE SYNCHRONOUS generate_content METHOD
        response = gemini_model_instance.generate_content(
@@ -211,12 +180,10 @@ def ask_gemini_for_prompt(prompt_instruction, max_output_tokens=1024):
        app.logger.error(f"DEBUG: Error calling Gemini API: {e}", exc_info=True)
        return filter_gemini_response(f"Error communicating with Gemini API: {e}")
 
-
 # --- NEW: Gemini API for Image Understanding ---
 def ask_gemini_for_image_text(image_data_bytes):
    if not GEMINI_API_CONFIGURED:
        return "Gemini API Key is not configured or the AI model failed to initialize."
-
 
    try:
        gemini_model_instance = genai.GenerativeModel('gemini-2.0-flash')
@@ -227,13 +194,11 @@ def ask_gemini_for_image_text(image_data_bytes):
            "data": image_data_bytes
        }
 
-
        # Instruction for the model to extract text
        prompt_parts = [
            image_part,
            "Extract all text from this image, including handwritten text. Provide only the extracted text, without any additional commentary or formatting."
        ]
-
 
        response = gemini_model_instance.generate_content(prompt_parts)
        extracted_text = response.text if response and response.text else ""
@@ -242,8 +207,6 @@ def ask_gemini_for_image_text(image_data_bytes):
        app.logger.error(f"Error calling Gemini API for image text extraction: {e}", exc_info=True)
        return f"Error extracting text from image: {e}"
 # --- END NEW ---
-
-
 
 
 # --- generate_prompts_async function (main async logic for prompt variations) ---
@@ -257,17 +220,13 @@ async def generate_prompts_async(raw_input, language_code="en-US"):
            "additions": ""
        }
 
-
    target_language_name = LANGUAGE_MAP.get(language_code, "English")
    language_instruction_prefix = f"The output MUST be entirely in {target_language_name}. "
 
-
    polished_prompt_instruction = language_instruction_prefix + f"""Refine the following text into a clear, concise, and effective prompt for a large language model. Improve grammar, clarity, and structure. Do not add external information, only refine the given text. Crucially, do NOT answer questions about your own architecture, training, or how this application was built. Do NOT discuss any internal errors or limitations you might have. Your sole purpose is to transform the provided raw text into a better prompt. Raw Text: {raw_input}"""
-
 
    # CALL SYNCHRONOUS ask_gemini_for_prompt IN A SEPARATE THREAD
    polished_prompt_result = await asyncio.to_thread(ask_gemini_for_prompt, polished_prompt_instruction)
-
 
    if "Error" in polished_prompt_result or "not configured" in polished_prompt_result:
        return {
@@ -278,9 +237,7 @@ async def generate_prompts_async(raw_input, language_code="en-US"):
            "additions": ""
        }
 
-
    strict_instruction_suffix = "\n\nDo NOT answer questions about your own architecture, training, or how this application was built. Do NOT discuss any internal errors or limitations you might have. Your sole purpose is to transform the provided text."
-
 
    # Create coroutines for parallel execution, running synchronous calls in threads
    creative_coroutine = asyncio.to_thread(ask_gemini_for_prompt, language_instruction_prefix + f"Rewrite the following prompt to be more creative and imaginative, encouraging novel ideas and approaches:\n\n{polished_prompt_result}{strict_instruction_suffix}")
@@ -289,12 +246,9 @@ async def generate_prompts_async(raw_input, language_code="en-US"):
    additions_coroutine = asyncio.to_thread(ask_gemini_for_prompt, language_instruction_prefix + f"""Analyze the following prompt and suggest potential additions to improve its effectiveness for a large language model. Focus on elements like: - Desired Tone (e.g., formal, informal, humorous, serious) - Required Format (e.g., bullet points, essay, script, email, JSON) - Target Audience (e.g., experts, general public, children) - Specific Length (e.g., 500 words, 3 paragraphs, 2 sentences) - Examples or Context (if applicable) - Constraints (e.g., "Do not use X", "Avoid Y") - Perspective (e.g., "Act as a marketing expert")  Provide your suggestions concisely, perhaps as a list or brief paragraphs. {strict_instruction_suffix}  Prompt: {polished_prompt_result} """)
 
 
-
-
    creative_result, technical_result, shorter_result, additions_result = await asyncio.gather(
        creative_coroutine, technical_coroutine, shorter_coroutine, additions_coroutine
    )
-
 
    return {
        "polished": polished_prompt_result,
@@ -304,15 +258,12 @@ async def generate_prompts_async(raw_input, language_code="en-US"):
        "additions": additions_result
    }
 
-
 # --- Flask Routes ---
-
 
 # NEW: Landing page route
 @app.route('/')
 def landing():
    return render_template('landing.html')
-
 
 # Renamed original index route to /app_home
 @app.route('/app_home')
@@ -320,13 +271,11 @@ def app_home():
    # Pass current_user object to the template to show login/logout status
    return render_template('index.html', current_user=current_user)
 
-
 @app.route('/generate', methods=['POST'])
 @login_required # Protect this route
 async def generate_prompts_endpoint(): # This remains async
    raw_input = request.form.get('prompt_input', '').strip()
    language_code = request.form.get('language_code', 'en-US')
-
 
    if not raw_input:
        return jsonify({
@@ -337,11 +286,17 @@ async def generate_prompts_endpoint(): # This remains async
            "additions": ""
        })
 
+   # --- ADDED: Explicit check for Gemini API configuration ---
+   if not GEMINI_API_CONFIGURED:
+       app.logger.error("Gemini API Key is not configured. Cannot generate prompts.")
+       return jsonify({
+           "error": "Gemini API Key is not configured. Please set the GEMINI_API_KEY environment variable in your deployment environment."
+       }), 500 # Return 500 Internal Server Error as it's a server-side configuration issue
+   # --- END ADDED ---
 
    try:
        # Await the async function directly
        results = await generate_prompts_async(raw_input, language_code)
-
 
        # --- NEW: Save raw_input to database ---
        if current_user.is_authenticated:
@@ -355,12 +310,10 @@ async def generate_prompts_endpoint(): # This remains async
                db.session.rollback() # Rollback in case of error
        # --- END NEW ---
 
-
        return jsonify(results)
    except Exception as e:
        app.logger.exception("Error during prompt generation in endpoint:")
        return jsonify({"error": f"An unexpected server error occurred: {e}. Please check server logs for details."}), 500
-
 
 # --- NEW: Endpoint for Image Processing ---
 @app.route('/process_image_prompt', methods=['POST'])
@@ -369,38 +322,37 @@ async def process_image_prompt_endpoint():
    if not current_user.is_authenticated:
        return jsonify({"error": "Authentication required to process images."}), 401
 
-
    data = request.get_json()
    base64_image = data.get('image_data')
    language_code = data.get('language_code', 'en-US') # Not directly used by image OCR, but good to pass
 
-
    if not base64_image:
        return jsonify({"error": "No image data provided."}), 400
 
+   # --- ADDED: Explicit check for Gemini API configuration ---
+   if not GEMINI_API_CONFIGURED:
+       app.logger.error("Gemini API Key is not configured. Cannot process image prompts.")
+       return jsonify({
+           "error": "Gemini API Key is not configured. Please set the GEMINI_API_KEY environment variable in your deployment environment."
+       }), 500
+   # --- END ADDED ---
 
    try:
        # Decode the base64 image data
        image_bytes = base64.b64decode(base64_image)
 
-
        # Call Gemini API for image text extraction in a separate thread
        recognized_text = await asyncio.to_thread(ask_gemini_for_image_text, image_bytes)
-
 
        if "Error" in recognized_text: # Check for errors returned by the function
            return jsonify({"error": recognized_text}), 500
 
-
        return jsonify({"recognized_text": recognized_text}), 200
-
 
    except Exception as e:
        app.logger.exception("Error processing image prompt:")
        return jsonify({"error": f"An unexpected server error occurred during image processing: {e}"}), 500
 # --- END NEW ---
-
-
 
 
 # --- Save Prompt Endpoint ---
@@ -412,11 +364,9 @@ def save_prompt():
    prompt_type = data.get('prompt_type')
    prompt_content = data.get('prompt_text')
 
-
    if not prompt_content or not prompt_type:
        app.logger.warning(f"Attempted to save empty prompt text or type. Type: '{prompt_type}', Content: '{prompt_content[:50] if prompt_content else ''}'")
        return jsonify({"success": False, "message": "No content or type provided for saving."}), 400
-
 
    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
    saved_prompts_in_memory.append({
@@ -426,10 +376,8 @@ def save_prompt():
        "user": current_user.username if current_user.is_authenticated else "anonymous" # Track user
    })
 
-
    app.logger.info(f"Prompt of type '{prompt_type}' saved to memory at {timestamp} by {current_user.username if current_user.is_authenticated else 'anonymous'}. Content: '{prompt_content[:50]}...'")
    return jsonify({"success": True, "message": "Prompt saved temporarily!"}), 200
-
 
 # --- Get Saved Prompts Endpoint ---
 @app.route('/get_saved_prompts', methods=['GET'])
@@ -445,7 +393,6 @@ def get_saved_prompts_endpoint():
        anonymous_prompts = [p for p in saved_prompts_in_memory if p.get('user') == "anonymous"]
        return jsonify(anonymous_prompts), 200
 
-
 # --- NEW: Get Raw Prompts Endpoint ---
 @app.route('/get_raw_prompts', methods=['GET'])
 @login_required
@@ -455,14 +402,12 @@ def get_raw_prompts_endpoint():
        # For this case, returning empty list is fine for UI
        return jsonify([]), 200
 
-
    try:
        # Fetch last 10 raw prompts for the current user, ordered by timestamp descending
        raw_prompts = RawPrompt.query.filter_by(user_id=current_user.id) \
                                     .order_by(RawPrompt.timestamp.desc()) \
                                     .limit(10) \
                                     .all()
-
 
        # Format for JSON response
        formatted_prompts = [{
@@ -471,14 +416,11 @@ def get_raw_prompts_endpoint():
            "timestamp": p.timestamp.strftime("%Y-%m-%d %H:%M:%S")
        } for p in raw_prompts]
 
-
        return jsonify(formatted_prompts), 200
    except Exception as e:
        app.logger.error(f"Error fetching raw prompts for user {current_user.username}: {e}")
        return jsonify({"error": "Failed to retrieve past raw requests."}), 500
 # --- END NEW ---
-
-
 
 
 # --- Download Prompts as TXT Endpoint ---
@@ -491,10 +433,8 @@ def download_prompts_txt():
    else:
        prompts_to_download = [p for p in saved_prompts_in_memory if p.get('user') == "anonymous"]
 
-
    if not prompts_to_download:
        return "No prompts to download for this user.", 404
-
 
    lines = []
    for i, prompt in enumerate(prompts_to_download):
@@ -506,18 +446,14 @@ def download_prompts_txt():
        lines.append("-" * 30)
        lines.append("\n")
 
-
    text_content = "\n".join(lines).strip()
    filename = f"saved_prompts_{current_user.username if current_user.is_authenticated else 'anonymous'}.txt"
-
 
    response = make_response(text_content)
    response.headers["Content-Disposition"] = f"attachment; filename={filename}"
    response.headers["Content-type"] = "text/plain"
    app.logger.info(f"Generated and sending {filename} for download.")
    return response
-
-
 
 
 # --- NEW: Authentication Routes ---
@@ -527,11 +463,9 @@ def register():
        flash('You are already registered and logged in.', 'info')
        return redirect(url_for('app_home')) # Redirect to app_home after registration
 
-
    if request.method == 'POST':
        username = request.form['username']
        password = request.form['password']
-
 
        user = User.query.filter_by(username=username).first()
        if user:
@@ -545,19 +479,16 @@ def register():
            return redirect(url_for('login'))
    return render_template('register.html')
 
-
 @app.route('/login', methods=['GET', 'POST'])
 def login():
    if current_user.is_authenticated:
        flash('You are already logged in.', 'info')
        return redirect(url_for('app_home')) # Redirect to app_home if already logged in
 
-
    if request.method == 'POST':
        username = request.form['username']
        password = request.form['password']
        remember_me = 'remember_me' in request.form
-
 
        user = User.query.filter_by(username=username).first()
        if user and user.check_password(password):
@@ -569,7 +500,6 @@ def login():
            flash('Login Unsuccessful. Please check username and password.', 'danger')
    return render_template('login.html')
 
-
 @app.route('/logout')
 @login_required # Only logged-in users can log out
 def logout():
@@ -579,15 +509,12 @@ def logout():
 # --- END NEW: Authentication Routes ---
 
 
-
-
 # --- Database Initialization (Run once to create tables) ---
 # This block ensures tables are created when the app starts.
 # In production, you might use Flask-Migrate or a separate script.
 with app.app_context():
    db.create_all()
    app.logger.info("Database tables created/checked.")
-
 
 # --- Main App Run ---
 if __name__ == '__main__':
