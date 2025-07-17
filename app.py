@@ -227,7 +227,7 @@ def filter_gemini_response(text):
 
 
 # --- Gemini API interaction function (NOW SYNCHRONOUS) ---
-def ask_gemini_for_prompt(prompt_instruction, max_output_tokens=1024):
+def ask_gemini_for_prompt(prompt_instruction, max_output_tokens=512):
   if not GEMINI_API_CONFIGURED:
       # This check is also done in the endpoint, but kept here for robustness
       return "Gemini API Key is not configured or the AI model failed to initialize."
