@@ -194,6 +194,7 @@
            overflow-y: auto;
        }
 
+       /* NEW: Fixed height for pre tags with scrollbar */
        .prompt-output-grid pre {
            white-space: pre-wrap;
            word-wrap: break-word;
@@ -205,6 +206,19 @@
            border: 1px solid #e9ecef;
            flex-grow: 1;
            margin-bottom: 0; /* Remove default pre margin */
+           max-height: 120px; /* Fixed height */
+           overflow-y: auto; /* Enable vertical scroll */
+       }
+
+       /* NEW: Token count indicator style */
+       .token-count {
+           font-size: 0.8rem;
+           color: #6c757d;
+           margin-left: 10px;
+           background-color: #e9ecef;
+           padding: 3px 8px;
+           border-radius: 12px;
+           white-space: nowrap; /* Prevent wrapping */
        }
 
        .prompt-output-grid .btn-sm {
@@ -475,6 +489,7 @@
                 <div class="card">
                     <div class="card-header">
                         <h5>Polished Prompt</h5>
+                        <span id="polished_token_count" class="token-count">0 chars</span>
                         <button class="btn btn-sm btn-outline-secondary" onclick="copyAndOpenLLM('polished_output', 'chatgpt')"><i class="fas fa-copy"></i> Copy</button>
                     </div>
                     <div class="card-body">
@@ -487,6 +502,7 @@
                 <div class="card">
                     <div class="card-header">
                         <h5>Creative Variant</h5>
+                        <span id="creative_token_count" class="token-count">0 chars</span>
                         <button class="btn btn-sm btn-outline-secondary" onclick="copyAndOpenLLM('creative_output', 'chatgpt')"><i class="fas fa-copy"></i> Copy</button>
                     </div>
                     <div class="card-body">
@@ -499,6 +515,7 @@
                 <div class="card">
                     <div class="card-header">
                         <h5>Technical Variant</h5>
+                        <span id="technical_token_count" class="token-count">0 chars</span>
                         <button class="btn btn-sm btn-outline-secondary" onclick="copyAndOpenLLM('technical_output', 'chatgpt')"><i class="fas fa-copy"></i> Copy</button>
                     </div>
                     <div class="card-body">
@@ -511,6 +528,7 @@
                 <div class="card">
                     <div class="card-header">
                         <h5>Shorter Variant</h5>
+                        <span id="shorter_token_count" class="token-count">0 chars</span>
                         <button class="btn btn-sm btn-outline-secondary" onclick="copyAndOpenLLM('shorter_output', 'chatgpt')"><i class="fas fa-copy"></i> Copy</button>
                     </div>
                     <div class="card-body">
@@ -523,6 +541,7 @@
                 <div class="card">
                     <div class="card-header">
                         <h5>Suggested Additions</h5>
+                        <span id="additions_token_count" class="token-count">0 chars</span>
                         <button class="btn btn-sm btn-outline-secondary" onclick="copyAndOpenLLM('additions_output', 'chatgpt')"><i class="fas fa-copy"></i> Copy</button>
                     </div>
                     <div class="card-body">
@@ -644,13 +663,13 @@
                "generation_failed":  "❌ Échec de la génération des invites :" ,
                "generation_complete":  "✨ Toutes les tâches de génération d'invites terminées." ,
                "no_input_text": "Veuillez saisir du texte pour générer des invites.",
-               "api_key_not_configured": "La clé API Gemini n'est pas configurée ou le modèle d'IA n'a pas pu être initialisé.",
-               "image_processing": "🖼️ Traitement de l'image et extraction du texte...",
-               "image_success":  "✅ Texte extrait de l'image. Cliquez sur \"Générer les invites\" pour affiner." ,
-               "image_error":  "❌ Erreur de traitement d'image :" ,
-               "no_image_selected":  "❗ Veuillez sélectionner un fichier image en premier." ,
-               "copy_success":  "✅ Invite copiée dans le presse-papiers !" ,
-               "copy_fail":  "❌ Échec de la copie de l'invite dans le presse-papiers."
+               "api_key_not_configured": "La clé API Gemini n'est pas configurée ou le modèle d'IA n'a pas pu être initialiser.",
+               "image_processing": "🖼️ Traitement de l'image et extraction du texto...",
+               "image_success":  "✅ Texto extraído de la imagen. Haga clic en \"Generar las invites\" para afinar." ,
+               "image_error":  "❌ Error de procesamiento de imagen :" ,
+               "no_image_selected":  "❗ Veuillez seleccionar un archivo de imagen en primer lugar." ,
+               "copy_success":  "✅ Invite copiada en el portapapeles !" ,
+               "copy_fail":  "❌ Échec de la copia de la invite en el portapapeles."
            },
            "de-DE": {
                "generating": "🚀 Prompts und Varianten werden generiert...",
@@ -769,12 +788,19 @@
            const appOutput = document.getElementById('app_output');
            const generateButton = document.getElementById('generate_prompts_btn');
 
-           // Clear previous outputs
+           // Clear previous outputs and token counts
            document.getElementById('polished_output').textContent = '';
            document.getElementById('creative_output').textContent = '';
            document.getElementById('technical_output').textContent = '';
            document.getElementById('shorter_output').textContent = '';
            document.getElementById('additions_output').textContent = '';
+
+           document.getElementById('polished_token_count').textContent = '0 chars';
+           document.getElementById('creative_token_count').textContent = '0 chars';
+           document.getElementById('technical_token_count').textContent = '0 chars';
+           document.getElementById('shorter_token_count').textContent = '0 chars';
+           document.getElementById('additions_token_count').textContent = '0 chars';
+
 
            appOutput.textContent = getMessage("generating", selectedLanguage);
            generateButton.disabled = true;
@@ -826,6 +852,14 @@
                    document.getElementById('technical_output').textContent = data.technical;
                    document.getElementById('shorter_output').textContent = data.shorter;
                    document.getElementById('additions_output').textContent = data.additions;
+
+                   // Update token counts (using character count as a proxy)
+                   document.getElementById('polished_token_count').textContent = `${data.polished.length} chars`;
+                   document.getElementById('creative_token_count').textContent = `${data.creative.length} chars`;
+                   document.getElementById('technical_token_count').textContent = `${data.technical.length} chars`;
+                   document.getElementById('shorter_token_count').textContent = `${data.shorter.length} chars`;
+                   document.getElementById('additions_token_count').textContent = `${data.additions.length} chars`;
+
 
                    appOutput.textContent = getMessage("generation_complete", selectedLanguage);
                    fetchAndDisplayRawPrompts();
