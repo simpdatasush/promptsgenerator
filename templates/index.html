@@ -102,6 +102,7 @@
        }
 
        .prompt-input-section textarea {
+           width: 100%; /* Ensure textarea takes full width */
            border: 1px solid #ced4da;
            border-radius: 8px;
            padding: 15px;
@@ -194,7 +195,7 @@
            overflow-y: auto;
        }
 
-       /* NEW: Fixed height for pre tags with scrollbar */
+       /* Fixed height for pre tags with scrollbar */
        .prompt-output-grid pre {
            white-space: pre-wrap;
            word-wrap: break-word;
@@ -210,7 +211,7 @@
            overflow-y: auto; /* Enable vertical scroll */
        }
 
-       /* NEW: Token count indicator style */
+       /* Token count indicator style */
        .token-count {
            font-size: 0.8rem;
            color: #6c757d;
@@ -404,6 +405,86 @@
                width: 100%;
            }
        }
+
+       /* NEW: Modal/Popup Styles */
+       .modal-overlay {
+           position: fixed;
+           top: 0;
+           left: 0;
+           width: 100%;
+           height: 100%;
+           background-color: rgba(0, 0, 0, 0.6);
+           display: flex;
+           justify-content: center;
+           align-items: center;
+           z-index: 2000; /* Higher than other elements */
+           visibility: hidden; /* Hidden by default */
+           opacity: 0;
+           transition: visibility 0s, opacity 0.3s ease;
+       }
+
+       .modal-overlay.show {
+           visibility: visible;
+           opacity: 1;
+       }
+
+       .modal-content-custom {
+           background-color: #fff;
+           padding: 25px;
+           border-radius: 10px;
+           box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+           max-width: 700px;
+           width: 90%;
+           max-height: 80%;
+           overflow-y: auto;
+           position: relative;
+           transform: translateY(-20px); /* Slight animation */
+           transition: transform 0.3s ease;
+       }
+
+       .modal-overlay.show .modal-content-custom {
+           transform: translateY(0);
+       }
+
+       .modal-header-custom {
+           display: flex;
+           justify-content: space-between;
+           align-items: center;
+           margin-bottom: 15px;
+           padding-bottom: 10px;
+           border-bottom: 1px solid #eee;
+       }
+
+       .modal-header-custom h4 {
+           margin: 0;
+           color: #2c3e50;
+           font-size: 1.5rem;
+       }
+
+       .modal-close-button {
+           background: none;
+           border: none;
+           font-size: 1.8rem;
+           color: #666;
+           cursor: pointer;
+           transition: color 0.2s ease;
+       }
+
+       .modal-close-button:hover {
+           color: #333;
+       }
+
+       .modal-body-custom pre {
+           white-space: pre-wrap;
+           word-wrap: break-word;
+           font-family: 'Consolas', 'Menlo', 'Courier New', monospace;
+           font-size: 1rem;
+           background-color: #f8f9fa;
+           padding: 15px;
+           border-radius: 8px;
+           border: 1px solid #e9ecef;
+           line-height: 1.5;
+       }
    </style>
 </head>
 <body>
@@ -490,7 +571,10 @@
                     <div class="card-header">
                         <h5>Polished Prompt</h5>
                         <span id="polished_token_count" class="token-count">0 chars</span>
-                        <button class="btn btn-sm btn-outline-secondary" onclick="copyPromptText('polished_output')"><i class="fas fa-copy"></i> Copy</button>
+                        <div>
+                            <button class="btn btn-sm btn-outline-secondary mr-1" onclick="copyPromptText('polished_output')"><i class="fas fa-copy"></i> Copy</button>
+                            <button class="btn btn-sm btn-outline-info" onclick="openFullContextView('Polished Prompt', 'polished_output')"><i class="fas fa-expand-alt"></i> View Full</button>
+                        </div>
                     </div>
                     <div class="card-body">
                         <pre id="polished_output"></pre>
@@ -503,7 +587,10 @@
                     <div class="card-header">
                         <h5>Creative Variant</h5>
                         <span id="creative_token_count" class="token-count">0 chars</span>
-                        <button class="btn btn-sm btn-outline-secondary" onclick="copyPromptText('creative_output')"><i class="fas fa-copy"></i> Copy</button>
+                        <div>
+                            <button class="btn btn-sm btn-outline-secondary mr-1" onclick="copyPromptText('creative_output')"><i class="fas fa-copy"></i> Copy</button>
+                            <button class="btn btn-sm btn-outline-info" onclick="openFullContextView('Creative Variant', 'creative_output')"><i class="fas fa-expand-alt"></i> View Full</button>
+                        </div>
                     </div>
                     <div class="card-body">
                         <pre id="creative_output"></pre>
@@ -516,7 +603,10 @@
                     <div class="card-header">
                         <h5>Technical Variant</h5>
                         <span id="technical_token_count" class="token-count">0 chars</span>
-                        <button class="btn btn-sm btn-outline-secondary" onclick="copyPromptText('technical_output')"><i class="fas fa-copy"></i> Copy</button>
+                        <div>
+                            <button class="btn btn-sm btn-outline-secondary mr-1" onclick="copyPromptText('technical_output')"><i class="fas fa-copy"></i> Copy</button>
+                            <button class="btn btn-sm btn-outline-info" onclick="openFullContextView('Technical Variant', 'technical_output')"><i class="fas fa-expand-alt"></i> View Full</button>
+                        </div>
                     </div>
                     <div class="card-body">
                         <pre id="technical_output"></pre>
@@ -529,7 +619,10 @@
                     <div class="card-header">
                         <h5>Shorter Variant</h5>
                         <span id="shorter_token_count" class="token-count">0 chars</span>
-                        <button class="btn btn-sm btn-outline-secondary" onclick="copyPromptText('shorter_output')"><i class="fas fa-copy"></i> Copy</button>
+                        <div>
+                            <button class="btn btn-sm btn-outline-secondary mr-1" onclick="copyPromptText('shorter_output')"><i class="fas fa-copy"></i> Copy</button>
+                            <button class="btn btn-sm btn-outline-info" onclick="openFullContextView('Shorter Variant', 'shorter_output')"><i class="fas fa-expand-alt"></i> View Full</button>
+                        </div>
                     </div>
                     <div class="card-body">
                         <pre id="shorter_output"></pre>
@@ -542,7 +635,10 @@
                     <div class="card-header">
                         <h5>Suggested Additions</h5>
                         <span id="additions_token_count" class="token-count">0 chars</span>
-                        <button class="btn btn-sm btn-outline-secondary" onclick="copyPromptText('additions_output')"><i class="fas fa-copy"></i> Copy</button>
+                        <div>
+                            <button class="btn btn-sm btn-outline-secondary mr-1" onclick="copyPromptText('additions_output')"><i class="fas fa-copy"></i> Copy</button>
+                            <button class="btn btn-sm btn-outline-info" onclick="openFullContextView('Suggested Additions', 'additions_output')"><i class="fas fa-expand-alt"></i> View Full</button>
+                        </div>
                     </div>
                     <div class="card-body">
                         <pre id="additions_output"></pre>
@@ -559,6 +655,9 @@
                 <button onclick="openLLM('claude')">Claude</button>
                 <button onclick="openLLM('mistral')">Mistral</button>
                 <button onclick="openLLM('gemini')">Gemini</button>
+                <button onclick="openLLM('grok')">Grok</button>
+                <button onclick="openLLM('perplexity')">Perplexity</button>
+                <button onclick="openLLM('deepseek')">DeepSeek</button>
             </div>
             <p class="text-muted mt-2" style="font-size: 0.85rem;">
                 (Copy a prompt using the "Copy" button above, then click an LLM button to open its website and paste.)
@@ -595,6 +694,20 @@
             </div>
         </div>
     </div>
+
+    <!-- NEW: Full Context View Modal -->
+    <div id="fullContextModalOverlay" class="modal-overlay">
+        <div class="modal-content-custom">
+            <div class="modal-header-custom">
+                <h4 id="fullContextModalTitle"></h4>
+                <button class="modal-close-button" onclick="closeFullContextView()">&times;</button>
+            </div>
+            <div class="modal-body-custom">
+                <pre id="fullContextModalText"></pre>
+            </div>
+        </div>
+    </div>
+    <!-- END NEW: Full Context View Modal -->
 
    <script>
        // --- Message Translations (unchanged) ---
@@ -1112,7 +1225,7 @@
            reader.readAsDataURL(file);
        });
 
-       // --- NEW: Copy Prompt Text Function ---
+       // --- Copy Prompt Text Function ---
        async function copyPromptText(elementId) {
            const promptText = document.getElementById(elementId).textContent.trim();
            const selectedLanguage = document.getElementById('lang_select').value;
@@ -1138,12 +1251,15 @@
            }
        }
 
-       // --- NEW: Open LLM Function ---
+       // --- Open LLM Function ---
        const LLM_URLS = {
            chatgpt: "https://chat.openai.com/",
            claude: "https://claude.ai/chats",
            mistral: "https://chat.mistral.ai/",
-           gemini: "https://gemini.google.com/app"
+           gemini: "https://gemini.google.com/app",
+           grok: "https://grok.x.ai/",
+           perplexity: "https://www.perplexity.ai/",
+           deepseek: "https://www.deepseek.com/chat"
        };
 
        function openLLM(llmKey) {
@@ -1156,6 +1272,23 @@
                appOutput.textContent = `Error: Unknown LLM key: ${llmKey}`;
                console.error(`Unknown LLM key: ${llmKey}`);
            }
+       }
+
+       // --- NEW: Full Context View Modal Functions ---
+       function openFullContextView(title, elementId) {
+           const modalOverlay = document.getElementById('fullContextModalOverlay');
+           const modalTitle = document.getElementById('fullContextModalTitle');
+           const modalText = document.getElementById('fullContextModalText');
+           const promptText = document.getElementById(elementId).textContent.trim();
+
+           modalTitle.textContent = title;
+           modalText.textContent = promptText;
+           modalOverlay.classList.add('show');
+       }
+
+       function closeFullContextView() {
+           const modalOverlay = document.getElementById('fullContextModalOverlay');
+           modalOverlay.classList.remove('show');
        }
        // --- END NEW FUNCTIONS ---
    </script>
