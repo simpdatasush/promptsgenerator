@@ -485,6 +485,14 @@
            border: 1px solid #e9ecef;
            line-height: 1.5;
        }
+
+       /* Cooldown Timer Styling */
+       #cooldown_timer {
+           margin-left: 15px;
+           font-weight: bold;
+           color: #dc3545; /* Red for active timer */
+           display: none; /* Hidden by default */
+       }
    </style>
 </head>
 <body>
@@ -545,6 +553,7 @@
                             <button type="button" id="trigger_image_input" class="btn btn-outline-secondary mt-2 mt-md-0">📸 Upload Image</button>
                         </div>
                         <button type="submit" id="generate_prompts_btn" class="btn btn-primary mt-3 mt-md-0">Generate Prompts</button>
+                        <span id="cooldown_timer"></span>
                     </div>
                 </form>
                 <!-- END: Wrapped content in form tag -->
@@ -724,7 +733,7 @@
                "no_input_text": "Por favor, introduzca texto para generar indicaciones.",
                "api_key_not_configured": "La clave API de Gemini no está configurada o el modelo de IA no se pudo inicializar.",
                "image_processing": "🖼️ Procesando imagen y extrayendo texto...",
-               "image_success":  "✅ Texto extraído de la imagen. Haga clic en \"Generar Indicaciones\" para refinar." ,
+               "image_success":  "✅ Texto extraído de la imagen. Haga clic en \"Generar Indicaciones\" para afinar." ,
                "image_error":  "❌ Error de procesamiento de imagen:" ,
                "no_image_selected":  "❗ Por favor, seleccione un archivo de imagen primero." ,
                "copy_success":  "✅ Indicación copiada al portapapeles." ,
@@ -732,7 +741,7 @@
            },
            "fr-FR": {
                "generating": "🚀 Génération des invites et variantes...",
-               "voice_not_supported": "Avertissement: Votre navigateur ne prend pas en charge l'API vocale para la saisie vocale.",
+               "voice_not_supported": "Avertissement: Votre navigateur ne prend pas en charge l'API vocale pour la saisie vocale.",
                "listening": "🗣️ À l'écoute (Français). Parlez maintenant.",
                "voice_captured":  "✅ Saisie vocale capturée. Cliquez sur \"Générer les invites\"." ,
                "voice_error":  "❌ Erreur de saisie vocale :" ,
@@ -860,7 +869,53 @@
        document.addEventListener('DOMContentLoaded', () => {
            fetchAndDisplaySavedPrompts();
            fetchAndDisplayRawPrompts();
+           checkCooldownStatus(); // Check cooldown on page load
        });
+
+       // Cooldown timer variables
+       let cooldownTimerInterval;
+       const cooldownTimerDisplay = document.getElementById('cooldown_timer');
+       const generateButton = document.getElementById('generate_prompts_btn');
+
+       function startCooldownTimer(remainingTime) {
+           let timeLeft = remainingTime;
+           generateButton.disabled = true;
+           cooldownTimerDisplay.style.display = 'inline'; // Show the timer
+           cooldownTimerDisplay.textContent = `Cooldown: ${timeLeft}s`;
+
+           if (cooldownTimerInterval) {
+               clearInterval(cooldownTimerInterval);
+           }
+
+           cooldownTimerInterval = setInterval(() => {
+               timeLeft--;
+               cooldownTimerDisplay.textContent = `Cooldown: ${timeLeft}s`;
+               if (timeLeft <= 0) {
+                   clearInterval(cooldownTimerInterval);
+                   generateButton.disabled = false;
+                   cooldownTimerDisplay.style.display = 'none'; // Hide the timer
+                   cooldownTimerDisplay.textContent = '';
+                   generateButton.textContent = 'Generate Prompts';
+               }
+           }, 1000);
+       }
+
+       async function checkCooldownStatus() {
+           try {
+               const response = await fetch('/check_cooldown');
+               if (!response.ok) {
+                   console.warn(`Could not check cooldown status: HTTP status ${response.status}`);
+                   return;
+               }
+               const data = await response.json();
+               if (data.cooldown_active) {
+                   startCooldownTimer(data.remaining_time);
+                   generateButton.textContent = 'Generating...'; // Keep button text as generating during cooldown
+               }
+           } catch (error) {
+               console.error("Error checking cooldown status:", error);
+           }
+       }
 
 
        document.getElementById('promptForm').addEventListener('submit', async function(event) {
@@ -869,13 +924,11 @@
            const promptInput = document.getElementById('prompt_input').value;
            const selectedLanguage = document.getElementById('lang_select').value;
            const appOutput = document.getElementById('app_output');
-           const generateButton = document.getElementById('generate_prompts_btn');
-
+           
            // Clear previous outputs and token counts
            document.getElementById('polished_output').textContent = '';
            document.getElementById('creative_output').textContent = '';
            document.getElementById('technical_output').textContent = '';
-           // Removed: shorter_output, additions_output
 
            document.getElementById('polished_token_count').textContent = '0 chars';
            document.getElementById('creative_token_count').textContent = '0 chars';
@@ -885,6 +938,7 @@
            appOutput.textContent = getMessage("generating", selectedLanguage);
            generateButton.disabled = true;
            generateButton.textContent = 'Generating...';
+           cooldownTimerDisplay.style.display = 'none'; // Hide timer during initial generation phase
 
            console.log("Frontend: Sending request to /generate..."); // Debug log
 
@@ -902,22 +956,19 @@
                console.log("Frontend: Response OK status:", response.ok); // Debug log
 
                if (!response.ok) {
-                   if (response.status === 302) {
+                   const errorData = await response.json();
+                   console.log("Frontend: Parsed error JSON:", errorData); // Debug log
+
+                   if (errorData.cooldown_active && errorData.remaining_time) {
+                       appOutput.textContent = errorData.error; // Display the cooldown message
+                       startCooldownTimer(errorData.remaining_time);
+                   } else if (response.status === 302) {
                        window.location.href = response.url;
                        return;
+                   } else {
+                       appOutput.textContent = getMessage("generation_failed", selectedLanguage) + `: ${errorData.error || `HTTP error! status: ${response.status}`}`;
                    }
-                   // Try to parse JSON, but handle if it's not JSON
-                   let errorData;
-                   try {
-                       errorData = await response.json();
-                       console.log("Frontend: Parsed error JSON:", errorData); // Debug log
-                   } catch (jsonError) {
-                       const textError = await response.text();
-                       console.error("Frontend: Failed to parse error response as JSON. Raw text:", textError, jsonError); // Debug log
-                       appOutput.textContent = getMessage("generation_failed", selectedLanguage) + `: Server returned non-JSON error: ${textError.substring(0, 100)}...`;
-                       return;
-                   }
-                   throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+                   return; // Exit if there was an error or cooldown
                }
 
                const data = await response.json();
@@ -930,17 +981,16 @@
                    document.getElementById('polished_output').textContent = data.polished;
                    document.getElementById('creative_output').textContent = data.creative;
                    document.getElementById('technical_output').textContent = data.technical;
-                   // Removed: shorter_output, additions_output
 
                    // Update token counts (using character count as a proxy)
                    document.getElementById('polished_token_count').textContent = `${data.polished.length} chars`;
                    document.getElementById('creative_token_count').textContent = `${data.creative.length} chars`;
                    document.getElementById('technical_token_count').textContent = `${data.technical.length} chars`;
-                   // Removed: shorter_token_count, additions_token_count
-
 
                    appOutput.textContent = getMessage("generation_complete", selectedLanguage);
                    fetchAndDisplayRawPrompts();
+                   // Start cooldown timer after successful generation
+                   startCooldownTimer(60); // Start 60-second cooldown
                }
 
            } catch (error) {
@@ -953,8 +1003,11 @@
                appOutput.textContent = errorMessage;
                console.error("Fetch error caught in JS:", error);
            } finally {
-               generateButton.disabled = false;
-               generateButton.textContent = 'Generate Prompts';
+               // Button will be re-enabled by the cooldown timer or immediately if no cooldown
+               if (!cooldownTimerInterval) { // Only re-enable if no timer is running
+                   generateButton.disabled = false;
+                   generateButton.textContent = 'Generate Prompts';
+               }
                console.log("Frontend: Generation process finished."); // Debug log
            }
        });
