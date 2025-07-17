@@ -490,7 +490,7 @@
                     <div class="card-header">
                         <h5>Polished Prompt</h5>
                         <span id="polished_token_count" class="token-count">0 chars</span>
-                        <button class="btn btn-sm btn-outline-secondary" onclick="copyAndOpenLLM('polished_output', 'chatgpt')"><i class="fas fa-copy"></i> Copy</button>
+                        <button class="btn btn-sm btn-outline-secondary" onclick="copyPromptText('polished_output')"><i class="fas fa-copy"></i> Copy</button>
                     </div>
                     <div class="card-body">
                         <pre id="polished_output"></pre>
@@ -503,7 +503,7 @@
                     <div class="card-header">
                         <h5>Creative Variant</h5>
                         <span id="creative_token_count" class="token-count">0 chars</span>
-                        <button class="btn btn-sm btn-outline-secondary" onclick="copyAndOpenLLM('creative_output', 'chatgpt')"><i class="fas fa-copy"></i> Copy</button>
+                        <button class="btn btn-sm btn-outline-secondary" onclick="copyPromptText('creative_output')"><i class="fas fa-copy"></i> Copy</button>
                     </div>
                     <div class="card-body">
                         <pre id="creative_output"></pre>
@@ -516,7 +516,7 @@
                     <div class="card-header">
                         <h5>Technical Variant</h5>
                         <span id="technical_token_count" class="token-count">0 chars</span>
-                        <button class="btn btn-sm btn-outline-secondary" onclick="copyAndOpenLLM('technical_output', 'chatgpt')"><i class="fas fa-copy"></i> Copy</button>
+                        <button class="btn btn-sm btn-outline-secondary" onclick="copyPromptText('technical_output')"><i class="fas fa-copy"></i> Copy</button>
                     </div>
                     <div class="card-body">
                         <pre id="technical_output"></pre>
@@ -529,7 +529,7 @@
                     <div class="card-header">
                         <h5>Shorter Variant</h5>
                         <span id="shorter_token_count" class="token-count">0 chars</span>
-                        <button class="btn btn-sm btn-outline-secondary" onclick="copyAndOpenLLM('shorter_output', 'chatgpt')"><i class="fas fa-copy"></i> Copy</button>
+                        <button class="btn btn-sm btn-outline-secondary" onclick="copyPromptText('shorter_output')"><i class="fas fa-copy"></i> Copy</button>
                     </div>
                     <div class="card-body">
                         <pre id="shorter_output"></pre>
@@ -542,7 +542,7 @@
                     <div class="card-header">
                         <h5>Suggested Additions</h5>
                         <span id="additions_token_count" class="token-count">0 chars</span>
-                        <button class="btn btn-sm btn-outline-secondary" onclick="copyAndOpenLLM('additions_output', 'chatgpt')"><i class="fas fa-copy"></i> Copy</button>
+                        <button class="btn btn-sm btn-outline-secondary" onclick="copyPromptText('additions_output')"><i class="fas fa-copy"></i> Copy</button>
                     </div>
                     <div class="card-body">
                         <pre id="additions_output"></pre>
@@ -555,13 +555,13 @@
         <div class="llm-buttons-section">
             <h3>Open Prompt in LLM</h3>
             <div class="llm-link-group">
-                <button onclick="copyAndOpenLLM(document.getElementById('polished_output').textContent.trim() ? 'polished_output' : 'prompt_input', 'chatgpt')">ChatGPT</button>
-                <button onclick="copyAndOpenLLM(document.getElementById('polished_output').textContent.trim() ? 'polished_output' : 'prompt_input', 'claude')">Claude</button>
-                <button onclick="copyAndOpenLLM(document.getElementById('polished_output').textContent.trim() ? 'polished_output' : 'prompt_input', 'mistral')">Mistral</button>
-                <button onclick="copyAndOpenLLM(document.getElementById('polished_output').textContent.trim() ? 'polished_output' : 'prompt_input', 'gemini')">Gemini</button>
+                <button onclick="openLLM('chatgpt')">ChatGPT</button>
+                <button onclick="openLLM('claude')">Claude</button>
+                <button onclick="openLLM('mistral')">Mistral</button>
+                <button onclick="openLLM('gemini')">Gemini</button>
             </div>
             <p class="text-muted mt-2" style="font-size: 0.85rem;">
-                (Copies the Polished Prompt if available, otherwise copies your raw input)
+                (Copy a prompt using the "Copy" button above, then click an LLM button to open its website and paste.)
             </p>
         </div>
 
@@ -1112,26 +1112,10 @@
            reader.readAsDataURL(file);
        });
 
-       // --- Copy to Clipboard and Open LLM Logic ---
-       const LLM_URLS = {
-           chatgpt: "https://chat.openai.com/",
-           claude: "https://claude.ai/chats",
-           mistral: "https://chat.mistral.ai/",
-           gemini: "https://gemini.google.com/app"
-       };
-
-       async function copyAndOpenLLM(elementId, llmKey) {
-           let promptText = '';
-           if (elementId === 'polished_output' && document.getElementById('polished_output').textContent.trim()) {
-               promptText = document.getElementById(elementId).textContent.trim();
-           } else if (elementId === 'prompt_input' && document.getElementById('prompt_input').value.trim()) {
-               promptText = document.getElementById(elementId).value.trim();
-           } else {
-               // Fallback if neither polished nor raw input has content
-               promptText = document.getElementById('prompt_input').value.trim();
-           }
-           
-           const selectedLanguage = langSelect.value;
+       // --- NEW: Copy Prompt Text Function ---
+       async function copyPromptText(elementId) {
+           const promptText = document.getElementById(elementId).textContent.trim();
+           const selectedLanguage = document.getElementById('lang_select').value;
            const appOutput = document.getElementById('app_output');
 
            if (!promptText) {
@@ -1144,18 +1128,36 @@
                textarea.value = promptText;
                document.body.appendChild(textarea);
                textarea.select();
-               document.execCommand('copy');
+               document.execCommand('copy'); // Use execCommand for broader iframe compatibility
                document.body.removeChild(textarea);
               
                appOutput.textContent = getMessage("copy_success", selectedLanguage);
-
-               window.open(LLM_URLS[llmKey], '_blank');
-
            } catch (err) {
                appOutput.textContent = getMessage("copy_fail", selectedLanguage);
-               console.error('Failed to copy text or open LLM:', err);
+               console.error('Failed to copy text:', err);
            }
        }
+
+       // --- NEW: Open LLM Function ---
+       const LLM_URLS = {
+           chatgpt: "https://chat.openai.com/",
+           claude: "https://claude.ai/chats",
+           mistral: "https://chat.mistral.ai/",
+           gemini: "https://gemini.google.com/app"
+       };
+
+       function openLLM(llmKey) {
+           const selectedLanguage = document.getElementById('lang_select').value;
+           const appOutput = document.getElementById('app_output');
+
+           if (LLM_URLS[llmKey]) {
+               window.open(LLM_URLS[llmKey], '_blank');
+           } else {
+               appOutput.textContent = `Error: Unknown LLM key: ${llmKey}`;
+               console.error(`Unknown LLM key: ${llmKey}`);
+           }
+       }
+       // --- END NEW FUNCTIONS ---
    </script>
 </body>
 </html>
