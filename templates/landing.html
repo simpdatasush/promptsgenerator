@@ -13,21 +13,52 @@
            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
            margin: 0;
            padding: 0;
-           background-color: #f0f2f5;
+           background-color: #f0f2f5; /* Consistent background */
            color: #333;
            line-height: 1.6;
            display: flex;
            flex-direction: column;
            min-height: 100vh; /* Ensure full viewport height */
        }
+
+       /* Consistent Header Style */
+       .app-header {
+           background-color: #343a40; /* Dark background for header */
+           color: #ffffff;
+           padding: 15px 30px;
+           display: flex;
+           justify-content: space-between;
+           align-items: center;
+           box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+       }
+
+       .app-header .logo-section {
+           display: flex;
+           align-items: center;
+       }
+
+       .app-header .app-logo {
+           height: 40px; /* Adjust logo size */
+           margin-right: 15px;
+           border-radius: 5px;
+       }
+
+       .app-header h1.header-title {
+           margin: 0;
+           font-size: 1.8rem;
+           color: #ffffff;
+           text-align: left;
+       }
+
+       /* Main Container Styling */
        .container {
            flex-grow: 1; /* Allow container to grow and push footer down */
-           max-width: 900px;
+           max-width: 900px; /* Consistent max-width */
            margin: 40px auto;
            background-color: #fff;
            padding: 30px;
-           border-radius: 8px;
-           box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+           border-radius: 10px; /* More rounded corners */
+           box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1); /* Stronger shadow */
            text-align: center;
            display: flex;
            flex-direction: column;
@@ -56,7 +87,7 @@
            min-width: 150px; /* Ensure buttons have a minimum width */
            padding: 12px 25px;
            font-size: 1.1rem;
-           border-radius: 5px;
+           border-radius: 8px; /* More rounded buttons */
            transition: all 0.3s ease;
            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
        }
@@ -78,11 +109,22 @@
            border-color: #218838;
            transform: translateY(-2px);
        }
+       .btn-info { /* Added for "Go to App" button */
+           background-color: #17a2b8;
+           border-color: #17a2b8;
+       }
+       .btn-info:hover {
+           background-color: #138496;
+           border-color: #138496;
+           transform: translateY(-2px);
+       }
+
+       /* Consistent Footer Style */
        .footer {
            width: 100%;
            padding: 15px;
-           text-align: right; /* Align text to the right */
-           font-size: 0.8rem; /* Small font size */
+           text-align: center; /* Centered for landing page */
+           font-size: 0.8rem;
            color: #777;
            background-color: #e9ecef;
            border-top: 1px solid #dee2e6;
@@ -91,7 +133,6 @@
        .footer-content {
            max-width: 900px;
            margin: 0 auto;
-           text-align: right; /* Ensure content inside is right-aligned */
        }
        .footer-content a {
            color: #007bff;
@@ -101,9 +142,18 @@
            text-decoration: underline;
        }
 
-
        /* Responsive adjustments */
        @media (max-width: 768px) {
+           .app-header {
+               flex-direction: column;
+               padding: 10px 15px;
+           }
+           .app-header .logo-section {
+               margin-bottom: 10px;
+           }
+           .app-header h1.header-title {
+               font-size: 1.5rem;
+           }
            .container {
                margin: 20px auto;
                padding: 20px;
@@ -119,13 +169,20 @@
                min-width: unset;
            }
            .footer {
-               text-align: center; /* Center footer text on small screens */
                padding: 10px;
            }
        }
    </style>
 </head>
 <body>
+   <header class="app-header">
+        <div class="logo-section">
+            <img src="https://placehold.co/40x40/007bff/ffffff?text=AI" alt="Creative AI Logo" class="app-logo">
+            <h1 class="header-title">Creative AI</h1>
+        </div>
+        <!-- No auth links on landing page header, they are in the main content -->
+   </header>
+
    <div class="container">
        <h1>Welcome to AI Prompt Generator</h1>
        <p class="lead">
@@ -146,7 +203,6 @@
            </a>
        </div>
    </div>
-
 
    <footer class="footer">
        <div class="footer-content">
