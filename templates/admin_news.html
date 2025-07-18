@@ -11,16 +11,60 @@
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background-color: #f0f2f5;
             color: #333;
-            line-height: 1.6;
-            padding-top: 20px;
-            padding-bottom: 20px;
+            padding: 0; /* Remove body padding */
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
         }
+        /* Consistent Header Style */
+        .app-header {
+            background-color: #343a40; /* Dark background for header */
+            color: #ffffff;
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        .app-header .logo-section {
+            display: flex;
+            align-items: center;
+        }
+
+        .app-header .app-logo {
+            height: 40px; /* Adjust logo size */
+            margin-right: 15px;
+            border-radius: 5px;
+        }
+
+        .app-header h1.header-title {
+            margin: 0;
+            font-size: 1.8rem;
+            color: #ffffff;
+            text-align: left;
+        }
+
+        .app-header .auth-section a {
+            color: #ffffff;
+            margin-left: 20px;
+            text-decoration: none;
+            transition: color 0.2s ease;
+        }
+
+        .app-header .auth-section a:hover {
+            color: #007bff;
+            text-decoration: underline;
+        }
+
         .container {
+            flex-grow: 1; /* Allow container to grow */
             max-width: 900px;
             background-color: #fff;
             padding: 30px;
             border-radius: 8px;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            margin: 30px auto; /* Add margin for spacing */
         }
         h2 {
             text-align: center;
@@ -68,9 +112,66 @@
         .alert-container {
             margin-bottom: 20px;
         }
+        /* Consistent Footer Style */
+        .footer {
+            width: 100%;
+            padding: 15px;
+            text-align: center;
+            font-size: 0.8rem;
+            color: #777;
+            background-color: #e9ecef;
+            border-top: 1px solid #dee2e6;
+            margin-top: auto;
+        }
+        .footer-content {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        .footer-content a {
+            color: #007bff;
+            text-decoration: none;
+        }
+        .footer-content a:hover {
+            text-decoration: underline;
+        }
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .app-header {
+                flex-direction: column;
+                padding: 10px 15px;
+            }
+            .app-header .logo-section {
+                margin-bottom: 10px;
+            }
+            .app-header h1.header-title {
+                font-size: 1.5rem;
+            }
+            .container {
+                margin: 20px auto;
+                padding: 20px;
+            }
+            .footer {
+                padding: 10px;
+            }
+        }
     </style>
 </head>
 <body>
+    <header class="app-header">
+        <div class="logo-section">
+            <img src="https://placehold.co/40x40/007bff/ffffff?text=AI" alt="SuperPrompter Logo" class="app-logo">
+            <h1 class="header-title">SuperPrompter</h1>
+        </div>
+        <div class="auth-section">
+            <a href="{{ url_for('app_home') }}" class="btn btn-outline-light btn-sm mr-2">Back to App</a>
+            {% if current_user.is_authenticated %}
+                <a href="{{ url_for('logout') }}" class="btn btn-outline-light btn-sm">Logout</a>
+            {% else %}
+                <a href="{{ url_for('login') }}" class="btn btn-outline-light btn-sm">Login</a>
+            {% endif %}
+        </div>
+    </header>
+
     <div class="container">
         <h2>Admin News Management</h2>
 
@@ -139,5 +240,11 @@
             <a href="{{ url_for('landing') }}" class="btn btn-secondary">Back to Landing Page</a>
         </div>
     </div>
+
+    <footer class="footer">
+       <div class="footer-content">
+           This is developed by Sushrut Kulkarni &nbsp; Email: <a href="mailto:info@promptsgenerator.ai">info@promptsgenerator.ai</a>
+       </div>
+    </footer>
 </body>
 </html>
