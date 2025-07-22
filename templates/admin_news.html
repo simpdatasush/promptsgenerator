@@ -1,250 +1,280 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin News Management</title>
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
-    <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f0f2f5;
-            color: #333;
-            padding: 0; /* Remove body padding */
-            display: flex;
-            flex-direction: column;
-            min-height: 100vh;
-        }
-        /* Consistent Header Style */
-        .app-header {
-            background-color: #343a40; /* Dark background for header */
-            color: #ffffff;
-            padding: 15px 30px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-        }
+   <meta charset="UTF-8">
+   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+   <title>Admin News Management</title>
+   <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+   <style>
+       body {
+           font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+           background-color: #f0f2f5;
+           color: #333;
+           padding: 0; /* Remove body padding */
+           display: flex;
+           flex-direction: column;
+           min-height: 100vh;
+       }
+       /* Consistent Header Style */
+       .app-header {
+           background-color: #343a40;
+           color: #ffffff;
+           padding: 15px 30px;
+           display: flex;
+           justify-content: space-between;
+           align-items: center;
+           box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+       }
 
-        .app-header .logo-section {
-            display: flex;
-            align-items: center;
-        }
 
-        .app-header .app-logo {
-            height: 40px; /* Adjust logo size */
-            margin-right: 15px;
-            border-radius: 5px;
-        }
+       .app-header .logo-section {
+           display: flex;
+           align-items: center;
+       }
 
-        .app-header h1.header-title {
-            margin: 0;
-            font-size: 1.8rem;
-            color: #ffffff;
-            text-align: left;
-        }
 
-        .app-header .auth-section a {
-            color: #ffffff;
-            margin-left: 20px;
-            text-decoration: none;
-            transition: color 0.2s ease;
-        }
+       .app-header .app-logo {
+           height: 40px;
+           margin-right: 15px;
+           border-radius: 5px;
+       }
 
-        .app-header .auth-section a:hover {
-            color: #007bff;
-            text-decoration: underline;
-        }
 
-        .container {
-            flex-grow: 1; /* Allow container to grow */
-            max-width: 900px;
-            background-color: #fff;
-            padding: 30px;
-            border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-            margin: 30px auto; /* Add margin for spacing */
-        }
-        h2 {
-            text-align: center;
-            color: #2c3e50;
-            margin-bottom: 20px;
-        }
-        .form-group label {
-            font-weight: bold;
-        }
-        .news-item {
-            border: 1px solid #e0e0e0;
-            border-radius: 5px;
-            padding: 15px;
-            margin-bottom: 15px;
-            background-color: #fdfdfd;
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-        }
-        .news-item-content {
-            flex-grow: 1;
-            margin-right: 15px;
-        }
-        .news-item h5 {
-            margin-top: 0;
-            color: #007bff;
-            font-size: 1.1rem;
-        }
-        .news-item p {
-            font-size: 0.9rem;
-            color: #555;
-            margin-bottom: 5px;
-        }
-        .news-item .timestamp {
-            font-size: 0.8em;
-            color: #888;
-        }
-        .news-item .actions {
-            flex-shrink: 0;
-        }
-        .news-item .btn-danger {
-            padding: 5px 10px;
-            font-size: 0.8rem;
-        }
-        .alert-container {
-            margin-bottom: 20px;
-        }
-        /* Consistent Footer Style */
-        .footer {
-            width: 100%;
-            padding: 15px;
-            text-align: center;
-            font-size: 0.8rem;
-            color: #777;
-            background-color: #e9ecef;
-            border-top: 1px solid #dee2e6;
-            margin-top: auto;
-        }
-        .footer-content {
-            max-width: 900px;
-            margin: 0 auto;
-        }
-        .footer-content a {
-            color: #007bff;
-            text-decoration: none;
-        }
-        .footer-content a:hover {
-            text-decoration: underline;
-        }
-        /* Responsive adjustments */
-        @media (max-width: 768px) {
-            .app-header {
-                flex-direction: column;
-                padding: 10px 15px;
-            }
-            .app-header .logo-section {
-                margin-bottom: 10px;
-            }
-            .app-header h1.header-title {
-                font-size: 1.5rem;
-            }
-            .container {
-                margin: 20px auto;
-                padding: 20px;
-            }
-            .footer {
-                padding: 10px;
-            }
-        }
-    </style>
+       .app-header h1.header-title {
+           margin: 0;
+           font-size: 1.8rem;
+           color: #ffffff;
+           text-align: left;
+       }
+
+
+       .app-header .auth-section a {
+           color: #ffffff;
+           margin-left: 20px;
+           text-decoration: none;
+           transition: color 0.2s ease;
+       }
+
+
+       .app-header .auth-section a:hover {
+           color: #007bff;
+           text-decoration: underline;
+       }
+
+
+       .container {
+           flex-grow: 1; /* Allow container to grow */
+           max-width: 900px;
+           background-color: #fff;
+           padding: 30px;
+           border-radius: 8px;
+           box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+           margin: 30px auto; /* Add margin for spacing */
+       }
+       h2 {
+           text-align: center;
+           color: #2c3e50;
+           margin-bottom: 20px;
+       }
+       .form-group label {
+           font-weight: bold;
+       }
+       .news-item {
+           border: 1px solid #e0e0e0;
+           border-radius: 5px;
+           padding: 15px;
+           margin-bottom: 15px;
+           background-color: #fdfdfd;
+           display: flex;
+           justify-content: space-between;
+           align-items: flex-start;
+       }
+       .news-item-content {
+           flex-grow: 1;
+           margin-right: 15px;
+       }
+       .news-item h5 {
+           margin-top: 0;
+           color: #007bff;
+           font-size: 1.1rem;
+       }
+       .news-item p {
+           font-size: 0.9rem;
+           color: #555;
+           margin-bottom: 5px;
+       }
+       .news-item .timestamp {
+           font-size: 0.8em;
+           color: #888;
+       }
+       .news-item .actions {
+           flex-shrink: 0;
+           display: flex; /* Make buttons align horizontally */
+           gap: 5px; /* Space between buttons */
+       }
+       .news-item .btn-danger,
+       .news-item .btn-info { /* Style for repost button */
+           padding: 5px 10px;
+           font-size: 0.8rem;
+       }
+       .alert-container {
+           margin-bottom: 20px;
+       }
+       /* Consistent Footer Style */
+       .footer {
+           width: 100%;
+           padding: 15px;
+           text-align: center;
+           font-size: 0.8rem;
+           color: #777;
+           background-color: #e9ecef;
+           border-top: 1px solid #dee2e6;
+           margin-top: auto;
+       }
+       .footer-content {
+           max-width: 900px;
+           margin: 0 auto;
+       }
+       .footer-content a {
+           color: #007bff;
+           text-decoration: none;
+       }
+       .footer-content a:hover {
+           text-decoration: underline;
+       }
+       /* Responsive adjustments */
+       @media (max-width: 768px) {
+           .app-header {
+               flex-direction: column;
+               padding: 10px 15px;
+           }
+           .app-header .logo-section {
+               margin-bottom: 10px;
+           }
+           .app-header h1.header-title {
+               font-size: 1.5rem;
+           }
+           .container {
+               margin: 20px auto;
+               padding: 20px;
+           }
+           .footer {
+               padding: 10px;
+           }
+           .news-item .actions {
+               flex-direction: column; /* Stack buttons vertically on small screens */
+           }
+       }
+   </style>
 </head>
 <body>
-    <header class="app-header">
-        <div class="logo-section">
-            <img src="https://placehold.co/40x40/007bff/ffffff?text=AI" alt="SuperPrompter Logo" class="app-logo">
-            <h1 class="header-title">SuperPrompter</h1>
-        </div>
-        <div class="auth-section">
-            <a href="{{ url_for('app_home') }}" class="btn btn-outline-light btn-sm mr-2">Back to App</a>
-            {% if current_user.is_authenticated %}
-                <a href="{{ url_for('logout') }}" class="btn btn-outline-light btn-sm">Logout</a>
-            {% else %}
-                <a href="{{ url_for('login') }}" class="btn btn-outline-light btn-sm">Login</a>
-            {% endif %}
-        </div>
-    </header>
-
-    <div class="container">
-        <h2>Admin News Management</h2>
-
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                <div class="alert-container">
-                    {% for category, message in messages %}
-                        <div class="alert alert-{{ category }}">{{ message }}</div>
-                    {% endfor %}
-                </div>
-            {% endif %}
-        {% endwith %}
-
-        <div class="card mb-4">
-            <div class="card-header">
-                <h4>Add New News Item</h4>
-            </div>
-            <div class="card-body">
-                <form action="{{ url_for('add_news') }}" method="POST">
-                    <div class="form-group">
-                        <label for="title">Title:</label>
-                        <input type="text" class="form-control" id="title" name="title" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="url">URL:</label>
-                        <input type="url" class="form-control" id="url" name="url" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="description">Description (Optional):</label>
-                        <textarea class="form-control" id="description" name="description" rows="3"></textarea>
-                    </div>
-                    <button type="submit" class="btn btn-primary">Add News</button>
-                </form>
-            </div>
-        </div>
-
-        <div class="card">
-            <div class="card-header">
-                <h4>Existing News Items</h4>
-            </div>
-            <div class="card-body">
-                {% if news_items %}
-                    {% for news in news_items %}
-                        <div class="news-item">
-                            <div class="news-item-content">
-                                <h5><a href="{{ news.url }}" target="_blank">{{ news.title }}</a></h5>
-                                {% if news.description %}
-                                    <p>{{ news.description }}</p>
-                                {% endif %}
-                                <p class="timestamp">Added: {{ news.timestamp.strftime('%Y-%m-%d %H:%M') }} by {{ news.user.username if news.user else 'N/A' }}</p>
-                            </div>
-                            <div class="actions">
-                                <form action="{{ url_for('delete_news', news_id=news.id) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this news item?');">
-                                    <button type="submit" class="btn btn-danger btn-sm">Delete</button>
-                                </form>
-                            </div>
-                        </div>
-                    {% endfor %}
-                {% else %}
-                    <p>No news items added yet.</p>
-                {% endif %}
-            </div>
-        </div>
-
-        <div class="text-center mt-4">
-            <a href="{{ url_for('landing') }}" class="btn btn-secondary">Back to Landing Page</a>
-        </div>
-    </div>
-
-    <footer class="footer">
-       <div class="footer-content">
-           This is developed by Sushrut Kulkarni &nbsp; Email: <a href="mailto:info@promptsgenerator.ai">info@promptsgenerator.ai</a>
+   <header class="app-header">
+       <div class="logo-section">
+           <img src="https://placehold.co/40x40/007bff/ffffff?text=AI" alt="SuperPrompter Logo" class="app-logo">
+           <h1 class="header-title">SuperPrompter</h1>
        </div>
-    </footer>
+       <div class="auth-section">
+           <a href="{{ url_for('app_home') }}" class="btn btn-outline-light btn-sm mr-2">Back to App</a>
+           {% if current_user.is_authenticated %}
+               <a href="{{ url_for('logout') }}" class="btn btn-outline-light btn-sm">Logout</a>
+           {% else %}
+               <a href="{{ url_for('login') }}" class="btn btn-outline-light btn-sm">Login</a>
+           {% endif %}
+       </div>
+   </header>
+
+
+   <div class="container">
+       <h2>Admin News Management</h2>
+
+
+       {% with messages = get_flashed_messages(with_categories=true) %}
+           {% if messages %}
+               <div class="alert-container">
+                   {% for category, message in messages %}
+                       <div class="alert alert-{{ category }}">{{ message }}</div>
+                   {% endfor %}
+               </div>
+           {% endif %}
+       {% endwith %}
+
+
+       <div class="card mb-4">
+           <div class="card-header">
+               <h4>Add New News Item</h4>
+           </div>
+           <div class="card-body">
+               <form action="{{ url_for('add_news') }}" method="POST">
+                   <div class="form-group">
+                       <label for="title">Title:</label>
+                       <input type="text" class="form-control" id="title" name="title" required>
+                   </div>
+                   <div class="form-group">
+                       <label for="url">URL:</label>
+                       <input type="url" class="form-control" id="url" name="url" required>
+                   </div>
+                   <div class="form-group">
+                       <label for="published_date">Actual Published Date (YYYY-MM-DD):</label>
+                       <input type="date" class="form-control" id="published_date" name="published_date">
+                   </div>
+                   <div class="form-group">
+                       <label for="description">Description (Optional):</label>
+                       <textarea class="form-control" id="description" name="description" rows="3"></textarea>
+                   </div>
+                   <button type="submit" class="btn btn-primary">Add News</button>
+               </form>
+           </div>
+       </div>
+
+
+       <div class="card">
+           <div class="card-header">
+               <h4>Existing News Items</h4>
+           </div>
+           <div class="card-body">
+               {% if news_items %}
+                   {% for news in news_items %}
+                       <div class="news-item">
+                           <div class="news-item-content">
+                               <h5><a href="{{ news.url }}" target="_blank">{{ news.title }}</a></h5>
+                               {% if news.description %}
+                                   <p>{{ news.description }}</p>
+                               {% endif %}
+                               <p class="timestamp">
+                                   Added to App: {{ news.timestamp.strftime('%Y-%m-%d %H:%M') }} by {{ news.user.username if news.user else 'N/A' }}
+                                   {% if news.published_date %}
+                                       <br>Actual Published: {{ news.published_date.strftime('%Y-%m-%d') }}
+                                   {% endif %}
+                               </p>
+                           </div>
+                           <div class="actions">
+                               <form action="{{ url_for('repost_news', news_id=news.id) }}" method="POST" style="display: inline-block;">
+                                   <button type="submit" class="btn btn-info btn-sm" title="Repost this news item (moves to top)">Repost</button>
+                               </form>
+                               <form action="{{ url_for('delete_news', news_id=news.id) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this news item?');" style="display: inline-block;">
+                                   <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                               </form>
+                           </div>
+                       </div>
+                   {% endfor %}
+               {% else %}
+                   <p>No news items added yet.</p>
+               {% endif %}
+           </div>
+       </div>
+
+
+       <div class="text-center mt-4">
+           <a href="{{ url_for('landing') }}" class="btn btn-secondary">Back to Landing Page</a>
+       </div>
+   </div>
+
+
+   <footer class="footer">
+      <div class="footer-content">
+          This is developed by Sushrut Kulkarni &nbsp; Email: <a href="mailto:info@promptsgenerator.ai">info@promptsgenerator.ai</a>
+      </div>
+   </footer>
 </body>
 </html>
