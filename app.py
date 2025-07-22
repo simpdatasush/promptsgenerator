@@ -64,7 +64,7 @@ saved_prompts_in_memory = []
 
 
 # --- NEW: Cooldown configuration (no longer in-memory dict for last_request_time) ---
-COOLDOWN_SECONDS = 120 # 120 seconds cooldown
+COOLDOWN_SECONDS = 60 # 60 seconds cooldown
 
 
 # --- Language Mapping for Gemini Instructions (Unchanged) ---
