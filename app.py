@@ -64,7 +64,7 @@ saved_prompts_in_memory = []
 
 
 # --- NEW: Cooldown configuration (no longer in-memory dict for last_request_time) ---
-COOLDOWN_SECONDS = 60 # 60 seconds cooldown
+COOLDOWN_SECONDS = 120 # 120 seconds cooldown
 
 
 # --- Language Mapping for Gemini Instructions (Unchanged) ---
@@ -151,13 +151,14 @@ class RawPrompt(db.Model):
 # --- END NEW: RawPrompt Model ---
 
 
-# --- NEW: News Model for storing news items ---
+# --- UPDATED: News Model for storing news items ---
 class News(db.Model):
    id = db.Column(db.Integer, primary_key=True)
    title = db.Column(db.String(255), nullable=False)
    url = db.Column(db.String(500), nullable=False)
    description = db.Column(db.Text, nullable=True)
-   timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+   timestamp = db.Column(db.DateTime, default=datetime.utcnow) # When added to our app
+   published_date = db.Column(db.DateTime, nullable=True) # Actual publication date
    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True) # Who added it
 
 
@@ -166,7 +167,28 @@ class News(db.Model):
 
    def __repr__(self):
        return f'<News {self.title}>'
-# --- END NEW: News Model ---
+# --- END UPDATED: News Model ---
+
+
+# --- UPDATED: Job Model for storing job listings (added published_date) ---
+class Job(db.Model):
+   id = db.Column(db.Integer, primary_key=True)
+   title = db.Column(db.String(255), nullable=False)
+   company = db.Column(db.String(255), nullable=False)
+   location = db.Column(db.String(255), nullable=True)
+   url = db.Column(db.String(500), nullable=False)
+   description = db.Column(db.Text, nullable=True)
+   timestamp = db.Column(db.DateTime, default=datetime.utcnow) # For sorting/reposting
+   published_date = db.Column(db.DateTime, nullable=True) # NEW: Actual publication date for jobs
+   user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True) # Who added it
+
+
+   user = db.relationship('User', backref=db.backref('job_listings', lazy=True))
+
+
+   def __repr__(self):
+       return f'<Job {self.title} at {self.company}>'
+# --- END UPDATED: Job Model ---
 
 
 
@@ -376,14 +398,57 @@ async def generate_prompts_async(raw_input, language_code="en-US"):
   }
 
 
+# --- NEW: Reverse Prompting function ---
+async def generate_reverse_prompt_async(input_text, language_code="en-US"):
+   if not input_text.strip():
+       return "Please provide text or code to infer a prompt from."
+
+
+   # Enforce character limit
+   MAX_REVERSE_PROMPT_CHARS = 10000
+   if len(input_text) > MAX_REVERSE_PROMPT_CHARS:
+       return f"Input for reverse prompting exceeds the {MAX_REVERSE_PROMPT_CHARS} character limit. Please shorten your input."
+
+
+   target_language_name = LANGUAGE_MAP.get(language_code, "English")
+   language_instruction_prefix = f"The output MUST be entirely in {target_language_name}. "
+
+
+   # The core instruction for reverse prompting
+   reverse_prompt_instruction = language_instruction_prefix + f"""Given the following text or code, infer the most effective and concise prompt that would have generated it. Focus on the core instruction, any implied constraints, style requirements, or specific formats. Do not add conversational filler, explanations, or preambles. Provide only the inferred prompt.
+  
+   Input Text/Code:
+   ---
+   {input_text}
+   ---
+  
+   Inferred Prompt:"""
+
+
+   app.logger.info(f"Sending reverse prompt instruction to Gemini (length: {len(reverse_prompt_instruction)} chars)")
+
+
+   # Call synchronous ask_gemini_for_prompt in a separate thread
+   reverse_prompt_result = await asyncio.to_thread(ask_gemini_for_prompt, reverse_prompt_instruction, max_output_tokens=512) # Use a reasonable max_output_tokens for a prompt
+
+
+   return reverse_prompt_result
+# --- END NEW: Reverse Prompting function ---
+
+
+
+
 # --- Flask Routes ---
 
 
-# UPDATED: Landing page route to fetch news
+# UPDATED: Landing page route to fetch more news AND jobs
 @app.route('/')
 def landing():
-  news_items = News.query.order_by(News.timestamp.desc()).limit(5).all() # Fetch latest 5 news
-  return render_template('landing.html', news_items=news_items, current_user=current_user)
+  # Fetch latest 10 news items for the landing page
+  news_items = News.query.order_by(News.timestamp.desc()).limit(10).all()
+  # Fetch latest 10 job listings for the landing page
+  job_listings = Job.query.order_by(Job.timestamp.desc()).limit(10).all()
+  return render_template('landing.html', news_items=news_items, job_listings=job_listings, current_user=current_user)
 
 
 # Renamed original index route to /app_home
@@ -400,7 +465,7 @@ async def generate_prompts_endpoint(): # This remains async
 
 
   # --- UPDATED: Cooldown Check using database timestamp ---
-  now = datetime.now()
+  now = datetime.utcnow() # Use utcnow for consistency with database default
   if user.last_prompt_request:
       time_since_last_request = (now - user.last_prompt_request).total_seconds()
       if time_since_last_request < COOLDOWN_SECONDS:
@@ -444,7 +509,7 @@ async def generate_prompts_endpoint(): # This remains async
       user.last_prompt_request = now # Record the time of this successful request
       db.session.add(user) # Add the user object back to the session to mark it as modified
       db.session.commit()
-      app.logger.info(f"User {user.username}'s last prompt request time updated.")
+      app.logger.info(f"User {user.username}'s last prompt request time updated. (Forward Prompt)")
 
 
       if current_user.is_authenticated:
@@ -465,12 +530,69 @@ async def generate_prompts_endpoint(): # This remains async
       return jsonify({"error": f"An unexpected server error occurred: {e}. Please check server logs for details."}), 500
 
 
+# --- NEW: Reverse Prompt Endpoint ---
+@app.route('/reverse_prompt', methods=['POST'])
+@login_required
+async def reverse_prompt_endpoint():
+   user = current_user
+   now = datetime.utcnow()
+
+
+   # Apply cooldown to reverse prompting as well
+   if user.last_prompt_request: # Reusing the same cooldown for simplicity
+       time_since_last_request = (now - user.last_prompt_request).total_seconds()
+       if time_since_last_request < COOLDOWN_SECONDS:
+           remaining_time = int(COOLDOWN_SECONDS - time_since_last_request)
+           app.logger.info(f"User {user.username} is on cooldown for reverse prompt. Remaining: {remaining_time}s")
+           return jsonify({
+               "error": f"Please wait {remaining_time} seconds before performing another reverse prompt.",
+               "cooldown_active": True,
+               "remaining_time": remaining_time
+           }), 429
+
+
+   data = request.get_json()
+   input_text = data.get('input_text', '').strip()
+   language_code = data.get('language_code', 'en-US')
+
+
+   if not input_text:
+       return jsonify({"error": "Please provide text or code to infer a prompt from."}), 400
+
+
+   if not GEMINI_API_CONFIGURED:
+       app.logger.error("Gemini API Key is not configured. Cannot perform reverse prompting.")
+       return jsonify({
+           "error": "Gemini API Key is not configured. Please set the GEMINI_API_KEY environment variable."
+       }), 500
+
+
+   try:
+       inferred_prompt = await generate_reverse_prompt_async(input_text, language_code)
+
+
+       # Update last_prompt_request after successful reverse prompt
+       user.last_prompt_request = now
+       db.session.add(user)
+       db.session.commit()
+       app.logger.info(f"User {user.username}'s last prompt request time updated after reverse prompt.")
+
+
+       return jsonify({"inferred_prompt": inferred_prompt})
+   except Exception as e:
+       app.logger.exception("Error during reverse prompt generation in endpoint:")
+       return jsonify({"error": f"An unexpected server error occurred: {e}. Please check server logs for details."}), 500
+# --- END NEW: Reverse Prompt Endpoint ---
+
+
+
+
 # --- UPDATED: Endpoint to check cooldown status for frontend ---
 @app.route('/check_cooldown', methods=['GET'])
 @login_required
 def check_cooldown_endpoint():
    user = current_user
-   now = datetime.now()
+   now = datetime.utcnow() # Use utcnow for consistency
    if user.last_prompt_request:
        time_since_last_request = (now - user.last_prompt_request).total_seconds()
        if time_since_last_request < COOLDOWN_SECONDS:
@@ -482,7 +604,7 @@ def check_cooldown_endpoint():
 
 
 
-# --- NEW: Admin News Management Routes ---
+# --- UPDATED: Admin News Management Routes ---
 @app.route('/admin/news', methods=['GET'])
 @login_required
 @admin_required
@@ -498,6 +620,7 @@ def add_news():
    title = request.form.get('title')
    url = request.form.get('url')
    description = request.form.get('description')
+   published_date_str = request.form.get('published_date') # NEW: Get published_date string
 
 
    if not title or not url:
@@ -505,8 +628,17 @@ def add_news():
        return redirect(url_for('admin_news'))
 
 
+   published_date = None
+   if published_date_str:
+       try:
+           published_date = datetime.strptime(published_date_str, '%Y-%m-%d') # Parse date
+       except ValueError:
+           flash('Invalid Published Date format. Please use YYYY-MM-DD.', 'danger')
+           return redirect(url_for('admin_news'))
+
+
    try:
-       new_news = News(title=title, url=url, description=description, user_id=current_user.id)
+       new_news = News(title=title, url=url, description=description, published_date=published_date, user_id=current_user.id) # Use published_date
        db.session.add(new_news)
        db.session.commit()
        flash('News item added successfully!', 'success')
@@ -529,7 +661,101 @@ def delete_news(news_id):
        db.session.rollback()
        flash(f'Error deleting news item: {e}', 'danger')
    return redirect(url_for('admin_news'))
-# --- END NEW: Admin News Management Routes ---
+
+
+# --- NEW: Repost News Route ---
+@app.route('/admin/news/repost/<int:news_id>', methods=['POST'])
+@login_required
+@admin_required
+def repost_news(news_id):
+   news_item = News.query.get_or_404(news_id)
+   try:
+       news_item.timestamp = datetime.utcnow() # Update timestamp to current UTC time
+       db.session.commit()
+       flash(f'News item "{news_item.title}" reposted successfully!', 'success')
+   except Exception as e:
+       db.session.rollback()
+       flash(f'Error reposting news item: {e}', 'danger')
+   return redirect(url_for('admin_news'))
+# --- END NEW: Repost News Route ---
+# --- END UPDATED: Admin News Management Routes ---
+
+
+# --- UPDATED: Admin Jobs Management Routes (added published_date) ---
+@app.route('/admin/jobs', methods=['GET'])
+@login_required
+@admin_required
+def admin_jobs():
+   job_listings = Job.query.order_by(Job.timestamp.desc()).all()
+   return render_template('admin_jobs.html', job_listings=job_listings, current_user=current_user)
+
+
+@app.route('/admin/jobs/add', methods=['POST'])
+@login_required
+@admin_required
+def add_job():
+   title = request.form.get('title')
+   company = request.form.get('company')
+   location = request.form.get('location')
+   url = request.form.get('url')
+   description = request.form.get('description')
+   published_date_str = request.form.get('published_date') # NEW: Get published_date string for jobs
+
+
+   if not title or not company or not url:
+       flash('Title, Company, and URL are required to add a job listing.', 'danger')
+       return redirect(url_for('admin_jobs'))
+
+
+   published_date = None
+   if published_date_str:
+       try:
+           published_date = datetime.strptime(published_date_str, '%Y-%m-%d') # Parse date
+       except ValueError:
+           flash('Invalid Published Date format for job. Please use YYYY-MM-DD.', 'danger')
+           return redirect(url_for('admin_jobs'))
+
+
+   try:
+       new_job = Job(title=title, company=company, location=location, url=url, description=description, published_date=published_date, user_id=current_user.id) # Use published_date
+       db.session.add(new_job)
+       db.session.commit()
+       flash('Job listing added successfully!', 'success')
+   except Exception as e:
+       db.session.rollback()
+       flash(f'Error adding job listing: {e}', 'danger')
+   return redirect(url_for('admin_jobs'))
+
+
+@app.route('/admin/jobs/delete/<int:job_id>', methods=['POST'])
+@login_required
+@admin_required
+def delete_job(job_id):
+   job_listing = Job.query.get_or_404(job_id)
+   try:
+       db.session.delete(job_listing)
+       db.session.commit()
+       flash('Job listing deleted successfully!', 'success')
+   except Exception as e:
+       db.session.rollback()
+       flash(f'Error deleting job listing: {e}', 'danger')
+   return redirect(url_for('admin_jobs'))
+
+
+@app.route('/admin/jobs/repost/<int:job_id>', methods=['POST'])
+@login_required
+@admin_required
+def repost_job(job_id):
+   job_listing = Job.query.get_or_404(job_id)
+   try:
+       job_listing.timestamp = datetime.utcnow() # Update timestamp to current UTC time
+       db.session.commit()
+       flash(f'Job listing "{job_listing.title}" reposted successfully!', 'success')
+   except Exception as e:
+       db.session.rollback()
+       flash(f'Error reposting job listing: {e}', 'danger')
+   return redirect(url_for('admin_jobs'))
+# --- END UPDATED: Admin Jobs Management Routes ---
 
 
 
