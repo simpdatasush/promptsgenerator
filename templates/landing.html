@@ -12,7 +12,7 @@
       body {
           font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
           margin: 0;
-          padding: 0;
+          padding: 0; /* Remove body padding as main-content-wrapper will handle it */
           background-color: #f0f2f5; /* Consistent background */
           color: #333;
           line-height: 1.6;
@@ -200,7 +200,8 @@
           width: 100%; /* Ensure it takes full width of its grid column */
       }
       .newsfeed-section h2,
-      .jobs-section h2 {
+      .jobs-section h2,
+      .sample-prompts-section h2 { /* Added for sample prompts */
           text-align: center;
           margin-bottom: 30px;
           color: #2c3e50;
@@ -257,6 +258,55 @@
           font-size: 0.8em;
           color: #999;
       }
+
+
+      /* Sample Prompts Section */
+      .sample-prompts-section {
+          margin-top: 50px;
+          padding-top: 30px;
+          border-top: 1px solid #e0e0e0;
+          text-align: left; /* Align content to left within the section */
+          width: 100%;
+      }
+      .sample-prompts-section .prompt-example {
+          background-color: #eaf7f7; /* Light teal background */
+          border: 1px solid #cceeee;
+          border-radius: 8px;
+          padding: 15px 20px;
+          margin-bottom: 20px;
+          box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+      }
+      .sample-prompts-section .prompt-example h6 {
+          font-weight: bold;
+          color: #00796b; /* Dark teal */
+          margin-bottom: 10px;
+      }
+      .sample-prompts-section .prompt-example p {
+          font-size: 0.95rem;
+          color: #333;
+          margin-bottom: 5px;
+      }
+      .sample-prompts-section .prompt-example p strong {
+          color: #004d40; /* Even darker teal */
+      }
+
+
+      /* Image Section */
+      .landing-image-section {
+          margin-top: 50px;
+          padding-top: 30px;
+          border-top: 1px solid #e0e0e0;
+          width: 100%;
+          text-align: center; /* Center the image */
+      }
+      .landing-image-section img {
+          max-width: 100%;
+          height: auto;
+          border-radius: 10px;
+          box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+      }
+
+
 
 
       /* Newsletter Section Styles */
@@ -444,9 +494,7 @@
           <a href="{{ url_for('register') }}" class="btn btn-success">
               <i class="fas fa-user-plus"></i> Register
           </a>
-          <a href="{{ url_for('app_home') }}" class="btn btn-info">
-              <i class="fas fa-robot"></i> Go to App
-          </a>
+          {# Removed: <a href="{{ url_for('app_home') }}" class="btn btn-info"> <i class="fas fa-robot"></i> Go to App </a> #}
           {% if current_user.is_authenticated and current_user.is_admin %}
           <a href="{{ url_for('admin_news') }}" class="btn btn-warning">
               <i class="fas fa-cog"></i> Manage News
@@ -455,6 +503,36 @@
               <i class="fas fa-briefcase"></i> Manage Jobs
           </a>
           {% endif %}
+      </div>
+
+
+      <!-- NEW: Image Section -->
+      <div class="landing-image-section">
+          <img src="https://www.dropbox.com/scl/fi/3tzix8fq5bgplx1lyh2op/Google_AI_Studio_2025-07-23T15_14_46.670Z.png?rlkey=8xlw6pz7ctqq4q6rmjyp7sa41&raw=1" alt="AI Network Illustration">
+      </div>
+
+
+      <!-- NEW: Sample Prompts Section -->
+      <div class="sample-prompts-section">
+          <h2>Sample Prompts</h2>
+          <div class="prompt-example">
+              <h6>Raw Prompt Idea:</h6>
+              <p>"write a short story about a detective solving a mystery in space"</p>
+              <h6>Polished Prompt:</h6>
+              <p><strong>"Draft a concise science fiction short story (approx. 300 words) featuring a space detective investigating a mysterious disappearance aboard a derelict starship. Include elements of suspense and a surprising twist ending."</strong></p>
+          </div>
+          <div class="prompt-example">
+              <h6>Raw Prompt Idea:</h6>
+              <p>"how to make a really good cup of coffee at home"</p>
+              <h6>Polished Prompt:</h6>
+              <p><strong>"Provide a detailed, step-by-step guide on brewing an exceptional cup of coffee at home using common methods (e.g., French press, pour-over). Include tips on bean selection, grind size, water temperature, and brewing ratios."</strong></p>
+          </div>
+          <div class="prompt-example">
+              <h6>Raw Prompt Idea:</h6>
+              <p>"code a simple calculator in python"</p>
+              <h6>Polished Prompt:</h6>
+              <p><strong>"Write a Python script for a command-line calculator that supports addition, subtraction, multiplication, and division. Implement robust error handling for invalid input and division by zero. Structure the code with functions for each operation."</strong></p>
+          </div>
       </div>
 
 
@@ -499,7 +577,7 @@
                                onclick="openPreviewModal(this)">
                               <h5><a>{{ job.title }} at {{ job.company }}</a></h5>
                               {% if job.location %}
-                                  <p>Location: {{ job.location }}</p>
+                                  <p>{{ job.location }}</p>
                               {% endif %}
                               {% if job.description %}
                                   <p>{{ job.description }}</p>
