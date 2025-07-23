@@ -924,12 +924,12 @@ def download_prompts_txt():
 
 
 
-# --- NEW: Authentication Routes ---
+# --- UPDATED: Authentication Routes for automatic redirect ---
 @app.route('/register', methods=['GET', 'POST'])
 def register():
   if current_user.is_authenticated:
       flash('You are already registered and logged in.', 'info')
-      return redirect(url_for('app_home')) # Redirect to app_home after registration
+      return redirect(url_for('app_home'))
 
 
   if request.method == 'POST':
@@ -943,14 +943,11 @@ def register():
       else:
           new_user = User(username=username)
           new_user.set_password(password)
-          # For testing, you can make the first registered user an admin
-          # Or, you can manually set an admin in the database after creation
-          # if username == 'admin':
-          #     new_user.is_admin = True
           db.session.add(new_user)
           db.session.commit()
-          flash('Registration successful! You can now log in.', 'success')
-          return redirect(url_for('login'))
+          login_user(new_user) # Automatically log in the new user
+          flash('Registration successful! You are now logged in.', 'success')
+          return redirect(url_for('app_home')) # Redirect directly to app_home
   return render_template('register.html')
 
 
@@ -958,7 +955,7 @@ def register():
 def login():
   if current_user.is_authenticated:
       flash('You are already logged in.', 'info')
-      return redirect(url_for('app_home')) # Redirect to app_home if already logged in
+      return redirect(url_for('app_home'))
 
 
   if request.method == 'POST':
@@ -971,8 +968,7 @@ def login():
       if user and user.check_password(password):
           login_user(user, remember=remember_me)
           flash('Logged in successfully!', 'success')
-          next_page = request.args.get('next') # Redirect to the page user tried to access
-          return redirect(next_page or url_for('app_home')) # Redirect to app_home or next_page
+          return redirect(url_for('app_home')) # Redirect directly to app_home
       else:
           flash('Login Unsuccessful. Please check username and password.', 'danger')
   return render_template('login.html')
@@ -984,7 +980,7 @@ def logout():
   logout_user()
   flash('You have been logged out.', 'info')
   return redirect(url_for('landing')) # Redirect to landing page after logout
-# --- END NEW: Authentication Routes ---
+# --- END UPDATED: Authentication Routes ---
 
 
 
