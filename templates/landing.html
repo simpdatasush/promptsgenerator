@@ -1,688 +1,645 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AI Prompt Generator - Home</title>
-  <!-- Bootstrap CSS for modern styling -->
-  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-  <!-- Font Awesome for icons (optional, but good for consistency) -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
-  <style>
-      body {
-          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-          margin: 0;
-          padding: 0; /* Remove body padding as main-content-wrapper will handle it */
-          background-color: #f0f2f5; /* Consistent background */
-          color: #333;
-          line-height: 1.6;
-          display: flex;
-          flex-direction: column;
-          min-height: 100vh; /* Ensure full viewport height */
-      }
+   <meta charset="UTF-8">
+   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+   <title>AI Prompt Generator - Home</title>
+   <!-- Bootstrap CSS for modern styling -->
+   <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+   <!-- Font Awesome for icons (optional, but good for consistency) -->
+   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+   <style>
+       body {
+           font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+           margin: 0;
+           padding: 0; /* Remove body padding as main-content-wrapper will handle it */
+           background-color: #f0f2f5; /* Consistent background */
+           color: #333;
+           line-height: 1.6;
+           display: flex;
+           flex-direction: column;
+           min-height: 100vh; /* Ensure full viewport height */
+       }
+
+       /* Consistent Header Style */
+       .app-header {
+           background-color: #343a40; /* Dark background for header */
+           color: #ffffff;
+           padding: 15px 30px;
+           display: flex;
+           justify-content: space-between;
+           align-items: center;
+           box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+       }
+
+       .app-header .logo-section {
+           display: flex;
+           align-items: center;
+       }
+
+       .app-header .app-logo {
+           height: 40px; /* Adjust logo size */
+           margin-right: 15px;
+           border-radius: 5px;
+       }
+
+       .app-header h1.header-title {
+           margin: 0;
+           font-size: 1.8rem;
+           color: #ffffff;
+           text-align: left;
+       }
+
+       /* Main Container Styling */
+       .container {
+           flex-grow: 1; /* Allow container to grow and push footer down */
+           max-width: 900px; /* Consistent max-width */
+           margin: 40px auto;
+           background-color: #fff;
+           padding: 30px;
+           border-radius: 10px; /* More rounded corners */
+           box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1); /* Stronger shadow */
+           text-align: center;
+           display: flex;
+           flex-direction: column;
+           justify-content: center;
+           align-items: center;
+       }
+       h1 {
+           color: #2c3e50;
+           margin-bottom: 20px;
+           font-size: 2.5rem;
+           font-weight: 700;
+       }
+       p.lead {
+           font-size: 1.25rem;
+           color: #555;
+           margin-bottom: 30px;
+       }
+       .btn-group-custom {
+           margin-top: 20px;
+           display: flex;
+           flex-wrap: wrap; /* Allow buttons to wrap on smaller screens */
+           justify-content: center;
+           gap: 15px; /* Space between buttons */
+       }
+       .btn-group-custom .btn {
+           min-width: 150px; /* Ensure buttons have a minimum width */
+           padding: 12px 25px;
+           font-size: 1.1rem;
+           border-radius: 8px; /* More rounded buttons */
+           transition: all 0.3s ease;
+           box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+       }
+       .btn-primary {
+           background-color: #007bff;
+           border-color: #007bff;
+       }
+       .btn-primary:hover {
+           background-color: #0056b3;
+           border-color: #0056b3;
+           transform: translateY(-2px);
+       }
+       .btn-success {
+           background-color: #28a745;
+           border-color: #28a745;
+       }
+       .btn-success:hover {
+           background-color: #218838;
+           border-color: #218838;
+           transform: translateY(-2px);
+       }
+       .btn-info { /* Added for "Go to App" button */
+           background-color: #17a2b8;
+           border-color: #17a2b8;
+       }
+       .btn-info:hover {
+           background-color: #138496;
+           border-color: #138496;
+           transform: translateY(-2px);
+       }
+       .btn-warning { /* Added for "Manage News" button */
+           background-color: #ffc107;
+           border-color: #ffc107;
+           color: #212529; /* Dark text for contrast */
+       }
+       .btn-warning:hover {
+           background-color: #e0a800;
+           border-color: #e0a800;
+           transform: translateY(-2px);
+       }
+       .btn-secondary { /* Added for "Manage Jobs" button */
+           background-color: #6c757d;
+           border-color: #6c757d;
+           color: #ffffff;
+       }
+       .btn-secondary:hover {
+           background-color: #5a6268;
+           border-color: #5a6268;
+           transform: translateY(-2px);
+       }
+       .btn-dark-purple { /* NEW: Style for LLM Benchmark button */
+           background-color: #4B0082; /* Indigo/Dark Purple */
+           border-color: #4B0082;
+           color: #ffffff;
+       }
+       .btn-dark-purple:hover {
+           background-color: #380066;
+           border-color: #380066;
+           transform: translateY(-2px);
+       }
 
 
-      /* Consistent Header Style */
-      .app-header {
-          background-color: #343a40; /* Dark background for header */
-          color: #ffffff;
-          padding: 15px 30px;
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-      }
+       /* Consistent Footer Style */
+       .footer {
+           width: 100%;
+           padding: 15px;
+           text-align: center; /* Centered for landing page */
+           font-size: 0.8rem;
+           color: #777;
+           background-color: #e9ecef;
+           border-top: 1px solid #dee2e6;
+           margin-top: auto; /* Push footer to the bottom */
+       }
+       .footer-content {
+           max-width: 900px;
+           margin: 0 auto;
+       }
+       .footer-content a {
+           color: #007bff;
+           text-decoration: none;
+       }
+       .footer-content a:hover {
+           text-decoration: underline;
+       }
+
+       /* Section Layout for News and Jobs */
+       .content-sections-grid {
+           display: grid;
+           grid-template-columns: 1fr; /* Always a single column */
+           gap: 30px;
+           margin-top: 50px;
+           width: 100%;
+       }
+
+       /* Removed @media (min-width: 768px) rule to force two columns always */
+       /* The previous rule was:
+       @media (min-width: 768px) {
+           .content-sections-grid {
+               grid-template-columns: 1fr 1fr;
+           }
+       }
+       This has been removed to ensure stacking on all screen sizes.
+       */
+
+       .newsfeed-section,
+       .jobs-section {
+           text-align: left;
+           border-top: 1px solid #e0e0e0;
+           padding-top: 30px;
+           width: 100%; /* Ensure it takes full width of its grid column */
+       }
+       .newsfeed-section h2,
+       .jobs-section h2,
+       .sample-prompts-section h2 { /* Added for sample prompts */
+           text-align: center;
+           margin-bottom: 30px;
+           color: #2c3e50;
+           font-size: 2rem;
+       }
+       /* Styles for the scrollable list container */
+       .list-container { /* Reused for both news and jobs */
+           max-height: 400px; /* Adjust height as needed */
+           overflow-y: auto; /* Enable vertical scrolling */
+           padding-right: 15px; /* Add padding for scrollbar */
+           border: 1px solid #e9ecef; /* Optional: add a border to the scrollable area */
+           border-radius: 8px;
+       }
+       .news-item,
+       .job-item { /* Combined styling for news and job items */
+           background-color: #f8f9fa;
+           border: 1px solid #dee2e6;
+           border-radius: 8px;
+           padding: 15px 20px;
+           margin-bottom: 15px;
+           box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+           cursor: pointer; /* Indicate clickable */
+           transition: background-color 0.2s ease;
+       }
+       .news-item:hover,
+       .job-item:hover {
+           background-color: #e2f0ff; /* Light blue on hover */
+       }
+       .news-item:last-child,
+       .job-item:last-child {
+           margin-bottom: 0; /* Remove margin from last item inside scroll container */
+       }
+       .news-item h5,
+       .job-item h5 {
+           margin-top: 0;
+           margin-bottom: 5px;
+           font-size: 1.1rem;
+           color: #007bff; /* Keep link color */
+       }
+       .news-item h5 a,
+       .job-item h5 a { /* Hide default link behavior for title, will be handled by JS */
+           text-decoration: none;
+           color: inherit; /* Inherit color from h5 */
+           pointer-events: none; /* Prevent default link click */
+       }
+       .news-item p,
+       .job-item p {
+           font-size: 0.9rem;
+           color: #6c757d;
+           margin-bottom: 5px;
+       }
+       .news-item .timestamp,
+       .job-item .timestamp {
+           font-size: 0.8em;
+           color: #999;
+       }
+
+       /* Sample Prompts Section */
+       .sample-prompts-section {
+           margin-top: 50px;
+           padding-top: 30px;
+           border-top: 1px solid #e0e0e0;
+           text-align: left; /* Align content to left within the section */
+           width: 100%;
+       }
+       .sample-prompts-section .prompt-example {
+           background-color: #eaf7f7; /* Light teal background */
+           border: 1px solid #cceeee;
+           border-radius: 8px;
+           padding: 15px 20px;
+           margin-bottom: 20px;
+           box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+       }
+       .sample-prompts-section .prompt-example h6 {
+           font-weight: bold;
+           color: #00796b; /* Dark teal */
+           margin-bottom: 10px;
+       }
+       .sample-prompts-section .prompt-example p {
+           font-size: 0.95rem;
+           color: #333;
+           margin-bottom: 5px;
+       }
+       .sample-prompts-section .prompt-example p strong {
+           color: #004d40; /* Even darker teal */
+       }
+
+       /* Image Section */
+       .landing-image-section {
+           margin-top: 50px;
+           padding-top: 30px;
+           border-top: 1px solid #e0e0e0;
+           width: 100%;
+           text-align: center; /* Center the image */
+       }
+       .landing-image-section img {
+           max-width: 100%;
+           height: auto;
+           border-radius: 10px;
+           box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+       }
 
 
-      .app-header .logo-section {
-          display: flex;
-          align-items: center;
-      }
+       /* Newsletter Section Styles */
+       .newsletter-section {
+           margin-top: 50px;
+           padding-top: 30px;
+           border-top: 1px solid #e0e0e0;
+           text-align: center;
+           width: 100%; /* Ensure it takes full width of container */
+       }
+       .newsletter-section h2 {
+           margin-bottom: 20px;
+           color: #2c3e50;
+           font-size: 2rem;
+       }
+       .newsletter-section p {
+           color: #555;
+           margin-bottom: 25px;
+       }
+       .newsletter-section .btn {
+           padding: 12px 30px;
+           font-size: 1.1rem;
+           border-radius: 5px;
+           background-color: #6f42c1; /* Purple */
+           border-color: #6f42c1;
+           transition: all 0.3s ease;
+       }
+       .newsletter-section .btn:hover {
+           background-color: #5a34a3;
+           border-color: #5a34a3;
+           transform: translateY(-2px);
+           box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+       }
+
+       /* Modal for News/Job Preview (reused) */
+       .modal-overlay {
+           position: fixed;
+           top: 0;
+           left: 0;
+           width: 100%;
+           height: 100%;
+           background-color: rgba(0, 0, 0, 0.6);
+           display: flex;
+           justify-content: center;
+           align-items: center;
+           z-index: 2000;
+           visibility: hidden;
+           opacity: 0;
+           transition: visibility 0s, opacity 0.3s ease;
+       }
+
+       .modal-overlay.show {
+           visibility: visible;
+           opacity: 1;
+       }
+
+       .modal-content-custom {
+           background-color: #fff;
+           padding: 25px;
+           border-radius: 10px;
+           box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+           max-width: 600px; /* Adjusted max-width for news preview */
+           width: 90%;
+           max-height: 80%;
+           overflow-y: auto;
+           position: relative;
+           transform: translateY(-20px);
+           transition: transform 0.3s ease;
+       }
+
+       .modal-overlay.show .modal-content-custom {
+           transform: translateY(0);
+       }
+
+       .modal-header-custom {
+           display: flex;
+           justify-content: space-between;
+           align-items: center;
+           margin-bottom: 15px;
+           padding-bottom: 10px;
+           border-bottom: 1px solid #eee;
+       }
+
+       .modal-header-custom h4 {
+           margin: 0;
+           color: #2c3e50;
+           font-size: 1.5rem;
+       }
+
+       .modal-close-button {
+           background: none;
+           border: none;
+           font-size: 1.8rem;
+           color: #666;
+           cursor: pointer;
+           transition: color 0.2s ease;
+       }
+
+       .modal-close-button:hover {
+           color: #333;
+       }
+
+       .modal-body-custom p {
+           margin-bottom: 15px;
+           font-size: 1rem;
+           color: #333;
+       }
+
+       .modal-body-custom .btn-link {
+           display: inline-block;
+           margin-top: 10px;
+           background-color: #007bff;
+           color: white;
+           padding: 10px 20px;
+           border-radius: 5px;
+           text-decoration: none;
+           transition: background-color 0.2s ease;
+       }
+
+       .modal-body-custom .btn-link:hover {
+           background-color: #0056b3;
+       }
 
 
-      .app-header .app-logo {
-          height: 40px; /* Adjust logo size */
-          margin-right: 15px;
-          border-radius: 5px;
-      }
-
-
-      .app-header h1.header-title {
-          margin: 0;
-          font-size: 1.8rem;
-          color: #ffffff;
-          text-align: left;
-      }
-
-
-      /* Main Container Styling */
-      .container {
-          flex-grow: 1; /* Allow container to grow and push footer down */
-          max-width: 900px; /* Consistent max-width */
-          margin: 40px auto;
-          background-color: #fff;
-          padding: 30px;
-          border-radius: 10px; /* More rounded corners */
-          box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1); /* Stronger shadow */
-          text-align: center;
-          display: flex;
-          flex-direction: column;
-          justify-content: center;
-          align-items: center;
-      }
-      h1 {
-          color: #2c3e50;
-          margin-bottom: 20px;
-          font-size: 2.5rem;
-          font-weight: 700;
-      }
-      p.lead {
-          font-size: 1.25rem;
-          color: #555;
-          margin-bottom: 30px;
-      }
-      .btn-group-custom {
-          margin-top: 20px;
-          display: flex;
-          flex-wrap: wrap; /* Allow buttons to wrap on smaller screens */
-          justify-content: center;
-          gap: 15px; /* Space between buttons */
-      }
-      .btn-group-custom .btn {
-          min-width: 150px; /* Ensure buttons have a minimum width */
-          padding: 12px 25px;
-          font-size: 1.1rem;
-          border-radius: 8px; /* More rounded buttons */
-          transition: all 0.3s ease;
-          box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-      }
-      .btn-primary {
-          background-color: #007bff;
-          border-color: #007bff;
-      }
-      .btn-primary:hover {
-          background-color: #0056b3;
-          border-color: #0056b3;
-          transform: translateY(-2px);
-      }
-      .btn-success {
-          background-color: #28a745;
-          border-color: #28a745;
-      }
-      .btn-success:hover {
-          background-color: #218838;
-          border-color: #218838;
-          transform: translateY(-2px);
-      }
-      .btn-info { /* Added for "Go to App" button */
-          background-color: #17a2b8;
-          border-color: #17a2b8;
-      }
-      .btn-info:hover {
-          background-color: #138496;
-          border-color: #138496;
-          transform: translateY(-2px);
-      }
-      .btn-warning { /* Added for "Manage News" button */
-          background-color: #ffc107;
-          border-color: #ffc107;
-          color: #212529; /* Dark text for contrast */
-      }
-      .btn-warning:hover {
-          background-color: #e0a800;
-          border-color: #e0a800;
-          transform: translateY(-2px);
-      }
-      .btn-secondary { /* Added for "Manage Jobs" button */
-          background-color: #6c757d;
-          border-color: #6c757d;
-          color: #ffffff;
-      }
-      .btn-secondary:hover {
-          background-color: #5a6268;
-          border-color: #5a6268;
-          transform: translateY(-2px);
-      }
-      .btn-dark-purple { /* NEW: Style for LLM Benchmark button */
-          background-color: #4B0082; /* Indigo/Dark Purple */
-          border-color: #4B0082;
-          color: #ffffff;
-      }
-      .btn-dark-purple:hover {
-          background-color: #380066;
-          border-color: #380066;
-          transform: translateY(-2px);
-      }
-
-
-
-
-      /* Consistent Footer Style */
-      .footer {
-          width: 100%;
-          padding: 15px;
-          text-align: center; /* Centered for landing page */
-          font-size: 0.8rem;
-          color: #777;
-          background-color: #e9ecef;
-          border-top: 1px solid #dee2e6;
-          margin-top: auto; /* Push footer to the bottom */
-      }
-      .footer-content {
-          max-width: 900px;
-          margin: 0 auto;
-      }
-      .footer-content a {
-          color: #007bff;
-          text-decoration: none;
-      }
-      .footer-content a:hover {
-          text-decoration: underline;
-      }
-
-
-      /* Section Layout for News and Jobs */
-      .content-sections-grid {
-          display: grid;
-          grid-template-columns: 1fr; /* Always a single column */
-          gap: 30px;
-          margin-top: 50px;
-          width: 100%;
-      }
-
-
-      /* Removed @media (min-width: 768px) rule to force two columns always */
-      /* The previous rule was:
-      @media (min-width: 768px) {
-          .content-sections-grid {
-              grid-template-columns: 1fr 1fr;
-          }
-      }
-      This has been removed to ensure stacking on all screen sizes.
-      */
-
-
-      .newsfeed-section,
-      .jobs-section {
-          text-align: left;
-          border-top: 1px solid #e0e0e0;
-          padding-top: 30px;
-          width: 100%; /* Ensure it takes full width of its grid column */
-      }
-      .newsfeed-section h2,
-      .jobs-section h2,
-      .sample-prompts-section h2 { /* Added for sample prompts */
-          text-align: center;
-          margin-bottom: 30px;
-          color: #2c3e50;
-          font-size: 2rem;
-      }
-      /* Styles for the scrollable list container */
-      .list-container { /* Reused for both news and jobs */
-          max-height: 400px; /* Adjust height as needed */
-          overflow-y: auto; /* Enable vertical scrolling */
-          padding-right: 15px; /* Add padding for scrollbar */
-          border: 1px solid #e9ecef; /* Optional: add a border to the scrollable area */
-          border-radius: 8px;
-      }
-      .news-item,
-      .job-item { /* Combined styling for news and job items */
-          background-color: #f8f9fa;
-          border: 1px solid #dee2e6;
-          border-radius: 8px;
-          padding: 15px 20px;
-          margin-bottom: 15px;
-          box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
-          cursor: pointer; /* Indicate clickable */
-          transition: background-color 0.2s ease;
-      }
-      .news-item:hover,
-      .job-item:hover {
-          background-color: #e2f0ff; /* Light blue on hover */
-      }
-      .news-item:last-child,
-      .job-item:last-child {
-          margin-bottom: 0; /* Remove margin from last item inside scroll container */
-      }
-      .news-item h5,
-      .job-item h5 {
-          margin-top: 0;
-          margin-bottom: 5px;
-          font-size: 1.1rem;
-          color: #007bff; /* Keep link color */
-      }
-      .news-item h5 a,
-      .job-item h5 a { /* Hide default link behavior for title, will be handled by JS */
-          text-decoration: none;
-          color: inherit; /* Inherit color from h5 */
-          pointer-events: none; /* Prevent default link click */
-      }
-      .news-item p,
-      .job-item p {
-          font-size: 0.9rem;
-          color: #6c757d;
-          margin-bottom: 5px;
-      }
-      .news-item .timestamp,
-      .job-item .timestamp {
-          font-size: 0.8em;
-          color: #999;
-      }
-
-
-      /* Sample Prompts Section */
-      .sample-prompts-section {
-          margin-top: 50px;
-          padding-top: 30px;
-          border-top: 1px solid #e0e0e0;
-          text-align: left; /* Align content to left within the section */
-          width: 100%;
-      }
-      .sample-prompts-section .prompt-example {
-          background-color: #eaf7f7; /* Light teal background */
-          border: 1px solid #cceeee;
-          border-radius: 8px;
-          padding: 15px 20px;
-          margin-bottom: 20px;
-          box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
-      }
-      .sample-prompts-section .prompt-example h6 {
-          font-weight: bold;
-          color: #00796b; /* Dark teal */
-          margin-bottom: 10px;
-      }
-      .sample-prompts-section .prompt-example p {
-          font-size: 0.95rem;
-          color: #333;
-          margin-bottom: 5px;
-      }
-      .sample-prompts-section .prompt-example p strong {
-          color: #004d40; /* Even darker teal */
-      }
-
-
-      /* Image Section */
-      .landing-image-section {
-          margin-top: 50px;
-          padding-top: 30px;
-          border-top: 1px solid #e0e0e0;
-          width: 100%;
-          text-align: center; /* Center the image */
-      }
-      .landing-image-section img {
-          max-width: 100%;
-          height: auto;
-          border-radius: 10px;
-          box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-      }
-
-
-
-
-      /* Newsletter Section Styles */
-      .newsletter-section {
-          margin-top: 50px;
-          padding-top: 30px;
-          border-top: 1px solid #e0e0e0;
-          text-align: center;
-          width: 100%; /* Ensure it takes full width of container */
-      }
-      .newsletter-section h2 {
-          margin-bottom: 20px;
-          color: #2c3e50;
-          font-size: 2rem;
-      }
-      .newsletter-section p {
-          color: #555;
-          margin-bottom: 25px;
-      }
-      .newsletter-section .btn {
-          padding: 12px 30px;
-          font-size: 1.1rem;
-          border-radius: 5px;
-          background-color: #6f42c1; /* Purple */
-          border-color: #6f42c1;
-          transition: all 0.3s ease;
-      }
-      .newsletter-section .btn:hover {
-          background-color: #5a34a3;
-          border-color: #5a34a3;
-          transform: translateY(-2px);
-          box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-      }
-
-
-      /* Modal for News/Job Preview (reused) */
-      .modal-overlay {
-          position: fixed;
-          top: 0;
-          left: 0;
-          width: 100%;
-          height: 100%;
-          background-color: rgba(0, 0, 0, 0.6);
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          z-index: 2000;
-          visibility: hidden;
-          opacity: 0;
-          transition: visibility 0s, opacity 0.3s ease;
-      }
-
-
-      .modal-overlay.show {
-          visibility: visible;
-          opacity: 1;
-      }
-
-
-      .modal-content-custom {
-          background-color: #fff;
-          padding: 25px;
-          border-radius: 10px;
-          box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
-          max-width: 600px; /* Adjusted max-width for news preview */
-          width: 90%;
-          max-height: 80%;
-          overflow-y: auto;
-          position: relative;
-          transform: translateY(-20px);
-          transition: transform 0.3s ease;
-      }
-
-
-      .modal-overlay.show .modal-content-custom {
-          transform: translateY(0);
-      }
-
-
-      .modal-header-custom {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 15px;
-          padding-bottom: 10px;
-          border-bottom: 1px solid #eee;
-      }
-
-
-      .modal-header-custom h4 {
-          margin: 0;
-          color: #2c3e50;
-          font-size: 1.5rem;
-      }
-
-
-      .modal-close-button {
-          background: none;
-          border: none;
-          font-size: 1.8rem;
-          color: #666;
-          cursor: pointer;
-          transition: color 0.2s ease;
-      }
-
-
-      .modal-close-button:hover {
-          color: #333;
-      }
-
-
-      .modal-body-custom p {
-          margin-bottom: 15px;
-          font-size: 1rem;
-          color: #333;
-      }
-
-
-      .modal-body-custom .btn-link {
-          display: inline-block;
-          margin-top: 10px;
-          background-color: #007bff;
-          color: white;
-          padding: 10px 20px;
-          border-radius: 5px;
-          text-decoration: none;
-          transition: background-color 0.2s ease;
-      }
-
-
-      .modal-body-custom .btn-link:hover {
-          background-color: #0056b3;
-      }
-
-
-
-
-      /* Responsive adjustments */
-      @media (max-width: 768px) {
-          .container {
-              margin: 20px auto;
-              padding: 20px;
-          }
-          h1 {
-              font-size: 2rem;
-          }
-          p.lead {
-              font-size: 1rem;
-          }
-          .btn-group-custom .btn {
-              width: 100%; /* Full width buttons on small screens */
-              min-width: unset;
-          }
-          .footer {
-              padding: 10px;
-          }
-          .list-container { /* Adjust for smaller screens */
-              max-height: 300px;
-          }
-      }
-  </style>
+       /* Responsive adjustments */
+       @media (max-width: 768px) {
+           .container {
+               margin: 20px auto;
+               padding: 20px;
+           }
+           h1 {
+               font-size: 2rem;
+           }
+           p.lead {
+               font-size: 1rem;
+           }
+           .btn-group-custom .btn {
+               width: 100%; /* Full width buttons on small screens */
+               min-width: unset;
+           }
+           .footer {
+               padding: 10px;
+           }
+           .list-container { /* Adjust for smaller screens */
+               max-height: 300px;
+           }
+       }
+   </style>
 </head>
 <body>
-  <header class="app-header">
-       <div class="logo-section">
-           <img src="https://placehold.co/40x40/007bff/ffffff?text=AI" alt="SuperPrompter Logo" class="app-logo">
-           <h1 class="header-title">SuperPrompter</h1>
+   <header class="app-header">
+        <div class="logo-section">
+            <img src="https://placehold.co/40x40/007bff/ffffff?text=AI" alt="SuperPrompter Logo" class="app-logo">
+            <h1 class="header-title">SuperPrompter</h1>
+        </div>
+        <!-- No auth links on landing page header, they are in the main content -->
+   </header>
+
+   <div class="container">
+       <h1>Welcome to AI Prompt Generator</h1>
+       <p class="lead">
+           Unleash the full potential of large language models. Our application helps you refine,
+           creatively expand, and technically enhance your raw prompt ideas into effective instructions
+           for AI models. Get polished, creative, technical, and concise prompt variants,
+           and save them for future use!
+       </p>
+       <div class="btn-group-custom">
+           <a href="{{ url_for('login') }}" class="btn btn-primary">
+               <i class="fas fa-sign-in-alt"></i> Login
+           </a>
+           <a href="{{ url_for('register') }}" class="btn btn-success">
+               <i class="fas fa-user-plus"></i> Register
+           </a>
+           {# Removed: <a href="{{ url_for('app_home') }}" class="btn btn-info"> <i class="fas fa-robot"></i> Go to App </a> #}
+           {% if current_user.is_authenticated and current_user.is_admin %}
+           <a href="{{ url_for('admin_news') }}" class="btn btn-warning">
+               <i class="fas fa-cog"></i> Manage News
+           </a>
+           <a href="{{ url_for('admin_jobs') }}" class="btn btn-secondary">
+               <i class="fas fa-briefcase"></i> Manage Jobs
+           </a>
+           {% endif %}
+           <a href="{{ url_for('llm_benchmark') }}" class="btn btn-dark-purple">
+               <i class="fas fa-chart-bar"></i> LLM Benchmark
+           </a>
        </div>
-       <!-- No auth links on landing page header, they are in the main content -->
-  </header>
 
+       <!-- NEW: Image Section -->
+       <div class="landing-image-section">
+           <img src="https://www.dropbox.com/scl/fi/3tzix8fq5bgplx1lyh2op/Google_AI_Studio_2025-07-23T15_14_46.670Z.png?rlkey=8xlw6pz7ctqq4q6rmjyp7sa41&raw=1" alt="AI Network Illustration">
+       </div>
 
-  <div class="container">
-      <h1>Welcome to AI Prompt Generator</h1>
-      <p class="lead">
-          Unleash the full potential of large language models. Our application helps you refine,
-          creatively expand, and technically enhance your raw prompt ideas into effective instructions
-          for AI models. Get polished, creative, technical, and concise prompt variants,
-          and save them for future use!
-      </p>
-      <div class="btn-group-custom">
-          <a href="{{ url_for('login') }}" class="btn btn-primary">
-              <i class="fas fa-sign-in-alt"></i> Login
-          </a>
-          <a href="{{ url_for('register') }}" class="btn btn-success">
-              <i class="fas fa-user-plus"></i> Register
-          </a>
-          {# Removed: <a href="{{ url_for('app_home') }}" class="btn btn-info"> <i class="fas fa-robot"></i> Go to App </a> #}
-          {% if current_user.is_authenticated and current_user.is_admin %}
-          <a href="{{ url_for('admin_news') }}" class="btn btn-warning">
-              <i class="fas fa-cog"></i> Manage News
-          </a>
-          <a href="{{ url_for('admin_jobs') }}" class="btn btn-secondary">
-              <i class="fas fa-briefcase"></i> Manage Jobs
-          </a>
-          {% endif %}
-          <a href="{{ url_for('llm_benchmark') }}" class="btn btn-dark-purple">
-              <i class="fas fa-chart-bar"></i> LLM Benchmark
-          </a>
-      </div>
+       <!-- NEW: Sample Prompts Section -->
+       <div class="sample-prompts-section">
+           <h2>Sample Prompts</h2>
+           <div class="prompt-example">
+               <h6>Raw Prompt Idea:</h6>
+               <p>"What’s a low-effort system to track and prioritize both work and personal to-dos ?"</p>
+               <h6>Polished Prompt:</h6>
+               <p><strong>"Describe a simple and effective system for tracking and prioritizing both professional and personal tasks."</strong></p>
+           </div>
+           <div class="prompt-example">
+               <h6>Raw Prompt Idea:</h6>
+               <p>"code a simple calculator in python"</p>
+               <h6>Polished Prompt:</h6>
+               <p><strong>"Write a Python script for a command-line calculator that supports addition, subtraction, multiplication, and division. Implement robust error handling for invalid input and division by zero. Structure the code with functions for each operation."</strong></p>
+           </div>
+       </div>
 
+       <div class="content-sections-grid">
+           <div class="newsfeed-section">
+               <h2>Latest News</h2>
+               <div class="list-container">
+                   {% if news_items %}
+                       {% for news in news_items %}
+                           <div class="news-item"
+                                data-type="news"
+                                data-title="{{ news.title }}"
+                                data-description="{{ news.description | default('', true) }}"
+                                data-url="{{ news.url }}"
+                                onclick="openPreviewModal(this)">
+                               <h5><a>{{ news.title }}</a></h5>
+                               {% if news.description %}
+                                   <p>{{ news.description }}</p>
+                               {% endif %}
+                               <p class="timestamp">Published: {{ news.timestamp.strftime('%Y-%m-%d %H:%M') }}</p>
+                           </div>
+                       {% endfor %}
+                   {% else %}
+                       <p>No news available at the moment. Please check back later!</p>
+                   {% endif %}
+               </div>
+           </div>
 
-      <!-- NEW: Image Section -->
-      <div class="landing-image-section">
-          <img src="https://www.dropbox.com/scl/fi/3tzix8fq5bgplx1lyh2op/Google_AI_Studio_2025-07-23T15_14_46.670Z.png?rlkey=8xlw6pz7ctqq4q6rmjyp7sa41&raw=1" alt="AI Network Illustration">
-      </div>
+           <div class="jobs-section">
+               <h2>Jobs</h2>
+               <div class="list-container">
+                   {% if job_listings %}
+                       {% for job in job_listings %}
+                           <div class="job-item"
+                                data-type="job"
+                                data-title="{{ job.title }}"
+                                data-company="{{ job.company }}"
+                                data-location="{{ job.location | default('', true) }}"
+                                data-description="{{ job.description | default('', true) }}"
+                                data-url="{{ job.url }}"
+                                onclick="openPreviewModal(this)">
+                               <h5><a>{{ job.title }} at {{ job.company }}</a></h5>
+                               {% if job.location %}
+                                   <p>{{ job.location }}</p>
+                               {% endif %}
+                               {% if job.description %}
+                                   <p>{{ job.description }}</p>
+                               {% endif %}
+                               <p class="timestamp">Posted: {{ job.timestamp.strftime('%Y-%m-%d %H:%M') }}</p>
+                           </div>
+                       {% endfor %}
+                   {% else %}
+                       <p>No job listings available at the moment. Please check back later!</p>
+                   {% endif %}
+               </div>
+           </div>
+       </div>
 
+       <!-- Newsletter Section -->
+       <div class="newsletter-section">
+           <h2>Join Our Newsletter!</h2>
+           <p>Stay updated with the latest AI prompt generation tips, news, and features.</p>
+           <a href="https://flow.cleverreach.com/fl/f1b39182-4b74-4664-9c1d-c175cb3a670c/" target="_blank" class="btn btn-primary">Subscribe Now</a>
+       </div>
+       <!-- End Newsletter Section -->
 
-      <!-- NEW: Sample Prompts Section -->
-      <div class="sample-prompts-section">
-          <h2>Sample Prompts</h2>
-          <div class="prompt-example">
-              <h6>Raw Prompt Idea:</h6>
-              <p>"What’s a low-effort system to track and prioritize both work and personal to-dos ?"</p>
-              <h6>Polished Prompt:</h6>
-              <p><strong>"Describe a simple and effective system for tracking and prioritizing both professional and personal tasks."</strong></p>
-          </div>
-          <div class="prompt-example">
-              <h6>Raw Prompt Idea:</h6>
-              <p>"code a simple calculator in python"</p>
-              <h6>Polished Prompt:</h6>
-              <p><strong>"Write a Python script for a command-line calculator that supports addition, subtraction, multiplication, and division. Implement robust error handling for invalid input and division by zero. Structure the code with functions for each operation."</strong></p>
-          </div>
-      </div>
+   </div>
 
+   <footer class="footer">
+       <div class="footer-content">
+           This is developed by Sushrut Kulkarni &nbsp; Email: <a href="mailto:info@promptsgenerator.ai">info@promptsgenerator.ai</a>
+       </div>
+   </footer>
 
-      <div class="content-sections-grid">
-          <div class="newsfeed-section">
-              <h2>Latest News</h2>
-              <div class="list-container">
-                  {% if news_items %}
-                      {% for news in news_items %}
-                          <div class="news-item"
-                               data-type="news"
-                               data-title="{{ news.title }}"
-                               data-description="{{ news.description | default('', true) }}"
-                               data-url="{{ news.url }}"
-                               onclick="openPreviewModal(this)">
-                              <h5><a>{{ news.title }}</a></h5>
-                              {% if news.description %}
-                                  <p>{{ news.description }}</p>
-                              {% endif %}
-                              <p class="timestamp">Published: {{ news.timestamp.strftime('%Y-%m-%d %H:%M') }}</p>
-                          </div>
-                      {% endfor %}
-                  {% else %}
-                      <p>No news available at the moment. Please check back later!</p>
-                  {% endif %}
-              </div>
-          </div>
+   <!-- NEW: Generic Preview Modal Structure (for both News and Jobs) -->
+   <div id="genericPreviewModalOverlay" class="modal-overlay">
+       <div class="modal-content-custom">
+           <div class="modal-header-custom">
+               <h4 id="genericPreviewModalTitle"></h4>
+               <button class="modal-close-button" onclick="closePreviewModal()">&times;</button>
+           </div>
+           <div class="modal-body-custom">
+               <p id="genericPreviewModalDescription"></p>
+               <p id="genericPreviewModalCompanyLocation" style="font-style: italic; color: #666;"></p>
+               <a id="genericPreviewModalLink" href="#" target="_blank" class="btn btn-link"></a>
+           </div>
+       </div>
+   </div>
+   <!-- END NEW: Generic Preview Modal Structure -->
 
+   <script>
+       // JavaScript for Generic Preview Modal (for both News and Jobs)
+       const genericPreviewModalOverlay = document.getElementById('genericPreviewModalOverlay');
+       const genericPreviewModalTitle = document.getElementById('genericPreviewModalTitle');
+       const genericPreviewModalDescription = document.getElementById('genericPreviewModalDescription');
+       const genericPreviewModalCompanyLocation = document.getElementById('genericPreviewModalCompanyLocation');
+       const genericPreviewModalLink = document.getElementById('genericPreviewModalLink');
 
-          <div class="jobs-section">
-              <h2>Jobs</h2>
-              <div class="list-container">
-                  {% if job_listings %}
-                      {% for job in job_listings %}
-                          <div class="job-item"
-                               data-type="job"
-                               data-title="{{ job.title }}"
-                               data-company="{{ job.company }}"
-                               data-location="{{ job.location | default('', true) }}"
-                               data-description="{{ job.description | default('', true) }}"
-                               data-url="{{ job.url }}"
-                               onclick="openPreviewModal(this)">
-                              <h5><a>{{ job.title }} at {{ job.company }}</a></h5>
-                              {% if job.location %}
-                                  <p>{{ job.location }}</p>
-                              {% endif %}
-                              {% if job.description %}
-                                  <p>{{ job.description }}</p>
-                              {% endif %}
-                              <p class="timestamp">Posted: {{ job.timestamp.strftime('%Y-%m-%d %H:%M') }}</p>
-                          </div>
-                      {% endfor %}
-                  {% else %}
-                      <p>No job listings available at the moment. Please check back later!</p>
-                  {% endif %}
-              </div>
-          </div>
-      </div>
+       function openPreviewModal(element) {
+           const type = element.dataset.type; // 'news' or 'job'
+           const title = element.dataset.title;
+           const description = element.dataset.description;
+           const url = element.dataset.url;
 
+           genericPreviewModalTitle.textContent = title;
+           genericPreviewModalDescription.textContent = description || 'No description available.';
+           genericPreviewModalLink.href = url;
 
-      <!-- Newsletter Section -->
-      <div class="newsletter-section">
-          <h2>Join Our Newsletter!</h2>
-          <p>Stay updated with the latest AI prompt generation tips, news, and features.</p>
-          <a href="https://flow.cleverreach.com/fl/f1b39182-4b74-4664-9c1d-c175cb3a670c/" target="_blank" class="btn btn-primary">Subscribe Now</a>
-      </div>
-      <!-- End Newsletter Section -->
+           if (type === 'news') {
+               genericPreviewModalLink.textContent = 'Read Full Article / Watch Video';
+               genericPreviewModalCompanyLocation.textContent = ''; // Clear for news
+           } else if (type === 'job') {
+               const company = element.dataset.company;
+               const location = element.dataset.location;
+               genericPreviewModalLink.textContent = 'Apply Now';
+               genericPreviewModalCompanyLocation.textContent = `${company}${location ? ' - ' + location : ''}`;
+           }
 
+           genericPreviewModalOverlay.classList.add('show');
+       }
 
-  </div>
+       function closePreviewModal() {
+           genericPreviewModalOverlay.classList.remove('show');
+       }
 
-
-  <footer class="footer">
-      <div class="footer-content">
-          This is developed by Sushrut Kulkarni &nbsp; Email: <a href="mailto:info@promptsgenerator.ai">info@promptsgenerator.ai</a>
-      </div>
-  </footer>
-
-
-  <!-- NEW: Generic Preview Modal Structure (for both News and Jobs) -->
-  <div id="genericPreviewModalOverlay" class="modal-overlay">
-      <div class="modal-content-custom">
-          <div class="modal-header-custom">
-              <h4 id="genericPreviewModalTitle"></h4>
-              <button class="modal-close-button" onclick="closePreviewModal()">&times;</button>
-          </div>
-          <div class="modal-body-custom">
-              <p id="genericPreviewModalDescription"></p>
-              <p id="genericPreviewModalCompanyLocation" style="font-style: italic; color: #666;"></p>
-              <a id="genericPreviewModalLink" href="#" target="_blank" class="btn btn-link"></a>
-          </div>
-      </div>
-  </div>
-  <!-- END NEW: Generic Preview Modal Structure -->
-
-
-  <script>
-      // JavaScript for Generic Preview Modal (for both News and Jobs)
-      const genericPreviewModalOverlay = document.getElementById('genericPreviewModalOverlay');
-      const genericPreviewModalTitle = document.getElementById('genericPreviewModalTitle');
-      const genericPreviewModalDescription = document.getElementById('genericPreviewModalDescription');
-      const genericPreviewModalCompanyLocation = document.getElementById('genericPreviewModalCompanyLocation');
-      const genericPreviewModalLink = document.getElementById('genericPreviewModalLink');
-
-
-      function openPreviewModal(element) {
-          const type = element.dataset.type; // 'news' or 'job'
-          const title = element.dataset.title;
-          const description = element.dataset.description;
-          const url = element.dataset.url;
-
-
-          genericPreviewModalTitle.textContent = title;
-          genericPreviewModalDescription.textContent = description || 'No description available.';
-          genericPreviewModalLink.href = url;
-
-
-          if (type === 'news') {
-              genericPreviewModalLink.textContent = 'Read Full Article / Watch Video';
-              genericPreviewModalCompanyLocation.textContent = ''; // Clear for news
-          } else if (type === 'job') {
-              const company = element.dataset.company;
-              const location = element.dataset.location;
-              genericPreviewModalLink.textContent = 'Apply Now';
-              genericPreviewModalCompanyLocation.textContent = `${company}${location ? ' - ' + location : ''}`;
-          }
-
-
-          genericPreviewModalOverlay.classList.add('show');
-      }
-
-
-      function closePreviewModal() {
-          genericPreviewModalOverlay.classList.remove('show');
-      }
-
-
-      // Close modal if clicking outside the content
-      genericPreviewModalOverlay.addEventListener('click', (event) => {
-          if (event.target === genericPreviewModalOverlay) {
-              closePreviewModal();
-          }
-      });
-  </script>
+       // Close modal if clicking outside the content
+       genericPreviewModalOverlay.addEventListener('click', (event) => {
+           if (event.target === genericPreviewModalOverlay) {
+               closePreviewModal();
+           }
+       });
+   </script>
 </body>
 </html>
