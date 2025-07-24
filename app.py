@@ -458,6 +458,14 @@ def app_home():
   return render_template('index.html', current_user=current_user)
 
 
+# NEW: LLM Benchmark Page Route
+@app.route('/llm_benchmark')
+def llm_benchmark():
+   return render_template('llm_benchmark.html', current_user=current_user)
+
+
+
+
 @app.route('/generate', methods=['POST'])
 @login_required # Protect this route
 async def generate_prompts_endpoint(): # This remains async
