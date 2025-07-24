@@ -143,6 +143,16 @@
           border-color: #5a6268;
           transform: translateY(-2px);
       }
+      .btn-dark-purple { /* NEW: Style for LLM Benchmark button */
+          background-color: #4B0082; /* Indigo/Dark Purple */
+          border-color: #4B0082;
+          color: #ffffff;
+      }
+      .btn-dark-purple:hover {
+          background-color: #380066;
+          border-color: #380066;
+          transform: translateY(-2px);
+      }
 
 
 
@@ -503,6 +513,9 @@
               <i class="fas fa-briefcase"></i> Manage Jobs
           </a>
           {% endif %}
+          <a href="{{ url_for('llm_benchmark') }}" class="btn btn-dark-purple">
+              <i class="fas fa-chart-bar"></i> LLM Benchmark
+          </a>
       </div>
 
 
@@ -517,15 +530,9 @@
           <h2>Sample Prompts</h2>
           <div class="prompt-example">
               <h6>Raw Prompt Idea:</h6>
-              <p>"write a short story about a detective solving a mystery in space"</p>
+              <p>"What’s a low-effort system to track and prioritize both work and personal to-dos ?"</p>
               <h6>Polished Prompt:</h6>
-              <p><strong>"Draft a concise science fiction short story (approx. 300 words) featuring a space detective investigating a mysterious disappearance aboard a derelict starship. Include elements of suspense and a surprising twist ending."</strong></p>
-          </div>
-          <div class="prompt-example">
-              <h6>Raw Prompt Idea:</h6>
-              <p>"how to make a really good cup of coffee at home"</p>
-              <h6>Polished Prompt:</h6>
-              <p><strong>"Provide a detailed, step-by-step guide on brewing an exceptional cup of coffee at home using common methods (e.g., French press, pour-over). Include tips on bean selection, grind size, water temperature, and brewing ratios."</strong></p>
+              <p><strong>"Describe a simple and effective system for tracking and prioritizing both professional and personal tasks."</strong></p>
           </div>
           <div class="prompt-example">
               <h6>Raw Prompt Idea:</h6>
