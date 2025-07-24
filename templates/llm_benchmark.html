@@ -1,222 +1,204 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-   <meta charset="UTF-8">
-   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-   <title>LLM Benchmark Dashboard</title>
-   <!-- Bootstrap CSS for modern styling -->
-   <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-   <!-- Font Awesome for icons -->
-   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
-   <style>
-       body {
-           font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-           margin: 0;
-           padding: 0;
-           background-color: #f0f2f5;
-           color: #333;
-           line-height: 1.6;
-           display: flex;
-           flex-direction: column;
-           min-height: 100vh;
-       }
-       /* Consistent Header Style */
-       .app-header {
-           background-color: #343a40;
-           color: #ffffff;
-           padding: 15px 30px;
-           display: flex;
-           justify-content: space-between;
-           align-items: center;
-           box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-       }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LLM Benchmark Dashboard</title>
+    <!-- Bootstrap CSS for modern styling -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f0f2f5;
+            color: #333;
+            line-height: 1.6;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        /* Consistent Header Style */
+        .app-header {
+            background-color: #343a40;
+            color: #ffffff;
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        }
 
+        .app-header .logo-section {
+            display: flex;
+            align-items: center;
+        }
 
-       .app-header .logo-section {
-           display: flex;
-           align-items: center;
-       }
+        .app-header .app-logo {
+            height: 40px;
+            margin-right: 15px;
+            border-radius: 5px;
+        }
 
+        .app-header h1.header-title {
+            margin: 0;
+            font-size: 1.8rem;
+            color: #ffffff;
+            text-align: left;
+        }
 
-       .app-header .app-logo {
-           height: 40px;
-           margin-right: 15px;
-           border-radius: 5px;
-       }
+        .app-header .auth-section a {
+            color: #ffffff;
+            margin-left: 20px;
+            text-decoration: none;
+            transition: color 0.2s ease;
+        }
 
+        .app-header .auth-section a:hover {
+            color: #007bff;
+            text-decoration: underline;
+        }
 
-       .app-header h1.header-title {
-           margin: 0;
-           font-size: 1.8rem;
-           color: #ffffff;
-           text-align: left;
-       }
+        .container {
+            flex-grow: 1;
+            max-width: 1600px; /* Increased max-width for the dashboard */
+            margin: 30px auto;
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+        h2 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            font-size: 2.2rem;
+            font-weight: 600;
+        }
 
+        /* Tableau Placeholder Styling */
+        .tableauPlaceholder {
+            margin: 0 auto; /* Center the dashboard */
+            max-width: 100%; /* Ensure it's responsive */
+            overflow: hidden; /* Hide scrollbars if content overflows */
+        }
+        .tableauPlaceholder object {
+            display: block; /* Remove extra space below object */
+        }
 
-       .app-header .auth-section a {
-           color: #ffffff;
-           margin-left: 20px;
-           text-decoration: none;
-           transition: color 0.2s ease;
-       }
+        /* Responsive adjustments for Tableau */
+        @media (max-width: 1600px) { /* Adjust width for smaller screens */
+            .tableauPlaceholder object {
+                width: 100% !important; /* Override inline style for responsiveness */
+                height: 1000px !important; /* Set a fixed height or adjust as needed for responsiveness */
+            }
+        }
+        @media (max-width: 768px) {
+            .container {
+                margin: 20px auto;
+                padding: 15px;
+            }
+            h2 {
+                font-size: 1.8rem;
+            }
+            .app-header {
+                flex-direction: column;
+                padding: 10px 15px;
+            }
+            .app-header .logo-section {
+                margin-bottom: 10px;
+            }
+            .app-header h1.header-title {
+                font-size: 1.5rem;
+            }
+        }
 
-
-       .app-header .auth-section a:hover {
-           color: #007bff;
-           text-decoration: underline;
-       }
-
-
-       .container {
-           flex-grow: 1;
-           max-width: 1600px; /* Increased max-width for the dashboard */
-           margin: 30px auto;
-           background-color: #fff;
-           padding: 30px;
-           border-radius: 10px;
-           box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
-           text-align: center;
-       }
-       h2 {
-           color: #2c3e50;
-           margin-bottom: 20px;
-           font-size: 2.2rem;
-           font-weight: 600;
-       }
-
-
-       /* Tableau Placeholder Styling */
-       .tableauPlaceholder {
-           margin: 0 auto; /* Center the dashboard */
-           max-width: 100%; /* Ensure it's responsive */
-           overflow: hidden; /* Hide scrollbars if content overflows */
-       }
-       .tableauPlaceholder object {
-           display: block; /* Remove extra space below object */
-       }
-
-
-       /* Responsive adjustments for Tableau */
-       @media (max-width: 1600px) { /* Adjust width for smaller screens */
-           .tableauPlaceholder object {
-               width: 100% !important; /* Override inline style for responsiveness */
-               height: 1000px !important; /* Set a fixed height or adjust as needed for responsiveness */
-           }
-       }
-       @media (max-width: 768px) {
-           .container {
-               margin: 20px auto;
-               padding: 15px;
-           }
-           h2 {
-               font-size: 1.8rem;
-           }
-           .app-header {
-               flex-direction: column;
-               padding: 10px 15px;
-           }
-           .app-header .logo-section {
-               margin-bottom: 10px;
-           }
-           .app-header h1.header-title {
-               font-size: 1.5rem;
-           }
-       }
-
-
-       /* Consistent Footer Style */
-       .footer {
-           width: 100%;
-           padding: 15px;
-           text-align: center;
-           font-size: 0.8rem;
-           color: #777;
-           background-color: #e9ecef;
-           border-top: 1px solid #dee2e6;
-           margin-top: auto;
-       }
-       .footer-content {
-           max-width: 900px;
-           margin: 0 auto;
-       }
-       .footer-content a {
-           color: #007bff;
-           text-decoration: none;
-       }
-       .footer-content a:hover {
-           text-decoration: underline;
-       }
-   </style>
+        /* Consistent Footer Style */
+        .footer {
+            width: 100%;
+            padding: 15px;
+            text-align: center;
+            font-size: 0.8rem;
+            color: #777;
+            background-color: #e9ecef;
+            border-top: 1px solid #dee2e6;
+            margin-top: auto;
+        }
+        .footer-content {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        .footer-content a {
+            color: #007bff;
+            text-decoration: none;
+        }
+        .footer-content a:hover {
+            text-decoration: underline;
+        }
+    </style>
 </head>
 <body>
-   <header class="app-header">
-       <div class="logo-section">
-           <img src="https://placehold.co/40x40/007bff/ffffff?text=AI" alt="SuperPrompter Logo" class="app-logo">
-           <h1 class="header-title">SuperPrompter</h1>
+    <header class="app-header">
+        <div class="logo-section">
+            <img src="https://placehold.co/40x40/007bff/ffffff?text=AI" alt="SuperPrompter Logo" class="app-logo">
+            <h1 class="header-title">SuperPrompter</h1>
+        </div>
+        <div class="auth-section">
+            <a href="{{ url_for('landing') }}" class="btn btn-outline-light btn-sm mr-2">Back to Landing Page</a>
+            {% if current_user.is_authenticated %}
+                <a href="{{ url_for('logout') }}" class="btn btn-outline-light btn-sm">Logout</a>
+            {% else %}
+                <a href="{{ url_for('login') }}" class="btn btn-outline-light btn-sm mr-2">Login</a>
+                <a href="{{ url_for('register') }}" class="btn btn-light btn-sm">Register</a>
+            {% endif %}
+        </div>
+    </header>
+
+    <div class="container">
+        <h2>LLM Benchmark Dashboard</h2>
+        <p class="text-muted mb-4">Explore the performance benchmarks of various Large Language Models for CRM applications.</p>
+
+        <!-- Tableau Public Dashboard Embed Code -->
+        <div class='tableauPlaceholder' id='viz1753289429897'>
+            <noscript>
+                <a href='#'>
+                    <img alt='Results Overview ' src='https:&#47;&#47;public.tableau.com&#47;static&#47;images&#47;LL&#47;LLMBenchmarkforCRM&#47;ResultsOverview&#47;1_rss.png' style='border: none' />
+                </a>
+            </noscript>
+            <object class='tableauViz' style='display:none;'>
+                <param name='host_url' value='https%3A%2F%2Fpublic.tableau.com%2F' />
+                <param name='embed_code_version' value='3' />
+                <param name='site_root' value='' />
+                <param name='name' value='LLMBenchmarkforCRM&#47;ResultsOverview' />
+                <param name='tabs' value='no' />
+                <param name='toolbar' value='yes' />
+                <param name='static_image' value='https:&#47;&#47;public.tableau.com&#47;static&#47;images&#47;LL&#47;LLMBenchmarkforCRM&#47;ResultsOverview&#47;1.png' />
+                <param name='animate_transition' value='yes' /><param name='display_static_image' value='yes' /><param name='display_spinner' value='yes' /><param name='display_overlay' value='yes' /><param name='display_count' value='yes' /><param name='language' value='en-US' />
+            </object>
+        </div>
+        <script type='text/javascript'>
+            var divElement = document.getElementById('viz1753289429897');
+            var vizElement = divElement.getElementsByTagName('object')[0];
+            // Set width to 100% for responsiveness, height can be fixed or responsive based on content
+            vizElement.style.width='100%';
+            vizElement.style.height='4800px'; // Adjusted height to be more reasonable initially
+            var scriptElement = document.createElement('script');
+            scriptElement.src = 'https://public.tableau.com/javascripts/api/viz_v1.js';
+            vizElement.parentNode.insertBefore(scriptElement, vizElement);
+        </script>
+        <!-- End Tableau Public Dashboard Embed Code -->
+
+        <div class="text-center mt-4">
+            <a href="{{ url_for('landing') }}" class="btn btn-secondary">Back to Landing Page</a>
+        </div>
+    </div>
+
+    <footer class="footer">
+       <div class="footer-content">
+           This is developed by Sushrut Kulkarni &nbsp; Email: <a href="mailto:info@promptsgenerator.ai">info@promptsgenerator.ai</a>
        </div>
-       <div class="auth-section">
-           <a href="{{ url_for('landing') }}" class="btn btn-outline-light btn-sm mr-2">Back to Landing Page</a>
-           {% if current_user.is_authenticated %}
-               <a href="{{ url_for('logout') }}" class="btn btn-outline-light btn-sm">Logout</a>
-           {% else %}
-               <a href="{{ url_for('login') }}" class="btn btn-outline-light btn-sm mr-2">Login</a>
-               <a href="{{ url_for('register') }}" class="btn btn-light btn-sm">Register</a>
-           {% endif %}
-       </div>
-   </header>
-
-
-   <div class="container">
-       <h2>LLM Benchmark Dashboard</h2>
-       <p class="text-muted mb-4">Explore the performance benchmarks of various Large Language Models for CRM applications.</p>
-
-
-       <!-- Tableau Public Dashboard Embed Code -->
-       <div class='tableauPlaceholder' id='viz1753289429897'>
-           <noscript>
-               <a href='#'>
-                   <img alt='Results Overview ' src='https:&#47;&#47;public.tableau.com&#47;static&#47;images&#47;LL&#47;LLMBenchmarkforCRM&#47;ResultsOverview&#47;1_rss.png' style='border: none' />
-               </a>
-           </noscript>
-           <object class='tableauViz' style='display:none;'>
-               <param name='host_url' value='https%3A%2F%2Fpublic.tableau.com%2F' />
-               <param name='embed_code_version' value='3' />
-               <param name='site_root' value='' />
-               <param name='name' value='LLMBenchmarkforCRM&#47;ResultsOverview' />
-               <param name='tabs' value='no' />
-               <param name='toolbar' value='yes' />
-               <param name='static_image' value='https:&#47;&#47;public.tableau.com&#47;static&#47;images&#47;LL&#47;LLMBenchmarkforCRM&#47;ResultsOverview&#47;1.png' />
-               <param name='animate_transition' value='yes' />
-               <param name='display_static_image' value='yes' />
-               <param name='display_spinner' value='yes' />
-               <param name='display_overlay' value='yes' />
-               <param name='display_count' value='yes' />
-               <param name='language' value='en-US' />
-           </object>
-       </div>
-       <script type='text/javascript'>
-           var divElement = document.getElementById('viz1753289429897');
-           var vizElement = divElement.getElementsByTagName('object')[0];
-           // Set width to 100% for responsiveness, height can be fixed or responsive based on content
-           vizElement.style.width='100%';
-           vizElement.style.height='4800px'; // Adjusted height to be more reasonable initially
-           var scriptElement = document.createElement('script');
-           scriptElement.src = 'https://public.tableau.com/javascripts/api/viz_v1.js';
-           vizElement.parentNode.insertBefore(scriptElement, vizElement);
-       </script>
-       <!-- End Tableau Public Dashboard Embed Code -->
-
-
-       <div class="text-center mt-4">
-           <a href="{{ url_for('landing') }}" class="btn btn-secondary">Back to Landing Page</a>
-       </div>
-   </div>
-
-
-   <footer class="footer">
-      <div class="footer-content">
-          This is developed by Sushrut Kulkarni &nbsp; Email: <a href="mailto:info@promptsgenerator.ai">info@promptsgenerator.ai</a>
-      </div>
-   </footer>
+    </footer>
 </body>
 </html>
