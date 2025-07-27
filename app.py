@@ -10,6 +10,7 @@ import logging
 from datetime import datetime, timedelta # Import timedelta for time calculations
 import re # Import for regular expressions
 from functools import wraps # Import wraps for decorators
+import base64 # Import base64 for image processing
 
 # --- NEW IMPORTS FOR AUTHENTICATION ---
 from flask_sqlalchemy import SQLAlchemy
@@ -101,7 +102,9 @@ class User(db.Model, UserMixin):
    username = db.Column(db.String(80), unique=True, nullable=False)
    password_hash = db.Column(db.String(128), nullable=False)
    is_admin = db.Column(db.Boolean, default=False)
-   last_prompt_request = db.Column(db.DateTime, nullable=True) # NEW: For cooldown
+   last_prompt_request = db.Column(db.DateTime, nullable=True) # For cooldown
+   daily_prompt_count = db.Column(db.Integer, default=0, nullable=False) # NEW: Daily prompt count
+   last_count_reset_date = db.Column(db.Date, nullable=True) # NEW: Date when count was last reset
 
    def set_password(self, password):
        self.password_hash = generate_password_hash(password)
@@ -350,17 +353,24 @@ async def generate_reverse_prompt_async(input_text, language_code="en-US"):
     target_language_name = LANGUAGE_MAP.get(language_code, "English")
     language_instruction_prefix = f"The output MUST be entirely in {target_language_name}. "
 
-    # The core instruction for reverse prompting
-    reverse_prompt_instruction = language_instruction_prefix + f"""Given the following text or code, infer the most effective and concise prompt that would have generated it. Focus on the core instruction, any implied constraints, style requirements, or specific formats. Do not add conversational filler, explanations, or preambles. Provide only the inferred prompt.
-    
-    Input Text/Code:
-    ---
-    {input_text}
-    ---
-    
-    Inferred Prompt:"""
+    # Escape curly braces in input_text to prevent f-string parsing errors
+    # This replaces single { with {{ and single } with }}
+    escaped_input_text = input_text.replace('{', '{{').replace('}', '}}')
 
-    app.logger.info(f"Sending reverse prompt instruction to Gemini (length: {len(reverse_prompt_instruction)} chars)")
+    # The core instruction for reverse prompting
+    # Using concatenation to avoid f-string parsing issues with embedded user input
+    reverse_prompt_instruction = (
+        language_instruction_prefix +
+        "Given the following text or code, infer the most effective and concise prompt that would have generated it. Focus on the core instruction, any implied constraints, style requirements, or specific formats. Do not add conversational filler, explanations, or preambles. Provide only the inferred prompt.\n\n"
+        "Input Text/Code:\n"
+        "---\n"
+        + escaped_input_text +
+        "\n---\n\n"
+        "Inferred Prompt:"
+    )
+
+    # Corrected f-string for logging: double the literal curly brace
+    app.logger.info(f"Sending reverse prompt instruction to Gemini (length: {len(reverse_prompt_instruction)} chars)}}")
 
     # Call synchronous ask_gemini_for_prompt in a separate thread
     reverse_prompt_result = await asyncio.to_thread(ask_gemini_for_prompt, reverse_prompt_instruction, max_output_tokens=512) # Use a reasonable max_output_tokens for a prompt
@@ -396,9 +406,9 @@ def llm_benchmark():
 @login_required # Protect this route
 async def generate_prompts_endpoint(): # This remains async
    user = current_user # Get the current user object
+   now = datetime.utcnow() # Use utcnow for consistency with database default
 
    # --- UPDATED: Cooldown Check using database timestamp ---
-   now = datetime.utcnow() # Use utcnow for consistency with database default
    if user.last_prompt_request:
        time_since_last_request = (now - user.last_prompt_request).total_seconds()
        if time_since_last_request < COOLDOWN_SECONDS:
@@ -411,10 +421,29 @@ async def generate_prompts_endpoint(): # This remains async
            }), 429 # 429 Too Many Requests
    # --- END UPDATED ---
 
+   # --- NEW: Daily Limit Check ---
+   if not user.is_admin: # Admins are exempt from the daily limit
+       today = now.date()
+       if user.last_count_reset_date != today:
+           user.daily_prompt_count = 0
+           user.last_count_reset_date = today
+           db.session.add(user) # Mark user as modified
+           db.session.commit() # Commit reset immediately to prevent race conditions on count
+
+       if user.daily_prompt_count >= 10: # Max 10 generations per day
+           app.logger.info(f"User {user.username} exceeded daily prompt limit.")
+           return jsonify({
+               "error": "You have reached your daily limit of 10 prompt generations. Please try again tomorrow.",
+               "daily_limit_reached": True
+           }), 429 # 429 Too Many Requests
+   # --- END NEW: Daily Limit Check ---
+
+
    raw_input = request.form.get('prompt_input', '').strip()
    language_code = request.form.get('language_code', 'en-US')
 
    if not raw_input:
+       # This is handled client-side in index.html, but kept as a server-side fallback
        return jsonify({
            "polished": "Please enter some text to generate prompts.",
            "creative": "",
@@ -435,9 +464,11 @@ async def generate_prompts_endpoint(): # This remains async
 
        # --- UPDATED: Update last_prompt_request in database and Save raw_input ---
        user.last_prompt_request = now # Record the time of this successful request
+       if not user.is_admin: # Only increment count for non-admin users
+           user.daily_prompt_count += 1
        db.session.add(user) # Add the user object back to the session to mark it as modified
        db.session.commit()
-       app.logger.info(f"User {user.username}'s last prompt request time updated. (Forward Prompt)")
+       app.logger.info(f"User {user.username}'s last prompt request time updated and count incremented. (Forward Prompt)")
 
        if current_user.is_authenticated:
            try:
@@ -474,11 +505,29 @@ async def reverse_prompt_endpoint():
                 "remaining_time": remaining_time
             }), 429
 
+    # --- NEW: Daily Limit Check for Reverse Prompt ---
+    if not user.is_admin: # Admins are exempt from the daily limit
+        today = now.date()
+        if user.last_count_reset_date != today:
+            user.daily_prompt_count = 0
+            user.last_count_reset_date = today
+            db.session.add(user) # Mark user as modified
+            db.session.commit() # Commit reset immediately to prevent race conditions on count
+
+        if user.daily_prompt_count >= 10: # Max 10 generations per day
+            app.logger.info(f"User {user.username} exceeded daily reverse prompt limit.")
+            return jsonify({
+                "error": "You have reached your daily limit of 10 prompt generations. Please try again tomorrow.",
+                "daily_limit_reached": True
+            }), 429 # 429 Too Many Requests
+    # --- END NEW: Daily Limit Check ---
+
     data = request.get_json()
     input_text = data.get('input_text', '').strip()
     language_code = data.get('language_code', 'en-US')
 
     if not input_text:
+        # This is handled client-side in index.html, but kept as a server-side fallback
         return jsonify({"error": "Please provide text or code to infer a prompt from."}), 400
 
     if not GEMINI_API_CONFIGURED:
@@ -492,15 +541,80 @@ async def reverse_prompt_endpoint():
 
         # Update last_prompt_request after successful reverse prompt
         user.last_prompt_request = now
+        if not user.is_admin: # Only increment count for non-admin users
+            user.daily_prompt_count += 1
         db.session.add(user)
         db.session.commit()
-        app.logger.info(f"User {user.username}'s last prompt request time updated after reverse prompt.")
+        app.logger.info(f"User {user.username}'s last prompt request time updated and count incremented after reverse prompt.")
 
         return jsonify({"inferred_prompt": inferred_prompt})
     except Exception as e:
         app.logger.exception("Error during reverse prompt generation in endpoint:")
         return jsonify({"error": f"An unexpected server error occurred: {e}. Please check server logs for details."}), 500
 # --- END NEW: Reverse Prompt Endpoint ---
+
+# --- NEW: Image Processing Endpoint ---
+@app.route('/process_image_prompt', methods=['POST'])
+@login_required
+async def process_image_prompt_endpoint():
+    user = current_user
+    now = datetime.utcnow()
+
+    # Apply cooldown to image processing as well
+    if user.last_prompt_request:
+        time_since_last_request = (now - user.last_prompt_request).total_seconds()
+        if time_since_last_request < COOLDOWN_SECONDS:
+            remaining_time = int(COOLDOWN_SECONDS - time_since_last_request)
+            app.logger.info(f"User {user.username} is on cooldown for image processing. Remaining: {remaining_time}s")
+            return jsonify({
+                "error": f"Please wait {remaining_time} seconds before processing another image.",
+                "cooldown_active": True,
+                "remaining_time": remaining_time
+            }), 429
+
+    # Daily limit check for image processing
+    if not user.is_admin:
+        today = now.date()
+        if user.last_count_reset_date != today:
+            user.daily_prompt_count = 0
+            user.last_count_reset_date = today
+            db.session.add(user)
+            db.session.commit()
+
+        if user.daily_prompt_count >= 10:
+            app.logger.info(f"User {user.username} exceeded daily image processing limit.")
+            return jsonify({
+                "error": "You have reached your daily limit of 10 image processing requests. Please try again tomorrow.",
+                "daily_limit_reached": True
+            }), 429
+
+    data = request.get_json()
+    image_data_b64 = data.get('image_data')
+    language_code = data.get('language_code', 'en-US') # Not directly used by Gemini Vision, but good to pass
+
+    if not image_data_b64:
+        return jsonify({"error": "No image data provided."}), 400
+
+    try:
+        image_data_bytes = base64.b64decode(image_data_b64) # Decode base64 string to bytes
+        
+        # Call the Gemini API for image understanding
+        recognized_text = await asyncio.to_thread(ask_gemini_for_image_text, image_data_bytes)
+
+        # Update last_prompt_request after successful image processing
+        user.last_prompt_request = now
+        if not user.is_admin:
+            user.daily_prompt_count += 1
+        db.session.add(user)
+        db.session.commit()
+        app.logger.info(f"User {user.username}'s last prompt request time updated and count incremented after image processing.")
+
+        return jsonify({"recognized_text": recognized_text})
+    except Exception as e:
+        app.logger.exception("Error during image processing endpoint:")
+        return jsonify({"error": f"An unexpected server error occurred during image processing: {e}. Please check server logs for details."}), 500
+
+# --- END NEW: Image Processing Endpoint ---
 
 
 # --- UPDATED: Endpoint to check cooldown status for frontend ---
@@ -509,12 +623,36 @@ async def reverse_prompt_endpoint():
 def check_cooldown_endpoint():
     user = current_user
     now = datetime.utcnow() # Use utcnow for consistency
+
+    cooldown_active = False
+    remaining_time = 0
     if user.last_prompt_request:
         time_since_last_request = (now - user.last_prompt_request).total_seconds()
         if time_since_last_request < COOLDOWN_SECONDS:
+            cooldown_active = True
             remaining_time = int(COOLDOWN_SECONDS - time_since_last_request)
-            return jsonify({"cooldown_active": True, "remaining_time": remaining_time}), 200
-    return jsonify({"cooldown_active": False}), 200
+
+    daily_limit_reached = False
+    daily_count = 0
+    if not user.is_admin: # Check daily limit only for non-admins
+        today = now.date()
+        if user.last_count_reset_date != today:
+            # If the last reset date is not today, reset the count for the current session's check
+            # (The actual DB reset happens on the next prompt generation)
+            daily_count = 0
+        else:
+            daily_count = user.daily_prompt_count
+        
+        if daily_count >= 10:
+            daily_limit_reached = True
+
+    return jsonify({
+        "cooldown_active": cooldown_active,
+        "remaining_time": remaining_time,
+        "daily_limit_reached": daily_limit_reached,
+        "daily_count": daily_count,
+        "is_admin": user.is_admin
+    }), 200
 # --- END UPDATED ---
 
 
