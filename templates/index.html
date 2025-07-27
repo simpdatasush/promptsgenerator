@@ -1,1555 +1,1565 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AI Prompt Generator</title>
-  <!-- Bootstrap CSS for modern styling -->
-  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-  <!-- Font Awesome for icons -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
-  <style>
-      body {
-          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-          margin: 0;
-          padding: 0; /* Remove body padding as main-content-wrapper will handle it */
-          background-color: #f0f2f5;
-          color: #333;
-          line-height: 1.6;
-      }
-
-
-      /* New Header Styles */
-      .app-header {
-          background-color: #343a40; /* Dark background for header */
-          color: #ffffff;
-          padding: 15px 30px;
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-          position: sticky;
-          top: 0;
-          z-index: 1000;
-      }
-
-
-      .app-header .logo-section {
-          display: flex;
-          align-items: center;
-      }
-
-
-      .app-header .app-logo {
-          height: 40px; /* Adjust logo size */
-          margin-right: 15px;
-          border-radius: 5px; /* Added for rounded corners */
-      }
-
-
-      .app-header h1 {
-          margin: 0;
-          font-size: 1.8rem;
-          color: #ffffff;
-          text-align: left; /* Override center alignment */
-      }
-
-
-      .app-header .auth-section a,
-      .app-header .auth-section span {
-          color: #ffffff;
-          margin-left: 20px;
-          font-weight: normal;
-          text-decoration: none;
-          transition: color 0.2s ease;
-      }
-
-
-      .app-header .auth-section a:hover {
-          color: #007bff; /* Highlight on hover */
-          text-decoration: underline;
-      }
-
-
-      .app-header .auth-section .username {
-          color: #28a745; /* Green for logged-in username */
-          font-weight: bold;
-      }
-
-
-      /* Main Content Wrapper */
-      .main-content-wrapper {
-          max-width: 1200px; /* Wider container */
-          margin: 30px auto;
-          background-color: #ffffff;
-          padding: 30px;
-          border-radius: 10px;
-          box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
-      }
-
-
-      /* Flash Messages Styling */
-      .alert-container {
-          margin-bottom: 20px;
-      }
-
-
-      /* Input Section Styling */
-      .prompt-input-section.card {
-          border: 1px solid #e0e0e0;
-          box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-          margin-bottom: 30px;
-      }
-
-
-      .prompt-input-section .card-body {
-          padding: 25px;
-      }
-
-
-      .prompt-input-section label {
-          font-size: 1.1rem;
-          color: #2c3e50;
-          margin-bottom: 10px;
-      }
-
-
-      .prompt-input-section textarea {
-          width: 100%; /* Ensure textarea takes full width */
-          border: 1px solid #ced4da;
-          border-radius: 8px;
-          padding: 15px;
-          font-size: 1rem;
-          min-height: 150px;
-          box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.08);
-      }
-
-
-      .input-controls {
-          display: flex;
-          align-items: center;
-          gap: 10px; /* Space between controls */
-          flex-wrap: wrap; /* Allow wrapping on small screens */
-      }
-
-
-      .input-controls .form-select {
-          flex-grow: 1; /* Allow select to grow */
-          max-width: 250px; /* Limit max width for select */
-          border-radius: 5px;
-      }
-
-
-      .input-controls .btn {
-          flex-shrink: 0; /* Prevent buttons from shrinking */
-          padding: 10px 15px;
-          font-size: 0.95rem;
-          border-radius: 5px;
-      }
-
-
-      #generate_prompts_btn, #reverse_prompt_btn { /* Combined styles for both buttons */
-          background-color: #007bff; /* Blue for primary action */
-          border-color: #007bff;
-          font-size: 1.2rem;
-          padding: 15px 30px;
-          border-radius: 8px;
-          transition: all 0.3s ease;
-          min-width: 200px;
-      }
-
-
-      #generate_prompts_btn:hover, #reverse_prompt_btn:hover {
-          background-color: #0056b3;
-          border-color: #0056b3;
-          transform: translateY(-2px);
-      }
-
-
-      #app_output {
-          margin-top: 20px;
-          font-size: 0.95em;
-          color: #555;
-          background-color: #e9ecef;
-          padding: 15px;
-          border-radius: 8px;
-          border: 1px solid #dee2e6;
-          min-height: 50px;
-          overflow-y: auto;
-      }
-
-
-      /* Prompt Output Grid */
-      .prompt-output-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); /* Responsive grid */
-          gap: 25px;
-          margin-top: 30px;
-      }
-
-
-      .prompt-output-grid .card {
-          border: 1px solid #e0e0e0;
-          border-radius: 8px;
-          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-          display: flex;
-          flex-direction: column;
-          min-height: 220px; /* Ensure consistent height */
-      }
-
-
-      .prompt-output-grid .card-header {
-          background-color: #f8f9fa;
-          border-bottom: 1px solid #e0e0e0;
-          padding: 12px 20px;
-          font-weight: bold;
-          color: #3f51b5;
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          border-top-left-radius: 8px;
-          border-top-right-radius: 8px;
-      }
-
-
-      .prompt-output-grid .card-body {
-          flex-grow: 1;
-          padding: 15px 20px;
-          overflow-y: auto;
-      }
-
-
-      /* Fixed height for pre tags with scrollbar */
-      .prompt-output-grid pre {
-          white-space: pre-wrap;
-          word-wrap: break-word;
-          font-family: 'Consolas', 'Menlo', 'Courier New', monospace;
-          font-size: 0.9rem;
-          background-color: #f4f6f9;
-          padding: 10px;
-          border-radius: 5px;
-          border: 1px solid #e9ecef;
-          flex-grow: 1;
-          margin-bottom: 0; /* Remove default pre margin */
-          max-height: 120px; /* Fixed height */
-          overflow-y: auto; /* Enable vertical scroll */
-      }
-
-
-      /* Token count indicator style */
-      .token-count {
-          font-size: 0.8rem;
-          color: #6c757d;
-          margin-left: 10px;
-          background-color: #e9ecef;
-          padding: 3px 8px;
-          border-radius: 12px;
-          white-space: nowrap; /* Prevent wrapping */
-      }
-
-
-      .prompt-output-grid .btn-sm {
-          padding: 5px 10px;
-          font-size: 0.8rem;
-          border-radius: 4px;
-      }
-
-
-      /* LLM Buttons Section */
-      .llm-buttons-section {
-          text-align: center;
-          margin-top: 30px;
-          padding-top: 20px;
-          border-top: 1px solid #e0e0e0;
-      }
-
-
-      .llm-buttons-section .llm-link-group {
-          display: flex;
-          justify-content: center;
-          flex-wrap: wrap;
-          gap: 15px;
-      }
-
-
-      .llm-buttons-section .llm-link-group button {
-          width: auto;
-          padding: 10px 20px;
-          font-size: 1rem;
-          border-radius: 6px;
-          background-color: #6c757d; /* Grey */
-          color: white;
-          transition: background-color 0.2s ease, transform 0.1s ease;
-          box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-      }
-
-
-      .llm-buttons-section .llm-link-group button:hover {
-          background-color: #5a6268;
-          transform: translateY(-1px);
-      }
-
-
-      /* History Sections (Saved Prompts & Past Raw Requests) */
-      .history-sections {
-          margin-top: 40px;
-      }
-
-
-      .history-sections .card {
-          border: 1px solid #e0e0e0;
-          border-radius: 8px;
-          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-          height: 100%; /* Ensure cards in a row have same height */
-      }
-
-
-      .history-sections .card-header {
-          background-color: #f8f9fa;
-          border-bottom: 1px solid #e0e0e0;
-          padding: 12px 20px;
-          font-weight: bold;
-          color: #2c3e50;
-          border-top-left-radius: 8px;
-          border-top-right-radius: 8px;
-      }
-
-
-      .history-sections .card-body {
-          padding: 15px 20px;
-      }
-
-
-      .history-sections .list-group {
-          max-height: 300px; /* Limit height for scrollability */
-          overflow-y: auto;
-          border: 1px solid #e9ecef;
-          border-radius: 5px;
-      }
-
-
-      .history-sections .list-group-item {
-          border: none;
-          border-bottom: 1px solid #f0f0f0;
-          padding: 10px 15px;
-          font-size: 0.9rem;
-          background-color: #ffffff;
-      }
-
-
-      .history-sections .list-group-item:last-child {
-          border-bottom: none;
-      }
-
-
-      .history-sections .list-group-item strong {
-          color: #3f51b5;
-          margin-right: 5px;
-      }
-
-
-      .download-all-button {
-          background-color: #28a745; /* Green for download */
-          border-color: #28a745;
-          margin-top: 20px;
-          padding: 12px 20px;
-          font-size: 1rem;
-          border-radius: 6px;
-          box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-      }
-
-
-      .download-all-button:hover {
-          background-color: #218838;
-          border-color: #218838;
-      }
-
-
-      /* Image Input Specific Styles */
-      .image-input-section {
-          background-color: #e0f7fa; /* Light cyan background */
-          border: 1px solid #b2ebf2;
-          border-radius: 8px;
-          padding: 20px;
-          margin-top: 20px; /* Adjusted margin */
-          text-align: center;
-      }
-      .image-input-section input[type="file"] {
-          display: block;
-          margin: 15px auto;
-          border: 1px solid #00bcd4;
-          padding: 8px;
-          border-radius: 5px;
-          width: fit-content;
-      }
-      .image-preview {
-          max-width: 100%;
-          max-height: 200px;
-          margin-top: 15px;
-          border: 1px solid #ccc;
-          border-radius: 5px;
-          display: block; /* Ensure it takes its own line */
-          margin-left: auto;
-          margin-right: auto;
-      }
-      .image-input-section button {
-          background-color: #00bcd4; /* Cyan for image processing */
-          margin-top: 15px;
-      }
-      .image-input-section button:hover {
-          background-color: #0097a7;
-      }
-      .loading-spinner {
-          display: none; /* Hidden by default */
-          border: 4px solid rgba(0, 0, 0, 0.1);
-          border-left-color: #D32F2F;
-          border-radius: 50%;
-          width: 24px;
-          height: 24px;
-          animation: spin 1s linear infinite;
-          margin: 10px auto;
-      }
-      @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
-      }
-
-
-      /* Responsive Adjustments */
-      @media (max-width: 768px) {
-          .app-header {
-              flex-direction: column;
-              padding: 10px 15px;
-          }
-          .app-header .logo-section {
-              margin-bottom: 10px;
-          }
-          .app-header h1 {
-              font-size: 1.5rem;
-          }
-          .main-content-wrapper {
-              margin: 20px auto;
-              padding: 20px;
-          }
-          .input-controls {
-              flex-direction: column;
-              align-items: stretch;
-          }
-          .input-controls .form-select,
-          .input-controls .btn {
-              max-width: 100%;
-              margin-bottom: 10px;
-          }
-          .prompt-output-grid {
-              grid-template-columns: 1fr; /* Stack columns on small screens */
-          }
-          .llm-buttons-section .llm-link-group button {
-              width: 100%;
-          }
-      }
-
-
-      /* Modal/Popup Styles */
-      .modal-overlay {
-          position: fixed;
-          top: 0;
-          left: 0;
-          width: 100%;
-          height: 100%;
-          background-color: rgba(0, 0, 0, 0.6);
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          z-index: 2000; /* Higher than other elements */
-          visibility: hidden; /* Hidden by default */
-          opacity: 0;
-          transition: visibility 0s, opacity 0.3s ease;
-      }
-
-
-      .modal-overlay.show {
-          visibility: visible;
-          opacity: 1;
-      }
-
-
-      .modal-content-custom {
-          background-color: #fff;
-          padding: 25px;
-          border-radius: 10px;
-          box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
-          max-width: 700px;
-          width: 90%;
-          max-height: 80%;
-          overflow-y: auto;
-          position: relative;
-          transform: translateY(-20px); /* Slight animation */
-          transition: transform 0.3s ease;
-      }
-
-
-      .modal-overlay.show .modal-content-custom {
-          transform: translateY(0);
-      }
-
-
-      .modal-header-custom {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 15px;
-          padding-bottom: 10px;
-          border-bottom: 1px solid #eee;
-      }
-
-
-      .modal-header-custom h4 {
-          margin: 0;
-          color: #2c3e50;
-          font-size: 1.5rem;
-      }
-
-
-      .modal-close-button {
-          background: none;
-          border: none;
-          font-size: 1.8rem;
-          color: #666;
-          cursor: pointer;
-          transition: color 0.2s ease;
-      }
-
-
-      .modal-close-button:hover {
-          color: #333;
-      }
-
-
-      .modal-body-custom pre {
-          white-space: pre-wrap;
-          word-wrap: break-word;
-          font-family: 'Consolas', 'Menlo', 'Courier New', monospace;
-          font-size: 1rem;
-          background-color: #f8f9fa;
-          padding: 15px;
-          border-radius: 8px;
-          border: 1px solid #e9ecef;
-          line-height: 1.5;
-      }
-
-
-      /* Cooldown Timer Styling */
-      #cooldown_timer {
-          margin-left: 15px;
-          font-weight: bold;
-          color: #dc3545; /* Red for active timer */
-          display: none; /* Hidden by default */
-      }
-  </style>
+   <meta charset="UTF-8">
+   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+   <title>AI Prompt Generator</title>
+   <!-- Bootstrap CSS for modern styling -->
+   <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+   <!-- Font Awesome for icons -->
+   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+   <style>
+       body {
+           font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+           margin: 0;
+           padding: 0; /* Remove body padding as main-content-wrapper will handle it */
+           background-color: #f0f2f5;
+           color: #333;
+           line-height: 1.6;
+       }
+
+       /* New Header Styles */
+       .app-header {
+           background-color: #343a40; /* Dark background for header */
+           color: #ffffff;
+           padding: 15px 30px;
+           display: flex;
+           justify-content: space-between;
+           align-items: center;
+           box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+           position: sticky;
+           top: 0;
+           z-index: 1000;
+       }
+
+       .app-header .logo-section {
+           display: flex;
+           align-items: center;
+       }
+
+       .app-header .app-logo {
+           height: 40px; /* Adjust logo size */
+           margin-right: 15px;
+           border-radius: 5px; /* Added for rounded corners */
+       }
+
+       .app-header h1 {
+           margin: 0;
+           font-size: 1.8rem;
+           color: #ffffff;
+           text-align: left; /* Override center alignment */
+       }
+
+       .app-header .auth-section a,
+       .app-header .auth-section span {
+           color: #ffffff;
+           margin-left: 20px;
+           font-weight: normal;
+           text-decoration: none;
+           transition: color 0.2s ease;
+       }
+
+       .app-header .auth-section a:hover {
+           color: #007bff; /* Highlight on hover */
+           text-decoration: underline;
+       }
+
+       .app-header .auth-section .username {
+           color: #28a745; /* Green for logged-in username */
+           font-weight: bold;
+       }
+
+       /* Main Content Wrapper */
+       .main-content-wrapper {
+           max-width: 1200px; /* Wider container */
+           margin: 30px auto;
+           background-color: #ffffff;
+           padding: 30px;
+           border-radius: 10px;
+           box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+       }
+
+       /* Flash Messages Styling */
+       .alert-container {
+           margin-bottom: 20px;
+       }
+
+       /* Input Section Styling */
+       .prompt-input-section.card {
+           border: 1px solid #e0e0e0;
+           box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+           margin-bottom: 30px;
+       }
+
+       .prompt-input-section .card-body {
+           padding: 25px;
+       }
+
+       .prompt-input-section label {
+           font-size: 1.1rem;
+           color: #2c3e50;
+           margin-bottom: 10px;
+       }
+
+       .prompt-input-section textarea {
+           width: 100%; /* Ensure textarea takes full width */
+           border: 1px solid #ced4da;
+           border-radius: 8px;
+           padding: 15px;
+           font-size: 1rem;
+           min-height: 150px;
+           box-shadow: inset 0 11px 3px rgba(0, 0, 0, 0.08);
+       }
+
+       .input-controls {
+           display: flex;
+           align-items: center;
+           gap: 10px; /* Space between controls */
+           flex-wrap: wrap; /* Allow wrapping on small screens */
+       }
+
+       .input-controls .form-select {
+           flex-grow: 1; /* Allow select to grow */
+           max-width: 250px; /* Limit max width for select */
+           border-radius: 5px;
+       }
+
+       .input-controls .btn {
+           flex-shrink: 0; /* Prevent buttons from shrinking */
+           padding: 10px 15px;
+           font-size: 0.95rem;
+           border-radius: 5px;
+       }
+
+       #generate_prompts_btn, #reverse_prompt_btn { /* Combined styles for both buttons */
+           background-color: #007bff; /* Blue for primary action */
+           border-color: #007bff;
+           font-size: 1.2rem;
+           padding: 15px 30px;
+           border-radius: 8px;
+           transition: all 0.3s ease;
+           min-width: 200px;
+       }
+
+       #generate_prompts_btn:hover, #reverse_prompt_btn:hover {
+           background-color: #0056b3;
+           border-color: #0056b3;
+           transform: translateY(-2px);
+       }
+
+       #app_output {
+           margin-top: 20px;
+           font-size: 0.95em;
+           color: #555;
+           background-color: #e9ecef;
+           padding: 15px;
+           border-radius: 8px;
+           border: 1px solid #dee2e6;
+           min-height: 50px;
+           overflow-y: auto;
+       }
+       /* Specific styles for app_output messages */
+       #app_output.info {
+           background-color: #e9ecef;
+           color: #555;
+       }
+       #app_output.warning {
+           background-color: #fff3cd; /* Light yellow */
+           color: #856404; /* Dark yellow text */
+           border-color: #ffeeba;
+       }
+       #app_output.danger {
+           background-color: #f8d7da; /* Light red */
+           color: #721c24; /* Dark red text */
+           border-color: #f5c6cb;
+       }
+       #app_output.success {
+           background-color: #d4edda; /* Light green */
+           color: #155724; /* Dark green text */
+           border-color: #c3e6cb;
+       }
+
+
+       /* Prompt Output Grid */
+       .prompt-output-grid {
+           display: grid;
+           grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); /* Responsive grid */
+           gap: 25px;
+           margin-top: 30px;
+       }
+
+       .prompt-output-grid .card {
+           border: 1px solid #e0e0e0;
+           border-radius: 8px;
+           box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+           display: flex;
+           flex-direction: column;
+           min-height: 220px; /* Ensure consistent height */
+       }
+
+       .prompt-output-grid .card-header {
+           background-color: #f8f9fa;
+           border-bottom: 1px solid #e0e0e0;
+           padding: 12px 20px;
+           font-weight: bold;
+           color: #3f51b5;
+           display: flex;
+           justify-content: space-between;
+           align-items: center;
+           border-top-left-radius: 8px;
+           border-top-right-radius: 8px;
+       }
+
+       .prompt-output-grid .card-body {
+           flex-grow: 1;
+           padding: 15px 20px;
+           overflow-y: auto;
+       }
+
+       /* Fixed height for pre tags with scrollbar */
+       .prompt-output-grid pre {
+           white-space: pre-wrap;
+           word-wrap: break-word;
+           font-family: 'Consolas', 'Menlo', 'Courier New', monospace;
+           font-size: 0.9rem;
+           background-color: #f4f6f9;
+           padding: 10px;
+           border-radius: 5px;
+           border: 1px solid #e9ecef;
+           flex-grow: 1;
+           margin-bottom: 0; /* Remove default pre margin */
+           max-height: 120px; /* Fixed height */
+           overflow-y: auto; /* Enable vertical scroll */
+       }
+
+       /* Token count indicator style */
+       .token-count {
+           font-size: 0.8rem;
+           color: #6c757d;
+           margin-left: 10px;
+           background-color: #e9ecef;
+           padding: 3px 8px;
+           border-radius: 12px;
+           white-space: nowrap; /* Prevent wrapping */
+       }
+
+       .prompt-output-grid .btn-sm {
+           padding: 5px 10px;
+           font-size: 0.8rem;
+           border-radius: 4px;
+       }
+
+       /* LLM Buttons Section */
+       .llm-buttons-section {
+           text-align: center;
+           margin-top: 30px;
+           padding-top: 20px;
+           border-top: 1px solid #e0e0e0;
+       }
+
+       .llm-buttons-section .llm-link-group {
+           display: flex;
+           justify-content: center;
+           flex-wrap: wrap;
+           gap: 15px;
+       }
+
+       .llm-buttons-section .llm-link-group button {
+           width: auto;
+           padding: 10px 20px;
+           font-size: 1rem;
+           border-radius: 6px;
+           background-color: #6c757d; /* Grey */
+           color: white;
+           transition: background-color 0.2s ease, transform 0.1s ease;
+           box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+       }
+
+       .llm-buttons-section .llm-link-group button:hover:not(:disabled) {
+           background-color: #5a6268;
+           transform: translateY(-1px);
+       }
+       .llm-buttons-section .llm-link-group button:disabled {
+           opacity: 0.6;
+           cursor: not-allowed;
+           box-shadow: none;
+       }
+
+       /* History Sections (Saved Prompts & Past Raw Requests) */
+       .history-sections {
+           margin-top: 40px;
+       }
+
+       .history-sections .card {
+           border: 1px solid #e0e0e0;
+           border-radius: 8px;
+           box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+           height: 100%; /* Ensure cards in a row have same height */
+       }
+
+       .history-sections .card-header {
+           background-color: #f8f9fa;
+           border-bottom: 1px solid #e0e0e0;
+           padding: 12px 20px;
+           font-weight: bold;
+           color: #2c3e50;
+           border-top-left-radius: 8px;
+           border-top-right-radius: 8px;
+       }
+
+       .history-sections .card-body {
+           padding: 15px 20px;
+       }
+
+       .history-sections .list-group {
+           max-height: 300px; /* Limit height for scrollability */
+           overflow-y: auto;
+           border: 1px solid #e9ecef;
+           border-radius: 5px;
+       }
+
+       .history-sections .list-group-item {
+           border: none;
+           border-bottom: 1px solid #f0f0f0;
+           padding: 10px 15px;
+           font-size: 0.9rem;
+           background-color: #ffffff;
+       }
+
+       .history-sections .list-group-item:last-child {
+           border-bottom: none;
+       }
+
+       .history-sections .list-group-item strong {
+           color: #3f51b5;
+           margin-right: 5px;
+       }
+
+       .download-all-button {
+           background-color: #28a745; /* Green for download */
+           border-color: #28a745;
+           margin-top: 20px;
+           padding: 12px 20px;
+           font-size: 1rem;
+           border-radius: 6px;
+           box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+       }
+
+       .download-all-button:hover {
+           background-color: #218838;
+           border-color: #218838;
+       }
+
+       /* Image Input Specific Styles */
+       .image-input-section {
+           background-color: #e0f7fa; /* Light cyan background */
+           border: 1px solid #b2ebf2;
+           border-radius: 8px;
+           padding: 20px;
+           margin-top: 20px; /* Adjusted margin */
+           text-align: center;
+       }
+       .image-input-section input[type="file"] {
+           display: block;
+           margin: 15px auto;
+           border: 1px solid #00bcd4;
+           padding: 8px;
+           border-radius: 5px;
+           width: fit-content;
+       }
+       .image-preview {
+           max-width: 100%;
+           max-height: 200px;
+           margin-top: 15px;
+           border: 1px solid #ccc;
+           border-radius: 5px;
+           display: block; /* Ensure it takes its own line */
+           margin-left: auto;
+           margin-right: auto;
+       }
+       .image-input-section button {
+           background-color: #00bcd4; /* Cyan for image processing */
+           margin-top: 15px;
+       }
+       .image-input-section button:hover {
+           background-color: #0097a7;
+       }
+       .loading-spinner {
+           display: none; /* Hidden by default */
+           border: 4px solid rgba(0, 0, 0, 0.1);
+           border-left-color: #D32F2F;
+           border-radius: 50%;
+           width: 24px;
+           height: 24px;
+           animation: spin 1s linear infinite;
+           margin: 10px auto;
+       }
+       @keyframes spin {
+           0% { transform: rotate(0deg); }
+           100% { transform: rotate(360deg); }
+       }
+
+       /* Responsive Adjustments */
+       @media (max-width: 768px) {
+           .app-header {
+               flex-direction: column;
+               padding: 10px 15px;
+           }
+           .app-header .logo-section {
+               margin-bottom: 10px;
+           }
+           .app-header h1 {
+               font-size: 1.5rem;
+           }
+           .main-content-wrapper {
+               margin: 20px auto;
+               padding: 20px;
+           }
+           .input-controls {
+               flex-direction: column;
+               align-items: stretch;
+           }
+           .input-controls .form-select,
+           .input-controls .btn {
+               max-width: 100%;
+               margin-bottom: 10px;
+           }
+           .prompt-output-grid {
+               grid-template-columns: 1fr; /* Stack columns on small screens */
+           }
+           .llm-buttons-section .llm-link-group button {
+               width: 100%;
+           }
+       }
+
+       /* Modal/Popup Styles */
+       .modal-overlay {
+           position: fixed;
+           top: 0;
+           left: 0;
+           width: 100%;
+           height: 100%;
+           background-color: rgba(0, 0, 0, 0.6);
+           display: flex;
+           justify-content: center;
+           align-items: center;
+           z-index: 2000; /* Higher than other elements */
+           visibility: hidden; /* Hidden by default */
+           opacity: 0;
+           transition: visibility 0s, opacity 0.3s ease;
+       }
+
+       .modal-overlay.show {
+           visibility: visible;
+           opacity: 1;
+       }
+
+       .modal-content-custom {
+           background-color: #fff;
+           padding: 25px;
+           border-radius: 10px;
+           box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+           max-width: 700px;
+           width: 90%;
+           max-height: 80%;
+           overflow-y: auto;
+           position: relative;
+           transform: translateY(-20px); /* Slight animation */
+           transition: transform 0.3s ease;
+       }
+
+       .modal-overlay.show .modal-content-custom {
+           transform: translateY(0);
+       }
+
+       .modal-header-custom {
+           display: flex;
+           justify-content: space-between;
+           align-items: center;
+           margin-bottom: 15px;
+           padding-bottom: 10px;
+           border-bottom: 1px solid #eee;
+       }
+
+       .modal-header-custom h4 {
+           margin: 0;
+           color: #2c3e50;
+           font-size: 1.5rem;
+       }
+
+       .modal-close-button {
+           background: none;
+           border: none;
+           font-size: 1.8rem;
+           color: #666;
+           cursor: pointer;
+           transition: color 0.2s ease;
+       }
+
+       .modal-close-button:hover {
+           color: #333;
+       }
+
+       .modal-body-custom pre {
+           white-space: pre-wrap;
+           word-wrap: break-word;
+           font-family: 'Consolas', 'Menlo', 'Courier New', monospace;
+           font-size: 1rem;
+           background-color: #f8f9fa;
+           padding: 15px;
+           border-radius: 8px;
+           border: 1px solid #e9ecef;
+           line-height: 1.5;
+       }
+
+       /* Cooldown Timer Styling */
+       #cooldown_timer {
+           margin-left: 15px;
+           font-weight: bold;
+           color: #dc3545; /* Red for active timer */
+           display: none; /* Hidden by default */
+       }
+   </style>
 </head>
 <body>
-   <header class="app-header">
-       <div class="logo-section">
-           <!-- Placeholder for a logo image. You can replace this with an actual image. -->
-           <img src="https://placehold.co/40x40/007bff/ffffff?text=AI" alt="SuperPrompter AI Logo" class="app-logo">
-           <h1>SuperPrompter</h1>
-       </div>
-       <div class="auth-section">
-           {% if current_user.is_authenticated %}
-               <span class="mr-3">Welcome, <strong class="username">{{ current_user.username }}</strong>!</span>
-               <a href="{{ url_for('change_password') }}" class="btn btn-outline-light btn-sm mr-2">Change Password</a>
-               <a href="{{ url_for('logout') }}" class="btn btn-outline-light btn-sm">Logout</a>
-           {% else %}
-               <a href="{{ url_for('login') }}" class="btn btn-outline-light btn-sm mr-2">Login</a>
-               <a href="{{ url_for('register') }}" class="btn btn-light btn-sm">Register</a>
-           {% endif %}
-       </div>
-   </header>
-
-
-   <div class="main-content-wrapper">
-       <!-- Flash Messages -->
-       {% with messages = get_flashed_messages(with_categories=true) %}
-           {% if messages %}
-               <div class="alert-container">
-                   {% for category, message in messages %}
-                       <div class="alert alert-{{ category }}">{{ message }}</div>
-                   {% endfor %}
-               </div>
-           {% endif %}
-       {% endwith %}
-
-
-       <div class="prompt-input-section card">
-           <div class="card-body">
-               <!-- START: Wrapped content in form tag -->
-               <form id="promptForm">
-                   <label for="prompt_input" class="form-label">Enter raw prompt idea for generating effective prompts and apply reverse prompting to enhance existing code :</label>
-                   <textarea id="prompt_input" name="prompt_input" class="form-control" rows="8" placeholder="e.g., Write a story about a robot who wants to be a chef."></textarea>
-                
-                   <div class="d-flex justify-content-between align-items-center mt-3 flex-wrap">
-                       <div class="input-controls">
-                           <label for="lang_select" class="sr-only">Voice Input & Output Language:</label>
-                           <select id="lang_select" class="form-control">
-                               <option value="en-US">English (US)</option>
-                               <option value="en-GB">English (UK)</option>
-                               <option value="es-ES">Español (España)</option>
-                               <option value="fr-FR">Français (France)</option>
-                               <option value="de-DE">Deutsch (Deutschland)</option>
-                               <option value="it-IT">Italiano (Italia)</option>
-                               <option value="ja-JP"> 日本語 (日本) </option>
-                               <option value="ko-KR"> 한국어 (대한민국) </option>
-                               <option value="zh-CN"> 中文 (普通话, 简体) </option>
-                               <option value="hi-IN"> हिन्दी (भारत) </option>
-                               <!-- Add more languages as needed -->
-                           </select>
-                           <button type="button" id="voice_input_button" class="btn btn-outline-secondary mt-2 mt-md-0">🎤 Start Voice Input</button>
-                           <input type="file" id="image_input" accept="image/*" class="d-none">
-                           <button type="button" id="trigger_image_input" class="btn btn-outline-secondary mt-2 mt-md-0">📸 Upload Image</button>
-                       </div>
-                       <div class="d-flex flex-column flex-md-row gap-2 mt-3 mt-md-0">
-                           <button type="submit" id="generate_prompts_btn" class="btn btn-primary mb-2 mb-md-0 mr-2">Generate Prompts</button>
-                           <button type="button" id="reverse_prompt_btn" class="btn btn-secondary">Reverse Prompt</button>
-                       </div>
-                       <span id="cooldown_timer"></span>
-                   </div>
-               </form>
-               <!-- END: Wrapped content in form tag -->
-
-
-               <!-- Image Preview and Processing -->
-               <div class="image-input-section mt-4" style="display: none;">
-                   <h5>Image Input (Handwritten Text)</h5>
-                   <img id="image_preview" class="image-preview" src="#" alt="Image Preview" style="display: none;">
-                   <div id="image_loading_spinner" class="loading-spinner"></div>
-                   <button type="button" id="process_image_button" class="btn btn-info mt-3">📸 Process Image Prompt</button>
-                   <p class="text-muted mt-2" style="font-size: 0.85rem;">
-                       Upload an image containing handwritten text. The AI will attempt to recognize it and use it as your prompt.
-                   </p>
-               </div>
-               <!-- END Image Preview and Processing -->
-
-
-               <div id="app_output" class="mt-4">Application messages will appear here.</div>
-           </div>
-       </div>
-
-
-       <div class="prompt-output-grid">
-           <div class="col">
-               <div class="card">
-                   <div class="card-header">
-                       <h5>Polished Prompt</h5>
-                       <span id="polished_token_count" class="token-count">0 chars</span>
-                       <div>
-                           <button class="btn btn-sm btn-outline-secondary mr-1" onclick="copyPromptText('polished_output')"><i class="fas fa-copy"></i> Copy</button>
-                           <button class="btn btn-sm btn-outline-info" onclick="openFullContextView('Polished Prompt', 'polished_output')"><i class="fas fa-expand-alt"></i> View Full</button>
-                       </div>
-                   </div>
-                   <div class="card-body">
-                       <pre id="polished_output"></pre>
-                       <button class="save-button btn btn-sm btn-primary mt-2" data-prompt-type="polished">Save</button>
-                   </div>
-               </div>
-           </div>
-           <div class="col">
-               <div class="card">
-                   <div class="card-header">
-                       <h5>Creative Variant</h5>
-                       <span id="creative_token_count" class="token-count">0 chars</span>
-                       <div>
-                           <button class="btn btn-sm btn-outline-secondary mr-1" onclick="copyPromptText('creative_output')"><i class="fas fa-copy"></i> Copy</button>
-                           <button class="btn btn-sm btn-outline-info" onclick="openFullContextView('Creative Variant', 'creative_output')"><i class="fas fa-expand-alt"></i> View Full</button>
-                       </div>
-                   </div>
-                   <div class="card-body">
-                       <pre id="creative_output"></pre>
-                       <button class="save-button btn btn-sm btn-primary mt-2" data-prompt-type="creative">Save</button>
-                   </div>
-               </div>
-           </div>
-           <div class="col">
-               <div class="card">
-                   <div class="card-header">
-                       <h5>Technical Variant</h5>
-                       <span id="technical_token_count" class="token-count">0 chars</span>
-                       <div>
-                           <button class="btn btn-sm btn-outline-secondary mr-1" onclick="copyPromptText('technical_output')"><i class="fas fa-copy"></i> Copy</button>
-                           <button class="btn btn-sm btn-outline-info" onclick="openFullContextView('Technical Variant', 'technical_output')"><i class="fas fa-expand-alt"></i> View Full</button>
-                       </div>
-                   </div>
-                   <div class="card-body">
-                       <pre id="technical_output"></pre>
-                       <button class="save-button btn btn-sm btn-primary mt-2" data-prompt-type="technical">Save</button>
-                   </div>
-               </div>
-           </div>
-           <!-- Removed: Shorter Variant -->
-           <!-- Removed: Suggested Additions -->
-       </div>
-
-
-       <div class="llm-buttons-section">
-           <h3>Open Prompt in LLM</h3>
-           <div class="llm-link-group">
-               <button onclick="openLLM('chatgpt')">ChatGPT</button>
-               <button onclick="openLLM('claude')">Claude</button>
-               <button onclick="openLLM('mistral')">Mistral</button>
-               <button onclick="openLLM('gemini')">Gemini</button>
-               <button onclick="openLLM('grok')">Grok</button>
-               <button onclick="openLLM('perplexity')">Perplexity</button>
-               <button onclick="openLLM('deepseek')">DeepSeek</button>
-           </div>
-           <p class="text-muted mt-2" style="font-size: 0.85rem;">
-               (Copy a prompt using the "Copy" button above, then click an LLM button to open its website and paste.)
-           </p>
-       </div>
-
-
-       <div class="history-sections row">
-           <div class="col-md-6">
-               <div class="card">
-                   <div class="card-header">
-                       <h5>Saved Prompts</h5>
-                   </div>
-                   <div class="card-body">
-                       <ul id="saved_prompts_list" class="list-group">
-                           <!-- Saved prompts will be loaded here -->
-                       </ul>
-                       <button class="download-all-button btn btn-success mt-3" onclick="window.location.href='/download_prompts_txt'">
-                           ⬇️ Download All Prompts (TXT)
-                       </button>
-                   </div>
-               </div>
-           </div>
-           <div class="col-md-6">
-               <div class="card">
-                   <div class="card-header">
-                       <h5>Past Raw Requests (Last 10)</h5>
-                   </div>
-                   <div class="card-body">
-                       <ul id="past_raw_requests_list" class="list-group">
-                           <!-- Past raw requests will be loaded here -->
-                       </ul>
-                   </div>
-               </div>
-           </div>
-       </div>
-   </div>
-
-
-   <!-- Full Context View Modal -->
-   <div id="fullContextModalOverlay" class="modal-overlay">
-       <div class="modal-content-custom">
-           <div class="modal-header-custom">
-               <h4 id="fullContextModalTitle"></h4>
-               <button class="modal-close-button" onclick="closeFullContextView()">&times;</button>
-           </div>
-           <div class="modal-body-custom">
-               <pre id="fullContextModalText"></pre>
-           </div>
-       </div>
-   </div>
-   <!-- END Full Context View Modal -->
-
-
-  <script>
-      // --- Message Translations (unchanged) ---
-      const MESSAGES = {
-          "en-US": {
-              "generating": "🚀 Generating prompts and variants...",
-              "reverse_prompting": "🧠 Inferring prompt from text/code...",
-              "voice_not_supported": "Warning: Your browser does not support Web Speech API for voice input.",
-              "listening": "🗣️ Listening (English). Speak now.",
-              "voice_captured":  "✅ Voice input captured. Click \"Generate Prompts\"." ,
-              "voice_error":  "❌ Voice input error:" ,
-              "voice_start_error":  "❌ Error starting voice input:" ,
-              "voice_ended": "Voice input session ended.",
-              "no_prompt_to_save":  "❗ No {type} prompt to save. Generate one first." ,
-              "prompt_saved":  "✅ Prompt saved temporarily!" ,
-              "save_failed":  "❌ Failed to save prompt:" ,
-              "network_error_save":  "❌ Error communicating with server to save prompt:" ,
-              "api_error":  "❌ Error: {error}" ,
-              "generation_failed":  "❌ Failed to generate prompts:" ,
-              "reverse_prompt_failed": "❌ Failed to infer reverse prompt:",
-              "generation_complete":  "✨ All prompt generation tasks complete." ,
-              "reverse_prompt_complete": "✨ Reverse prompt inferred successfully.",
-              "no_input_text": "Please enter some text to generate prompts.",
-              "api_key_not_configured": "Gemini API Key is not configured or the AI model failed to initialize.",
-              "image_processing": "🖼️ Processing image and extracting text...",
-              "image_success":  "✅ Text extracted from image. Click \"Generate Prompts\" to refine." ,
-              "image_error":  "❌ Image processing error:" ,
-              "no_image_selected":  "❗ Please select an image file first." ,
-              "copy_success":  "✅ Prompt copied to clipboard!" ,
-              "copy_fail":  "❌ Failed to copy prompt to clipboard."
-          },
-          "es-ES": {
-              "generating": "🚀 Generando indicaciones y variantes...",
-              "reverse_prompting": "🧠 Infiriendo prompt de texto/código...",
-              "voice_not_supported": "Advertencia: Su navegador no soporta la API de Voz para entrada de voz.",
-              "listening": "🗣️ Escuchando (Español). Hable ahora.",
-              "voice_captured":  "✅ Entrada de voz capturada. Haga clic en \"Generar Indicaciones\"." ,
-              "voice_error":  "❌ Error de entrada de voz:" ,
-              "voice_start_error":  "❌ Error al iniciar la entrada de voz:" ,
-              "voice_ended": "Sesión de entrada de voz finalizada.",
-              "no_prompt_to_save":  "❗ No hay indicación {type} para guardar. Genere una primero." ,
-              "prompt_saved":  "✅ ¡Indicación guardada temporalmente!" ,
-              "save_failed":  "❌ Error al guardar la indicación:" ,
-              "network_error_save":  "❌ Error de comunicación con el servidor al guardar la indicación:" ,
-              "api_error":  "❌ Error: {error}" ,
-              "generation_failed":  "❌ Fallo al generar indicaciones:" ,
-              "reverse_prompt_failed": "❌ Fallo al inferir el prompt inverso:",
-              "generation_complete":  "✨ Todas las tareas de generación de indicaciones completadas." ,
-              "reverse_prompt_complete": "✨ Prompt inverso inferido con éxito.",
-              "no_input_text": "Por favor, introduzca texto para generar indicaciones.",
-              "api_key_not_configured": "La clave API de Gemini no está configurada o el modelo de IA no se pudo inicializar.",
-              "image_processing": "🖼️ Procesando imagen y extrayendo texto...",
-              "image_success":  "✅ Texto extraído de la imagen. Haga clic en \"Generar Indicaciones\" para afinar." ,
-              "image_error":  "❌ Error de procesamiento de imagen:" ,
-              "no_image_selected":  "❗ Por favor, seleccione un archivo de imagen primero." ,
-              "copy_success":  "✅ Indicación copiada al portapapeles." ,
-              "copy_fail":  "❌ Error al copiar la indicación al portapapeles."
-          },
-          "fr-FR": {
-              "generating": "🚀 Génération des invites et variantes...",
-              "reverse_prompting": "🧠 Inférence de l'invite à partir du texte/code...",
-              "voice_not_supported": "Avertissement: Votre navigateur ne prend pas en charge l'API vocale para la saisie vocale.",
-              "listening": "🗣️ À l'écoute (Français). Parlez maintenant.",
-              "voice_captured":  "✅ Saisie vocale capturée. Cliquez sur \"Générer les invites\"." ,
-              "voice_error":  "❌ Erreur de saisie vocale :" ,
-              "voice_start_error":  "❌ Erreur au démarrage de la saisie vocale :" ,
-              "voice_ended": "Session de saisie vocale terminée.",
-              "no_prompt_to_save":  "❗ Aucune invite {type} à enregistrer. Générez-en une d'abord." ,
-              "prompt_saved":  "✅ Invite enregistrée temporairement !" ,
-              "save_failed":  "❌ Échec de l'enregistrement de l'invite :" ,
-              "network_error_save":  "❌ Erreur de communication avec le serveur lors de l'enregistrement de l'invite :" ,
-              "api_error":  "❌ Erreur : {error}" ,
-              "generation_failed":  "❌ Échec de la génération des invites :" ,
-              "reverse_prompt_failed": "❌ Échec de l'inférence de l'invite inverse :",
-              "generation_complete":  "✨ Toutes les tâches de génération d'invites terminées." ,
-              "reverse_prompt_complete": "✨ Invite inverse inférée avec succès.",
-              "no_input_text": "Veuillez saisir du texte pour générer des invites.",
-              "api_key_not_configured": "La clé API Gemini n'est pas configurée ou le modèle d'IA n'a pas pu être initialiser.",
-              "image_processing": "🖼️ Traitement de l'image et extraction du texto...",
-              "image_success":  "✅ Texto extraído de la imagen. Haga clic en \"Générer les invites\" para afiner." ,
-              "image_error":  "❌ Error de procesamiento de imagen :" ,
-              "no_image_selected":  "❗ Veuillez seleccionar un archivo de imagen en primer lieu." ,
-              "copy_success":  "✅ Invite copiada en el portapapeles !" ,
-              "copy_fail":  "❌ Échec de la copia de la invite en el portapapeles."
-          },
-          "de-DE": {
-              "generating": "🚀 Prompts und Varianten werden generiert...",
-              "reverse_prompting": "🧠 Prompt aus Text/Code ableiten...",
-              "voice_not_supported": "Warnung: Ihr Browser unterstützt die Web Speech API für die Spracheingabe nicht.",
-              "listening": "🗣️ Höre zu (Deutsch). Sprechen Sie jetzt.",
-              "voice_captured":  "✅ Spracheingabe erfasst. Klicken Sie auf „Prompts generieren“." ,
-              "voice_error":  "❌ Fehler bei der Spracheingabe:" ,
-              "voice_start_error":  "❌ Fehler beim Starten der Spracheingabe:" ,
-              "voice_ended": "Spracheingabesitzung beendet.",
-              "no_prompt_to_save":  "❗ Kein {type}-Prompt zum Speichern vorhanden. Generieren Sie zuerst einen." ,
-              "prompt_saved":  "✅ Prompt temporär gespeichert!" ,
-              "save_failed":  "❌ Speichern des Prompts fehlgeschlagen:" ,
-              "network_error_save":  "❌ Fehler bei der Kommunikation mit dem Server beim Speichern des Prompts:" ,
-              "api_error":  "❌ Fehler: {error}" ,
-              "generation_failed":  "❌ Generierung der Prompts fehlgeschlagen:" ,
-              "reverse_prompt_failed": "❌ Fehler beim Ableiten des Reverse Prompts:",
-              "generation_complete":  "✨ Alle Prompt-Generierungsaufgaben abgeschlossen." ,
-              "reverse_prompt_complete": "✨ Reverse Prompt erfolgreich abgeleitet.",
-              "no_input_text": "Bitte geben Sie Text ein, um Prompts zu generieren.",
-              "api_key_not_configured": "Der Gemini-API-Schlüssel ist nicht konfiguriert oder das KI-Modell konnte nicht initialisiert werden.",
-              "image_processing": "🖼️ Bild wird verarbeitet und Text extrahiert...",
-              "image_success":  "✅ Text aus Bild extrahiert. Klicken Sie auf „Prompts generieren“ zum Verfeinern." ,
-              "image_error":  "❌ Fehler bei der Bildverarbeitung:" ,
-              "no_image_selected":  "❗ Bitte wählen Sie zuerst eine Bilddatei aus." ,
-              "copy_success":  "✅ Prompt in Zwischenablage kopiert!" ,
-              "copy_fail":  "❌ Fehler beim Kopieren des Prompts in die Zwischenablage."
-          },
-      };
-
-
-      function getMessage(key, langCode, replacements = {}) {
-          const messages = MESSAGES[langCode] || MESSAGES["en-US"];
-          let message = messages[key] || MESSAGES["en-US"][key] || key;
-          for (const placeholder in replacements) {
-              message = message.replace(`{${placeholder}}`, replacements[placeholder]);
-          }
-          return message;
-      }
-
-
-
-
-      // Function to fetch and display saved prompts
-      async function fetchAndDisplaySavedPrompts() {
-          const savedPromptsListElement = document.getElementById('saved_prompts_list');
-          savedPromptsListElement.innerHTML = '';
-
-
-          try {
-              const response = await fetch('/get_saved_prompts');
-              if (!response.ok) {
-                  console.warn(`Could not fetch saved prompts: HTTP status ${response.status}`);
-                  savedPromptsListElement.innerHTML = '<li class="list-group-item">Please log in to view your saved prompts.</li>';
-                  return;
-              }
-              const savedPrompts = await response.json();
-
-
-              if (savedPrompts.length === 0) {
-                  savedPromptsListElement.innerHTML = '<li class="list-group-item">No prompts saved yet.</li>';
-              } else {
-                  savedPrompts.forEach(prompt => {
-                      const listItem = document.createElement('li');
-                      listItem.className = 'list-group-item';
-                      listItem.innerHTML = `
-                          <strong>${prompt.type.charAt(0).toUpperCase() + prompt.type.slice(1)} Prompt (${prompt.timestamp}):</strong>
-                          <pre>${prompt.text}</pre>
-                      `;
-                      savedPromptsListElement.appendChild(listItem);
-                  });
-              }
-          } catch (error) {
-              console.error("Error fetching saved prompts:", error);
-              savedPromptsListElement.innerHTML = '<li class="list-group-item">Error loading saved prompts.</li>';
-          }
-      }
-
-
-      // Function to fetch and display past raw requests
-      async function fetchAndDisplayRawPrompts() {
-          const pastRawRequestsListElement = document.getElementById('past_raw_requests_list');
-          pastRawRequestsListElement.innerHTML = ''; // Clear previous entries
-
-
-          try {
-              const response = await fetch('/get_raw_prompts');
-              if (!response.ok) {
-                  console.warn(`Could not fetch raw prompts: HTTP status ${response.status}`);
-                  pastRawRequestsListElement.innerHTML = '<li class="list-group-item">Please log in to view your past raw requests.</li>';
-                  return;
-              }
-              const rawPrompts = await response.json();
-
-
-              if (rawPrompts.length === 0) {
-                  pastRawRequestsListElement.innerHTML = '<li class="list-group-item">No raw requests saved yet.</li>';
-              } else {
-                  rawPrompts.forEach(prompt => {
-                      const listItem = document.createElement('li');
-                      listItem.className = 'list-group-item';
-                      listItem.innerHTML = `
-                          <strong>${prompt.timestamp}:</strong>
-                          <span>${prompt.raw_text}</span>
-                      `;
-                      pastRawRequestsListElement.appendChild(listItem);
-                  });
-              }
-          } catch (error) {
-              console.error("Error fetching raw prompts:", error);
-              pastRawRequestsListElement.innerHTML = '<li class="list-group-item">Error loading past raw requests.</li>';
-          }
-      }
-
-
-
-
-      document.addEventListener('DOMContentLoaded', () => {
-          fetchAndDisplaySavedPrompts();
-          fetchAndDisplayRawPrompts();
-          checkCooldownStatus(); // Check cooldown on page load
-      });
-
-
-      // Cooldown timer variables
-      let cooldownTimerInterval;
-      const cooldownTimerDisplay = document.getElementById('cooldown_timer');
-      const generateButton = document.getElementById('generate_prompts_btn');
-      const reversePromptButton = document.getElementById('reverse_prompt_btn');
-
-
-      function startCooldownTimer(remainingTime) {
-          let timeLeft = remainingTime;
-          generateButton.disabled = true;
-          reversePromptButton.disabled = true;
-          cooldownTimerDisplay.style.display = 'inline';
-          cooldownTimerDisplay.textContent = `Cooldown: ${timeLeft}s`;
-
-
-          if (cooldownTimerInterval) {
-              clearInterval(cooldownTimerInterval);
-          }
-
-
-          cooldownTimerInterval = setInterval(() => {
-              timeLeft--;
-              cooldownTimerDisplay.textContent = `Cooldown: ${timeLeft}s`;
-              if (timeLeft <= 0) {
-                  clearInterval(cooldownTimerInterval);
-                  generateButton.disabled = false;
-                  reversePromptButton.disabled = false;
-                  cooldownTimerDisplay.style.display = 'none';
-                  cooldownTimerDisplay.textContent = '';
-                  generateButton.textContent = 'Generate Prompts';
-                  reversePromptButton.textContent = 'Reverse Prompt';
-              }
-          }, 1000);
-      }
-
-
-      async function checkCooldownStatus() {
-          try {
-              const response = await fetch('/check_cooldown');
-              if (!response.ok) {
-                  console.warn(`Could not check cooldown status: HTTP status ${response.status}`);
-                  return;
-              }
-              const data = await response.json();
-              if (data.cooldown_active) {
-                  startCooldownTimer(data.remaining_time);
-                  generateButton.textContent = 'Generating...';
-                  reversePromptButton.textContent = 'Cooldown...';
-              }
-          } catch (error) {
-              console.error("Error checking cooldown status:", error);
-          }
-      }
-
-
-
-
-      document.getElementById('promptForm').addEventListener('submit', async function(event) {
-          event.preventDefault();
-
-
-          const promptInput = document.getElementById('prompt_input').value;
-          const selectedLanguage = document.getElementById('lang_select').value;
-          const appOutput = document.getElementById('app_output');
-         
-          // Clear previous outputs and token counts
-          document.getElementById('polished_output').textContent = '';
-          document.getElementById('creative_output').textContent = '';
-          document.getElementById('technical_output').textContent = '';
-
-
-          document.getElementById('polished_token_count').textContent = '0 chars';
-          document.getElementById('creative_token_count').textContent = '0 chars';
-          document.getElementById('technical_token_count').textContent = '0 chars';
-
-
-
-
-          appOutput.textContent = getMessage("generating", selectedLanguage);
-          generateButton.disabled = true;
-          reversePromptButton.disabled = true;
-          generateButton.textContent = 'Generating...';
-          cooldownTimerDisplay.style.display = 'none';
-
-
-          console.log("Frontend: Sending request to /generate...");
-
-
-          try {
-              const formData = new FormData();
-              formData.append('prompt_input', promptInput);
-              formData.append('language_code', selectedLanguage);
-
-
-              const response = await fetch('/generate', {
-                  method: 'POST',
-                  body: formData
-              });
-
-
-              console.log("Frontend: Received response status:", response.status);
-              console.log("Frontend: Response OK status:", response.ok);
-
-
-              if (!response.ok) {
-                  const errorData = await response.json();
-                  console.log("Frontend: Parsed error JSON:", errorData);
-
-
-                  if (errorData.cooldown_active && errorData.remaining_time) {
-                      appOutput.textContent = errorData.error;
-                      startCooldownTimer(errorData.remaining_time);
-                  } else if (response.status === 302) {
-                      window.location.href = response.url;
-                      return;
-                  } else {
-                      appOutput.textContent = getMessage("generation_failed", selectedLanguage) + `: ${errorData.error || `HTTP error! status: ${response.status}`}`;
-                  }
-                  return;
-              }
-
-
-              const data = await response.json();
-              console.log("Frontend: Parsed successful response data:", data);
-
-
-              if (data.error) {
-                  appOutput.textContent = getMessage("api_error", selectedLanguage, {error: data.error});
-                  console.error("Backend error reported:", data.error);
-              } else {
-                  document.getElementById('polished_output').textContent = data.polished;
-                  document.getElementById('creative_output').textContent = data.creative;
-                  document.getElementById('technical_output').textContent = data.technical;
-
-
-                  // Update token counts (using character count as a proxy)
-                  document.getElementById('polished_token_count').textContent = `${data.polished.length} chars`;
-                  document.getElementById('creative_token_count').textContent = `${data.creative.length} chars`;
-                  document.getElementById('technical_token_count').textContent = `${data.technical.length} chars`;
-
-
-                  appOutput.textContent = getMessage("generation_complete", selectedLanguage);
-                  fetchAndDisplayRawPrompts();
-                  // Start cooldown timer after successful generation
-                  startCooldownTimer(60);
-              }
-
-
-          } catch (error) {
-              let errorMessage = getMessage("generation_failed", selectedLanguage);
-              if (error.message.includes("Failed to fetch")) {
-                  errorMessage += `: Network error or server not reachable. Is the Flask app running?`;
-              } else {
-                  errorMessage += `: ${error.message}`;
-              }
-              appOutput.textContent = errorMessage;
-              console.error("Fetch error caught in JS:", error);
-          } finally {
-              // Button will be re-enabled by the cooldown timer or immediately if no cooldown
-              if (!cooldownTimerInterval) {
-                  generateButton.disabled = false;
-                  reversePromptButton.disabled = false;
-                  generateButton.textContent = 'Generate Prompts';
-              }
-              console.log("Frontend: Generation process finished.");
-          }
-      });
-
-
-      // Event listener for Reverse Prompt button
-      reversePromptButton.addEventListener('click', async function() {
-          const promptInput = document.getElementById('prompt_input').value;
-          const selectedLanguage = document.getElementById('lang_select').value;
-          const appOutput = document.getElementById('app_output');
-
-
-          // Clear previous outputs and token counts
-          document.getElementById('polished_output').textContent = '';
-          document.getElementById('creative_output').textContent = '';
-          document.getElementById('technical_output').textContent = '';
-
-
-          document.getElementById('polished_token_count').textContent = '0 chars';
-          document.getElementById('creative_token_count').textContent = '0 chars';
-          document.getElementById('technical_token_count').textContent = '0 chars';
-
-
-          appOutput.textContent = getMessage("reverse_prompting", selectedLanguage);
-          generateButton.disabled = true;
-          reversePromptButton.disabled = true;
-          reversePromptButton.textContent = 'Inferring...';
-          cooldownTimerDisplay.style.display = 'none';
-
-
-          console.log("Frontend: Sending request to /reverse_prompt...");
-
-
-          try {
-              const response = await fetch('/reverse_prompt', {
-                  method: 'POST',
-                  headers: {
-                      'Content-Type': 'application/json'
-                  },
-                  body: JSON.stringify({
-                      input_text: promptInput,
-                      language_code: selectedLanguage
-                  })
-              });
-
-
-              if (!response.ok) {
-                  const errorData = await response.json();
-                  if (errorData.cooldown_active && errorData.remaining_time) {
-                      appOutput.textContent = errorData.error;
-                      startCooldownTimer(errorData.remaining_time);
-                  } else if (response.status === 302) {
-                      window.location.href = response.url;
-                      return;
-                  } else {
-                      appOutput.textContent = getMessage("reverse_prompt_failed", selectedLanguage) + `: ${errorData.error || `HTTP error! status: ${response.status}`}`;
-                  }
-                  return;
-              }
-
-
-              const data = await response.json();
-              if (data.error) {
-                  appOutput.textContent = getMessage("api_error", selectedLanguage, {error: data.error});
-                  console.error("Backend error reported for reverse prompt:", data.error);
-              } else {
-                  // Display the inferred prompt in the polished output area
-                  document.getElementById('polished_output').textContent = data.inferred_prompt;
-                  document.getElementById('polished_token_count').textContent = `${data.inferred_prompt.length} chars`;
-                  appOutput.textContent = getMessage("reverse_prompt_complete", selectedLanguage);
-                  fetchAndDisplayRawPrompts();
-                  startCooldownTimer(60);
-              }
-
-
-          } catch (error) {
-              let errorMessage = getMessage("reverse_prompt_failed", selectedLanguage);
-              if (error.message.includes("Failed to fetch")) {
-                  errorMessage += `: Network error or server not reachable.`;
-              } else {
-                  errorMessage += `: ${error.message}`;
-              }
-              appOutput.textContent = errorMessage;
-              console.error("Fetch error caught in JS for reverse prompt:", error);
-          } finally {
-              if (!cooldownTimerInterval) {
-                  generateButton.disabled = false;
-                  reversePromptButton.disabled = false;
-                  reversePromptButton.textContent = 'Reverse Prompt';
-              }
-              console.log("Frontend: Reverse prompt process finished.");
-          }
-      });
-
-
-      // Event listeners for save buttons
-      document.querySelectorAll('.save-button').forEach(button => {
-          button.addEventListener('click', async function() {
-              const promptType = this.dataset.promptType;
-              const promptElementId = `${promptType}_output`;
-              const promptText = document.getElementById(promptElementId).textContent.trim();
-              const selectedLanguage = document.getElementById('lang_select').value;
-              const appOutput = document.getElementById('app_output');
-
-
-              if (!promptText) {
-                  appOutput.textContent = getMessage("no_prompt_to_save", selectedLanguage, {type: "selected"});
-                  return;
-              }
-
-
-              try {
-                  const response = await fetch('/save_prompt', {
-                      method: 'POST',
-                      headers: {
-                          'Content-Type': 'application/json'
-                      },
-                      body: JSON.stringify({
-                          prompt_text: promptText,
-                          prompt_type: promptType
-                      })
-                  });
-
-
-                  if (!response.ok) {
-                      if (response.status === 302) {
-                          window.location.href = response.url;
-                          return;
-                      }
-                      const errorData = await response.json();
-                      throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
-                  }
-
-
-                  const data = await response.json();
-                  if (data.success) {
-                      appOutput.textContent = getMessage("prompt_saved", selectedLanguage);
-                      fetchAndDisplaySavedPrompts();
-                  } else {
-                      appOutput.textContent = getMessage("save_failed", selectedLanguage) + ` ${data.message}`;
-                      console.error("Save error:", data.message);
-                  }
-              } catch (error) {
-                  appOutput.textContent = getMessage("network_error_save", selectedLanguage) + ` ${error.message}`;
-                  console.error("Network error saving prompt:", error);
-              }
-          });
-      });
-
-
-      // --- Web Speech API for Voice Input with Language Selector ---
-      const voiceInputButton = document.getElementById('voice_input_button');
-      const promptInputTextarea = document.getElementById('prompt_input');
-      const langSelect = document.getElementById('lang_select');
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-
-
-      if (!SpeechRecognition) {
-          voiceInputButton.disabled = true;
-          voiceInputButton.textContent = '🎤 Voice Input Not Supported';
-          document.getElementById('app_output').textContent = getMessage("voice_not_supported", "en-US");
-          langSelect.disabled = true;
-      } else {
-          const recognition = new SpeechRecognition();
-          recognition.continuous = false;
-          recognition.interimResults = false;
-          recognition.lang = langSelect.value;
-
-
-          let isRecording = false;
-
-
-          langSelect.addEventListener('change', () => {
-              const selectedLanguage = langSelect.value;
-              recognition.lang = selectedLanguage;
-              const langName = langSelect.options[langSelect.selectedIndex].text;
-              document.getElementById('app_output').textContent = `Voice input language set to ${langName}. Remember to click "Generate" to get prompts in this language.`;
-              if (isRecording) {
-                  recognition.stop();
-              }
-          });
-
-
-          voiceInputButton.addEventListener('click', () => {
-              const selectedLanguage = langSelect.value;
-              if (isRecording) {
-                  recognition.stop();
-                  return;
-              }
-
-
-              if (!recognition.continuous) {
-                  promptInputTextarea.value = '';
-              }
-
-
-              try {
-                  recognition.start();
-                  isRecording = true;
-                  voiceInputButton.textContent = '🔴 Stop Recording';
-                  voiceInputButton.classList.add('btn-danger');
-                  voiceInputButton.classList.remove('btn-outline-secondary');
-                  const langName = langSelect.options[langSelect.selectedIndex].text;
-                  document.getElementById('app_output').textContent = getMessage("listening", selectedLanguage).replace("(English)", `(${langName})`);
-              } catch (error) {
-                  console.error("Error starting speech recognition:", error);
-                  document.getElementById('app_output').textContent = getMessage("voice_start_error", selectedLanguage) + ` ${error.message}`;
-                  isRecording = false;
-                  voiceInputButton.textContent = '🎤 Start Voice Input';
-                  voiceInputButton.classList.remove('btn-danger');
-                  voiceInputButton.classList.add('btn-outline-secondary');
-              }
-          });
-
-
-          recognition.onresult = (event) => {
-              const selectedLanguage = langSelect.value;
-              const transcript = event.results[0][0].transcript;
-              promptInputTextarea.value = transcript;
-              document.getElementById('app_output').textContent = getMessage("voice_captured", selectedLanguage);
-          };
-
-
-          recognition.onerror = (event) => {
-              const selectedLanguage = langSelect.value;
-              console.error('Speech recognition error:', event.error);
-              document.getElementById('app_output').textContent = getMessage("voice_error", selectedLanguage) + ` ${event.error}`;
-              isRecording = false;
-              voiceInputButton.textContent = '🎤 Start Voice Input';
-              voiceInputButton.classList.remove('btn-danger');
-              voiceInputButton.classList.add('btn-outline-secondary');
-          };
-
-
-          recognition.onend = () => {
-              const selectedLanguage = langSelect.value;
-              isRecording = false;
-              voiceInputButton.textContent = '🎤 Start Voice Input';
-              voiceInputButton.classList.remove('btn-danger');
-              voiceInputButton.classList.add('btn-outline-secondary');
-              if (!document.getElementById('app_output').textContent.startsWith( '❌' ) && !document.getElementById('app_output').textContent.startsWith( '✅' )) {
-                  document.getElementById('app_output').textContent = getMessage("voice_ended", selectedLanguage);
-              }
-          };
-      }
-
-
-      // --- Image Input JavaScript Logic ---
-      const imageInput = document.getElementById('image_input');
-      const triggerImageInputButton = document.getElementById('trigger_image_input');
-      const imagePreview = document.getElementById('image_preview');
-      const processImageButton = document.getElementById('process_image_button');
-      const imageLoadingSpinner = document.getElementById('image_loading_spinner');
-      const imageInputSection = document.querySelector('.image-input-section');
-
-
-
-
-      triggerImageInputButton.addEventListener('click', () => {
-          imageInput.click();
-      });
-
-
-      imageInput.addEventListener('change', function(event) {
-          const file = event.target.files[0];
-          if (file) {
-              const reader = new FileReader();
-              reader.onload = function(e) {
-                  imagePreview.src = e.target.result;
-                  imagePreview.style.display = 'block';
-                  imageInputSection.style.display = 'block';
-              };
-              reader.readAsDataURL(file);
-          } else {
-              imagePreview.src = '#';
-              imagePreview.style.display = 'none';
-              imageInputSection.style.display = 'none';
-          }
-      });
-
-
-      processImageButton.addEventListener('click', async function() {
-          const file = imageInput.files[0];
-          const selectedLanguage = langSelect.value;
-          const appOutput = document.getElementById('app_output');
-
-
-          if (!file) {
-              appOutput.textContent = getMessage("no_image_selected", selectedLanguage);
-              return;
-          }
-
-
-          // Show loading spinner and disable button
-          imageLoadingSpinner.style.display = 'block';
-          processImageButton.disabled = true;
-          appOutput.textContent = getMessage("image_processing", selectedLanguage);
-
-
-          const reader = new FileReader();
-          reader.onloadend = async function() {
-              const base64data = reader.result.split(',')[1];
-
-
-              try {
-                  const response = await fetch('/process_image_prompt', {
-                      method: 'POST',
-                      headers: {
-                          'Content-Type': 'application/json'
-                      },
-                      body: JSON.stringify({
-                          image_data: base64data,
-                          language_code: selectedLanguage
-                      })
-                  });
-
-
-                  if (!response.ok) {
-                      if (response.status === 302) {
-                          window.location.href = response.url;
-                          return;
-                      }
-                      const errorData = await response.json();
-                      throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
-                  }
-
-
-                  const data = await response.json();
-                  if (data.recognized_text) {
-                      promptInputTextarea.value = data.recognized_text;
-                      appOutput.textContent = getMessage("image_success", selectedLanguage);
-                      // Optionally, trigger generate prompts automatically
-                      // document.getElementById('promptForm').requestSubmit();
-                  } else {
-                      appOutput.textContent = getMessage("image_error", selectedLanguage) + ` No text recognized.`;
-                  }
-
-
-              } catch (error) {
-                  appOutput.textContent = getMessage("image_error", selectedLanguage) + ` ${error.message}`;
-                  console.error("Image processing fetch error:", error);
-              } finally {
-                  imageLoadingSpinner.style.display = 'none';
-                  processImageButton.disabled = false;
-                  imageInputSection.style.display = 'none';
-                  imagePreview.src = '#';
-                  imageInput.value = '';
-              }
-          };
-          reader.readAsDataURL(file);
-      });
-
-
-      // --- Copy Prompt Text Function ---
-      async function copyPromptText(elementId) {
-          const promptText = document.getElementById(elementId).textContent.trim();
-          const selectedLanguage = document.getElementById('lang_select').value;
-          const appOutput = document.getElementById('app_output');
-
-
-          if (!promptText) {
-              appOutput.textContent = getMessage("no_prompt_to_save", selectedLanguage, {type: "selected"});
-              return;
-          }
-
-
-          try {
-              const textarea = document.createElement('textarea');
-              textarea.value = promptText;
-              document.body.appendChild(textarea);
-              textarea.select();
-              document.execCommand('copy');
-            
-              appOutput.textContent = getMessage("copy_success", selectedLanguage);
-          } catch (err) {
-              appOutput.textContent = getMessage("copy_fail", selectedLanguage);
-              console.error('Failed to copy text:', err);
-          }
-      }
-
-
-      // --- Open LLM Function ---
-      const LLM_URLS = {
-          chatgpt: "https://chat.openai.com/",
-          claude: "https://claude.ai/chats",
-          mistral: "https://chat.mistral.ai/",
-          gemini: "https://gemini.google.com/app",
-          grok: "https://grok.x.ai/",
-          perplexity: "https://www.perplexity.ai/",
-          deepseek: "https://www.deepseek.com/chat"
-      };
-
-
-      function openLLM(llmKey) {
-          const selectedLanguage = document.getElementById('lang_select').value;
-          const appOutput = document.getElementById('app_output');
-
-
-          if (LLM_URLS[llmKey]) {
-              window.open(LLM_URLS[llmKey], '_blank');
-          } else {
-              appOutput.textContent = `Error: Unknown LLM key: ${llmKey}`;
-              console.error(`Unknown LLM key: ${llmKey}`);
-          }
-      }
-
-
-      // --- Full Context View Modal Functions ---
-      function openFullContextView(title, elementId) {
-          const modalOverlay = document.getElementById('fullContextModalOverlay');
-          const modalTitle = document.getElementById('fullContextModalTitle');
-          const modalText = document.getElementById('fullContextModalText');
-          const promptText = document.getElementById(elementId).textContent.trim();
-
-
-          modalTitle.textContent = title;
-          modalText.textContent = promptText;
-          modalOverlay.classList.add('show');
-      }
-
-
-      function closeFullContextView() {
-          const modalOverlay = document.getElementById('fullContextModalOverlay');
-          modalOverlay.classList.remove('show');
-      }
-      // --- END Full Context View Modal Functions ---
-  </script>
+    <header class="app-header">
+        <div class="logo-section">
+            <!-- Placeholder for a logo image. You can replace this with an actual image. -->
+            <img src="https://placehold.co/40x40/007bff/ffffff?text=AI" alt="SuperPrompter Logo" class="app-logo">
+            <h1>SuperPrompter</h1>
+        </div>
+        <div class="auth-section">
+            {% if current_user.is_authenticated %}
+                <span class="mr-3">Welcome, <strong class="username">{{ current_user.username }}</strong>!</span>
+                <a href="{{ url_for('change_password') }}" class="btn btn-outline-light btn-sm mr-2">Change Password</a>
+                <a href="{{ url_for('logout') }}" class="btn btn-outline-light btn-sm">Logout</a>
+            {% else %}
+                <a href="{{ url_for('login') }}" class="btn btn-outline-light btn-sm mr-2">Login</a>
+                <a href="{{ url_for('register') }}" class="btn btn-light btn-sm">Register</a>
+            {% endif %}
+        </div>
+    </header>
+
+    <div class="main-content-wrapper">
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="alert-container">
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }}">{{ message }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <div class="prompt-input-section card">
+            <div class="card-body">
+                <!-- START: Wrapped content in form tag -->
+                <form id="promptForm">
+                    <label for="prompt_input" class="form-label">Enter your raw prompt idea (or paste text/code for reverse prompting):</label>
+                    <textarea id="prompt_input" name="prompt_input" class="form-control" rows="8" placeholder="e.g., Write a story about a robot who wants to be a chef."></textarea>
+                  
+                    <div class="d-flex justify-content-between align-items-center mt-3 flex-wrap">
+                        <div class="input-controls">
+                            <label for="lang_select" class="sr-only">Voice Input & Output Language:</label>
+                            <select id="lang_select" class="form-control">
+                                <option value="en-US">English (US)</option>
+                                <option value="en-GB">English (UK)</option>
+                                <option value="es-ES">Español (España)</option>
+                                <option value="fr-FR">Français (France)</option>
+                                <option value="de-DE">Deutsch (Deutschland)</option>
+                                <option value="it-IT">Italiano (Italia)</option>
+                                <option value="ja-JP"> 日本語 (日本) </option>
+                                <option value="ko-KR"> 한국어 (대한민국) </option>
+                                <option value="zh-CN"> 中文 (普通话, 简体) </option>
+                                <option value="hi-IN"> हिन्दी (भारत) </option>
+                                <!-- Add more languages as needed -->
+                            </select>
+                            <button type="button" id="voice_input_button" class="btn btn-outline-secondary mt-2 mt-md-0">🎤 Start Voice Input</button>
+                            <input type="file" id="image_input" accept="image/*" class="d-none">
+                            <button type="button" id="trigger_image_input" class="btn btn-outline-secondary mt-2 mt-md-0">📸 Upload Image</button>
+                        </div>
+                        <div class="d-flex flex-column flex-md-row gap-2 mt-3 mt-md-0">
+                            <button type="submit" id="generate_prompts_btn" class="btn btn-primary mb-2 mb-md-0 mr-2">Generate Prompts</button>
+                            <button type="button" id="reverse_prompt_btn" class="btn btn-secondary">Reverse Prompt</button>
+                        </div>
+                        <span id="cooldown_timer"></span>
+                    </div>
+                </form>
+                <!-- END: Wrapped content in form tag -->
+
+                <!-- Image Preview and Processing -->
+                <div class="image-input-section mt-4" style="display: none;">
+                    <h5>Image Input (Handwritten Text)</h5>
+                    <img id="image_preview" class="image-preview" src="#" alt="Image Preview" style="display: none;">
+                    <div id="image_loading_spinner" class="loading-spinner"></div>
+                    <button type="button" id="process_image_button" class="btn btn-info mt-3">📸 Process Image Prompt</button>
+                    <p class="text-muted mt-2" style="font-size: 0.85rem;">
+                        Upload an image containing handwritten text. The AI will attempt to recognize it and use it as your prompt.
+                    </p>
+                </div>
+                <!-- END Image Preview and Processing -->
+
+                <div id="app_output" class="mt-4 info">Application messages will appear here.</div>
+            </div>
+        </div>
+
+        <div class="prompt-output-grid">
+            <div class="col">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Polished Prompt</h5>
+                        <span id="polished_token_count" class="token-count">0 chars</span>
+                        <div>
+                            <button class="btn btn-sm btn-outline-secondary mr-1" onclick="copyPromptText('polished_output')"><i class="fas fa-copy"></i> Copy</button>
+                            <button class="btn btn-sm btn-outline-info" onclick="openFullContextView('Polished Prompt', 'polished_output')"><i class="fas fa-expand-alt"></i> View Full</button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <pre id="polished_output"></pre>
+                        <button class="save-button btn btn-sm btn-primary mt-2" data-prompt-type="polished">Save</button>
+                    </div>
+                </div>
+            </div>
+            <div class="col">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Creative Variant</h5>
+                        <span id="creative_token_count" class="token-count">0 chars</span>
+                        <div>
+                            <button class="btn btn-sm btn-outline-secondary mr-1" onclick="copyPromptText('creative_output')"><i class="fas fa-copy"></i> Copy</button>
+                            <button class="btn btn-sm btn-outline-info" onclick="openFullContextView('Creative Variant', 'creative_output')"><i class="fas fa-expand-alt"></i> View Full</button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <pre id="creative_output"></pre>
+                        <button class="save-button btn btn-sm btn-primary mt-2" data-prompt-type="creative">Save</button>
+                    </div>
+                </div>
+            </div>
+            <div class="col">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Technical Variant</h5>
+                        <span id="technical_token_count" class="token-count">0 chars</span>
+                        <div>
+                            <button class="btn btn-sm btn-outline-secondary mr-1" onclick="copyPromptText('technical_output')"><i class="fas fa-copy"></i> Copy</button>
+                            <button class="btn btn-sm btn-outline-info" onclick="openFullContextView('Technical Variant', 'technical_output')"><i class="fas fa-expand-alt"></i> View Full</button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <pre id="technical_output"></pre>
+                        <button class="save-button btn btn-sm btn-primary mt-2" data-prompt-type="technical">Save</button>
+                    </div>
+                </div>
+            </div>
+            <!-- Removed: Shorter Variant -->
+            <!-- Removed: Suggested Additions -->
+        </div>
+
+        <div class="llm-buttons-section">
+            <h3>Open Prompt in LLM</h3>
+            <div class="llm-link-group">
+                <button id="chatgpt_llm_btn" onclick="openLLM('chatgpt')" disabled>ChatGPT</button>
+                <button id="claude_llm_btn" onclick="openLLM('claude')" disabled>Claude</button>
+                <button id="mistral_llm_btn" onclick="openLLM('mistral')" disabled>Mistral</button>
+                <button id="gemini_llm_btn" onclick="openLLM('gemini')" disabled>Gemini</button>
+                <button id="grok_llm_btn" onclick="openLLM('grok')" disabled>Grok</button>
+                <button id="perplexity_llm_btn" onclick="openLLM('perplexity')" disabled>Perplexity</button>
+                <button id="deepseek_llm_btn" onclick="openLLM('deepseek')" disabled>DeepSeek</button>
+            </div>
+            <p class="text-muted mt-2" style="font-size: 0.85rem;">
+                (Copy a prompt using the "Copy" button above, then click an LLM button to open its website and paste.)
+            </p>
+        </div>
+
+        <div class="history-sections row">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Saved Prompts</h5>
+                    </div>
+                    <div class="card-body">
+                        <ul id="saved_prompts_list" class="list-group">
+                            <!-- Saved prompts will be loaded here -->
+                        </ul>
+                        <button id="download_prompts_btn" class="download-all-button btn btn-success mt-3" onclick="window.location.href='/download_prompts_txt'" disabled>
+                            ⬇️ Download All Prompts (TXT)
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Past Raw Requests (Last 10)</h5>
+                    </div>
+                    <div class="card-body">
+                        <ul id="past_raw_requests_list" class="list-group">
+                            <!-- Past raw requests will be loaded here -->
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Full Context View Modal -->
+    <div id="fullContextModalOverlay" class="modal-overlay">
+        <div class="modal-content-custom">
+            <div class="modal-header-custom">
+                <h4 id="fullContextModalTitle"></h4>
+                <button class="modal-close-button" onclick="closeFullContextView()">&times;</button>
+            </div>
+            <div class="modal-body-custom">
+                <pre id="fullContextModalText"></pre>
+            </div>
+        </div>
+    </div>
+    <!-- END Full Context View Modal -->
+
+   <script>
+       // --- Message Translations ---
+       const MESSAGES = {
+           "en-US": {
+               "application_ready": "Application ready.",
+               "generating": "🚀 Generating prompts and variants...",
+               "reverse_prompting": "🧠 Inferring prompt from text/code...",
+               "voice_not_supported": "Warning: Your browser does not support Web Speech API for voice input.",
+               "listening": "🗣️ Listening (English). Speak now.",
+               "voice_captured":  "✅ Voice input captured. Click \"Generate Prompts\"." ,
+               "voice_error":  "❌ Voice input error:" ,
+               "voice_start_error":  "❌ Error starting voice input:" ,
+               "voice_ended": "Voice input session ended.",
+               "no_prompt_to_save":  "❗ No {type} prompt to save. Generate one first." ,
+               "prompt_saved":  "✅ Prompt saved temporarily!" ,
+               "save_failed":  "❌ Failed to save prompt:" ,
+               "network_error_save":  "❌ Error communicating with server to save prompt:" ,
+               "api_error":  "❌ Error: {error}" ,
+               "generation_failed":  "❌ Failed to generate prompts:" ,
+               "reverse_prompt_failed": "❌ Failed to infer reverse prompt:",
+               "generation_complete":  "✨ All prompt generation tasks complete." ,
+               "reverse_prompt_complete": "✨ Reverse prompt inferred successfully.",
+               "no_input_provided": "To enable prompt generation, please share your input first.", // NEW message
+               "api_key_not_configured": "Gemini API Key is not configured or the AI model failed to initialize.",
+               "image_processing": "🖼️ Processing image and extracting text...",
+               "image_success":  "✅ Text extracted from image. Click \"Generate Prompts\" to refine." ,
+               "image_error":  "❌ Image processing error:" ,
+               "no_image_selected":  "❗ Please select an image file first." ,
+               "copy_success":  "✅ Prompt copied to clipboard!" ,
+               "copy_fail":  "❌ Failed to copy prompt to clipboard."
+           },
+           "es-ES": {
+               "application_ready": "Aplicación lista.",
+               "generating": "🚀 Generando indicaciones y variantes...",
+               "reverse_prompting": "🧠 Infiriendo prompt de texto/código...",
+               "voice_not_supported": "Advertencia: Su navegador no soporta la API de Voz para entrada de voz.",
+               "listening": "🗣️ Escuchando (Español). Hable ahora.",
+               "voice_captured":  "✅ Entrada de voz capturada. Haga clic en \"Generar Indicaciones\"." ,
+               "voice_error":  "❌ Error de entrada de voz:" ,
+               "voice_start_error":  "❌ Error al iniciar la entrada de voz:" ,
+               "voice_ended": "Sesión de entrada de voz finalizada.",
+               "no_prompt_to_save":  "❗ No hay indicación {type} para guardar. Genere una primero." ,
+               "prompt_saved":  "✅ ¡Indicación guardada temporalmente!" ,
+               "save_failed":  "❌ Error al guardar la indicación:" ,
+               "network_error_save":  "❌ Error de comunicación con el servidor al guardar la indicación:" ,
+               "api_error":  "❌ Error: {error}" ,
+               "generation_failed":  "❌ Fallo al generar indicaciones:" ,
+               "reverse_prompt_failed": "❌ Fallo al inferir el prompt inverso:",
+               "generation_complete":  "✨ Todas las tareas de generación de indicaciones completadas." ,
+               "reverse_prompt_complete": "✨ Prompt inverso inferido con éxito.",
+               "no_input_provided": "Para habilitar la generación de indicaciones, por favor, comparta su entrada primero.", // NEW message
+               "api_key_not_configured": "La clave API de Gemini no está configurada o el modelo de IA no se pudo inicializar.",
+               "image_processing": "🖼️ Procesando imagen y extrayendo texto...",
+               "image_success":  "✅ Texto extraído de la imagen. Haga clic en \"Generar Indicaciones\" para afinar." ,
+               "image_error":  "❌ Error de procesamiento de imagen:" ,
+               "no_image_selected":  "❗ Por favor, seleccione un archivo de imagen primero." ,
+               "copy_success":  "✅ Indicación copiada al portapapeles." ,
+               "copy_fail":  "❌ Error al copiar la indicación al portapapeles."
+           },
+           "fr-FR": {
+               "application_ready": "Application prête.",
+               "generating": "🚀 Génération des invites et variantes...",
+               "reverse_prompting": "🧠 Inférence de l'invite à partir du texte/code...",
+               "voice_not_supported": "Avertissement: Votre navigateur ne prend pas en charge l'API vocale para la saisie vocale.",
+               "listening": "🗣️ À l'écoute (Français). Parlez maintenant.",
+               "voice_captured":  "✅ Saisie vocale capturée. Cliquez sur \"Générer les invites\"." ,
+               "voice_error":  "❌ Erreur de saisie vocale :" ,
+               "voice_start_error":  "❌ Erreur au démarrage de la saisie vocale :" ,
+               "voice_ended": "Session de saisie vocale terminée.",
+               "no_prompt_to_save":  "❗ Aucune invite {type} à enregistrer. Générez-en une d'abord." ,
+               "prompt_saved":  "✅ Invite enregistrée temporairement !" ,
+               "save_failed":  "❌ Échec de l'enregistrement de l'invite :" ,
+               "network_error_save":  "❌ Erreur de communication avec le serveur lors de l'enregistrement de l'invite :" ,
+               "api_error":  "❌ Erreur : {error}" ,
+               "generation_failed":  "❌ Échec de la génération des invites :" ,
+               "reverse_prompt_failed": "❌ Échec de l'inférence de l'invite inverse :",
+               "generation_complete":  "✨ Toutes les tâches de génération d'invites terminées." ,
+               "reverse_prompt_complete": "✨ Invite inverse inférée avec succès.",
+               "no_input_provided": "Pour activer la génération d'invites, veuillez d'abord partager votre saisie.", // NEW message
+               "api_key_not_configured": "La clé API Gemini n'est pas configurée ou le modèle d'IA n'a pas pu être initialiser.",
+               "image_processing": "🖼️ Traitement de l'image et extraction du texto...",
+               "image_success":  "✅ Texto extraído de la imagen. Haga clic en \"Générer les invites\" para afiner." ,
+               "image_error":  "❌ Error de procesamiento de imagen :" ,
+               "no_image_selected":  "❗ Veuillez seleccionar un archivo de imagen en primer lieu." ,
+               "copy_success":  "✅ Invite copiada en el portapapeles !" ,
+               "copy_fail":  "❌ Échec de la copia de la invite en el portapapeles."
+           },
+           "de-DE": {
+               "application_ready": "Anwendung bereit.",
+               "generating": "🚀 Prompts und Varianten werden generiert...",
+               "reverse_prompting": "🧠 Prompt aus Text/Code ableiten...",
+               "voice_not_supported": "Warnung: Ihr Browser unterstützt die Web Speech API für die Spracheingabe nicht.",
+               "listening": "🗣️ Höre zu (Deutsch). Sprechen Sie jetzt.",
+               "voice_captured":  "✅ Spracheingabe erfasst. Klicken Sie auf „Prompts generieren“." ,
+               "voice_error":  "❌ Fehler bei der Spracheingabe:" ,
+               "voice_start_error":  "❌ Fehler beim Starten der Spracheingabe:" ,
+               "voice_ended": "Spracheingabesitzung beendet.",
+               "no_prompt_to_save":  "❗ Kein {type}-Prompt zum Speichern vorhanden. Generieren Sie zuerst einen." ,
+               "prompt_saved":  "✅ Prompt temporär gespeichert!" ,
+               "save_failed":  "❌ Speichern des Prompts fehlgeschlagen:" ,
+               "network_error_save":  "❌ Fehler bei der Kommunikation mit dem Server beim Speichern des Prompts:" ,
+               "api_error":  "❌ Fehler: {error}" ,
+               "generation_failed":  "❌ Generierung der Prompts fehlgeschlagen:" ,
+               "reverse_prompt_failed": "❌ Fehler beim Ableiten des Reverse Prompts:",
+               "generation_complete":  "✨ Alle Prompt-Generierungsaufgaben abgeschlossen." ,
+               "reverse_prompt_complete": "✨ Reverse Prompt erfolgreich abgeleitet.",
+               "no_input_provided": "Bitte geben Sie zuerst eine Eingabe ein, um die Prompt-Generierung zu aktivieren.", // NEW message
+               "api_key_not_configured": "Der Gemini-API-Schlüssel ist nicht konfiguriert oder das KI-Modell konnte nicht initialisiert werden.",
+               "image_processing": "🖼️ Bild wird verarbeitet und Text extrahiert...",
+               "image_success":  "✅ Text aus Bild extrahiert. Klicken Sie auf „Prompts generieren“ zum Verfeinern." ,
+               "image_error":  "❌ Fehler bei der Bildverarbeitung:" ,
+               "no_image_selected":  "❗ Bitte wählen Sie zuerst eine Bilddatei aus." ,
+               "copy_success":  "✅ Prompt in Zwischenablage kopiert!" ,
+               "copy_fail":  "❌ Fehler beim Kopieren des Prompts in die Zwischenablage."
+           },
+       };
+
+       function getMessage(key, langCode, replacements = {}) {
+           const messages = MESSAGES[langCode] || MESSAGES["en-US"];
+           let message = messages[key] || MESSAGES["en-US"][key] || key;
+           for (const placeholder in replacements) {
+               message = message.replace(`{${placeholder}}`, replacements[placeholder]);
+           }
+           return message;
+       }
+
+
+       // Function to fetch and display saved prompts
+       async function fetchAndDisplaySavedPrompts() {
+           const savedPromptsListElement = document.getElementById('saved_prompts_list');
+           savedPromptsListElement.innerHTML = '';
+
+           try {
+               const response = await fetch('/get_saved_prompts');
+               if (!response.ok) {
+                   console.warn(`Could not fetch saved prompts: HTTP status ${response.status}`);
+                   savedPromptsListElement.innerHTML = '<li class="list-group-item">Please log in to view your saved prompts.</li>';
+                   return;
+               }
+               const savedPrompts = await response.json();
+
+               if (savedPrompts.length === 0) {
+                   savedPromptsListElement.innerHTML = '<li class="list-group-item">No prompts saved yet.</li>';
+               } else {
+                   savedPrompts.forEach(prompt => {
+                       const listItem = document.createElement('li');
+                       listItem.className = 'list-group-item';
+                       listItem.innerHTML = `
+                           <strong>${prompt.type.charAt(0).toUpperCase() + prompt.type.slice(1)} Prompt (${prompt.timestamp}):</strong>
+                           <pre>${prompt.text}</pre>
+                       `;
+                       savedPromptsListElement.appendChild(listItem);
+                   });
+               }
+           } catch (error) {
+               console.error("Error fetching saved prompts:", error);
+               savedPromptsListElement.innerHTML = '<li class="list-group-item">Error loading saved prompts.</li>';
+           }
+       }
+
+       // Function to fetch and display past raw requests
+       async function fetchAndDisplayRawPrompts() {
+           const pastRawRequestsListElement = document.getElementById('past_raw_requests_list');
+           pastRawRequestsListElement.innerHTML = ''; // Clear previous entries
+
+           try {
+               const response = await fetch('/get_raw_prompts');
+               if (!response.ok) {
+                   console.warn(`Could not fetch raw prompts: HTTP status ${response.status}`);
+                   pastRawRequestsListElement.innerHTML = '<li class="list-group-item">Please log in to view your past raw requests.</li>';
+                   return;
+               }
+               const rawPrompts = await response.json();
+
+               if (rawPrompts.length === 0) {
+                   pastRawRequestsListElement.innerHTML = '<li class="list-group-item">No raw requests saved yet.</li>';
+               } else {
+                   rawPrompts.forEach(prompt => {
+                       const listItem = document.createElement('li');
+                       listItem.className = 'list-group-item';
+                       listItem.innerHTML = `
+                           <strong>${prompt.timestamp}:</strong>
+                           <span>${prompt.raw_text}</span>
+                       `;
+                       pastRawRequestsListElement.appendChild(listItem);
+                   });
+               }
+           } catch (error) {
+               console.error("Error fetching raw prompts:", error);
+               pastRawRequestsListElement.innerHTML = '<li class="list-group-item">Error loading past raw requests.</li>';
+           }
+       }
+
+
+       document.addEventListener('DOMContentLoaded', () => {
+           fetchAndDisplaySavedPrompts();
+           fetchAndDisplayRawPrompts();
+           updateAllButtonStates(); // Initial check and update of all button states
+       });
+
+       // Cooldown timer variables
+       let cooldownTimerInterval;
+       const cooldownTimerDisplay = document.getElementById('cooldown_timer');
+       const generateButton = document.getElementById('generate_prompts_btn');
+       const reversePromptButton = document.getElementById('reverse_prompt_btn');
+       const appOutput = document.getElementById('app_output'); // Get appOutput reference here
+
+       // NEW: Get references to all LLM website buttons
+       const chatGPTBtn = document.getElementById('chatgpt_llm_btn');
+       const claudeBtn = document.getElementById('claude_llm_btn');
+       const mistralBtn = document.getElementById('mistral_llm_btn');
+       const geminiBtn = document.getElementById('gemini_llm_btn');
+       const grokBtn = document.getElementById('grok_llm_btn');
+       const perplexityBtn = document.getElementById('perplexity_llm_btn');
+       const deepSeekBtn = document.getElementById('deepseek_llm_btn');
+
+       // Get reference to download button
+       const downloadPromptsBtn = document.getElementById('download_prompts_btn');
+
+
+       function startCooldownTimer(remainingTime) {
+           let timeLeft = remainingTime;
+           generateButton.disabled = true;
+           reversePromptButton.disabled = true;
+           cooldownTimerDisplay.style.display = 'inline';
+           cooldownTimerDisplay.textContent = `Cooldown: ${timeLeft}s`;
+
+           if (cooldownTimerInterval) {
+               clearInterval(cooldownTimerInterval);
+           }
+
+           cooldownTimerInterval = setInterval(() => {
+               timeLeft--;
+               cooldownTimerDisplay.textContent = `Cooldown: ${timeLeft}s`;
+               if (timeLeft <= 0) {
+                   clearInterval(cooldownTimerInterval);
+                   updateAllButtonStates(); // Re-check status to re-enable buttons
+               }
+           }, 1000);
+       }
+
+       // Function to enable/disable LLM website buttons
+       function setLLMWebsiteButtonsDisabled(isDisabled) {
+           if (chatGPTBtn) chatGPTBtn.disabled = isDisabled;
+           if (claudeBtn) claudeBtn.disabled = isDisabled;
+           if (mistralBtn) mistralBtn.disabled = isDisabled;
+           if (geminiBtn) geminiBtn.disabled = isDisabled;
+           if (grokBtn) grokBtn.disabled = isDisabled;
+           if (perplexityBtn) perplexityBtn.disabled = isDisabled;
+           if (deepSeekBtn) deepSeekBtn.disabled = isDisabled;
+       }
+
+       // Function to enable/disable save/download buttons
+       function setSaveActionButtonsDisabled(isDisabled) {
+           document.querySelectorAll('.save-button').forEach(btn => btn.disabled = isDisabled);
+           if (downloadPromptsBtn) downloadPromptsBtn.disabled = isDisabled;
+       }
+
+
+       async function updateAllButtonStates() {
+           const promptInput = document.getElementById('prompt_input').value.trim();
+           const selectedLanguage = document.getElementById('lang_select').value;
+
+           try {
+               const response = await fetch('/check_cooldown');
+               const data = await response.json();
+
+               let canGenerate = true;
+               let messageType = 'info';
+               let statusMessage = getMessage("application_ready", selectedLanguage);
+
+               if (data.cooldown_active) {
+                   canGenerate = false;
+                   messageType = 'warning';
+                   statusMessage = `Cooldown active: Please wait ${data.remaining_time} seconds before your next generation.`;
+                   startCooldownTimer(data.remaining_time); // Start/continue timer
+               } else if (data.daily_limit_reached) {
+                   canGenerate = false;
+                   messageType = 'danger';
+                   statusMessage = `Daily limit reached: You have used ${data.daily_count}/10 generations today. Please try again tomorrow.`;
+                   cooldownTimerDisplay.style.display = 'none'; // Ensure timer is hidden
+               } else {
+                   // If not on cooldown or limit, show daily count for non-admins
+                   if (!data.is_admin) {
+                       statusMessage += ` You have used ${data.daily_count}/10 generations today.`;
+                   }
+                   cooldownTimerDisplay.style.display = 'none'; // Ensure timer is hidden
+               }
+
+               appOutput.textContent = statusMessage;
+               appOutput.className = `mt-4 ${messageType}`; // Update class for styling
+
+               // Only disable generate/reverse buttons based on canGenerate
+               generateButton.disabled = !canGenerate;
+               reversePromptButton.disabled = !canGenerate;
+
+               // LLM action buttons (Save, Get, Download) and LLM website buttons
+               // should only be enabled if there's output, regardless of cooldown/daily limit for generation
+               const hasOutput = document.getElementById('polished_output').textContent.trim() !== '' ||
+                                 document.getElementById('creative_output').textContent.trim() !== '' ||
+                                 document.getElementById('technical_output').textContent.trim() !== '';
+
+               // Enable/disable save/download buttons based ONLY on whether there's output
+               setSaveActionButtonsDisabled(!hasOutput);
+               // Enable/disable LLM website buttons based ONLY on whether there's output
+               setLLMWebsiteButtonsDisabled(!hasOutput);
+
+           } catch (error) {
+               console.error("Error checking cooldown/daily limit:", error);
+               appOutput.textContent = "Error checking application status. Please refresh.";
+               appOutput.className = 'mt-4 danger';
+               generateButton.disabled = true;
+               reversePromptButton.disabled = true;
+               setSaveActionButtonsDisabled(true); // Disable on error
+               setLLMWebsiteButtonsDisabled(true); // Disable on error
+           }
+       }
+
+
+       document.getElementById('promptForm').addEventListener('submit', async function(event) {
+           event.preventDefault();
+
+           const promptInput = document.getElementById('prompt_input').value.trim(); // Trim whitespace
+           const selectedLanguage = document.getElementById('lang_select').value;
+           
+           // Clear previous outputs and token counts
+           document.getElementById('polished_output').textContent = '';
+           document.getElementById('creative_output').textContent = '';
+           document.getElementById('technical_output').textContent = '';
+
+           document.getElementById('polished_token_count').textContent = '0 chars';
+           document.getElementById('creative_token_count').textContent = '0 chars';
+           document.getElementById('technical_token_count').textContent = '0 chars';
+
+           // --- NEW: Input validation ---
+           if (!promptInput) {
+               appOutput.textContent = getMessage("no_input_provided", selectedLanguage);
+               appOutput.className = 'mt-4 warning';
+               setSaveActionButtonsDisabled(true);
+               setLLMWebsiteButtonsDisabled(true);
+               return; // Stop execution if no input
+           }
+           // --- END NEW ---
+
+           appOutput.textContent = getMessage("generating", selectedLanguage);
+           appOutput.className = 'mt-4 info'; // Set to info during generation
+           generateButton.disabled = true;
+           reversePromptButton.disabled = true;
+           setSaveActionButtonsDisabled(true); // Disable all LLM-related buttons immediately
+           setLLMWebsiteButtonsDisabled(true); // Disable LLM website buttons immediately
+           generateButton.textContent = 'Generating...';
+           cooldownTimerDisplay.style.display = 'none';
+
+           console.log("Frontend: Sending request to /generate...");
+
+           try {
+               const formData = new FormData();
+               formData.append('prompt_input', promptInput);
+               formData.append('language_code', selectedLanguage);
+
+               const response = await fetch('/generate', {
+                   method: 'POST',
+                   body: formData
+               });
+
+               console.log("Frontend: Received response status:", response.status);
+               console.log("Frontend: Response OK status:", response.ok);
+
+               if (!response.ok) {
+                   const errorData = await response.json();
+                   console.log("Frontend: Parsed error JSON:", errorData);
+
+                   if (errorData.cooldown_active && errorData.remaining_time) {
+                       appOutput.textContent = errorData.error;
+                       appOutput.className = 'mt-4 warning';
+                       startCooldownTimer(errorData.remaining_time);
+                   } else if (errorData.daily_limit_reached) { // Handle daily limit error
+                       appOutput.textContent = errorData.error;
+                       appOutput.className = 'mt-4 danger';
+                   }
+                   else if (response.status === 302) {
+                       window.location.href = response.url;
+                       return;
+                   } else {
+                       appOutput.textContent = getMessage("generation_failed", selectedLanguage) + `: ${errorData.error || `HTTP error! status: ${response.status}`}`;
+                       appOutput.className = 'mt-4 danger';
+                   }
+                   return;
+               }
+
+               const data = await response.json();
+               console.log("Frontend: Parsed successful response data:", data);
+
+               if (data.error) {
+                   appOutput.textContent = getMessage("api_error", selectedLanguage, {error: data.error});
+                   appOutput.className = 'mt-4 danger';
+                   console.error("Backend error reported:", data.error);
+               } else {
+                   document.getElementById('polished_output').textContent = data.polished;
+                   document.getElementById('creative_output').textContent = data.creative;
+                   document.getElementById('technical_output').textContent = data.technical;
+
+                   // Update token counts (using character count as a proxy)
+                   document.getElementById('polished_token_count').textContent = `${data.polished.length} chars`;
+                   document.getElementById('creative_token_count').textContent = `${data.creative.length} chars`;
+                   document.getElementById('technical_token_count').textContent = `${data.technical.length} chars`;
+
+                   appOutput.textContent = getMessage("generation_complete", selectedLanguage);
+                   appOutput.className = 'mt-4 success';
+                   fetchAndDisplayRawPrompts();
+                   // Cooldown and button states will be handled by updateAllButtonStates in finally block
+               }
+
+           } catch (error) {
+               let errorMessage = getMessage("generation_failed", selectedLanguage);
+               if (error.message.includes("Failed to fetch")) {
+                   errorMessage += `: Network error or server not reachable. Is the Flask app running?`;
+               } else {
+                   errorMessage += `: ${error.message}`;
+               }
+               appOutput.textContent = errorMessage;
+               appOutput.className = 'mt-4 danger';
+               console.error("Fetch error caught in JS:", error);
+           } finally {
+               generateButton.textContent = 'Generate Prompts';
+               updateAllButtonStates(); // Re-check status to re-enable buttons or show cooldown/limit
+           }
+       });
+
+       // Event listener for Reverse Prompt button
+       reversePromptButton.addEventListener('click', async function() {
+           const promptInput = document.getElementById('prompt_input').value.trim(); // Trim whitespace
+           const selectedLanguage = document.getElementById('lang_select').value;
+
+           // Clear previous outputs and token counts
+           document.getElementById('polished_output').textContent = '';
+           document.getElementById('creative_output').textContent = '';
+           document.getElementById('technical_output').textContent = '';
+
+           document.getElementById('polished_token_count').textContent = '0 chars';
+           document.getElementById('creative_token_count').textContent = '0 chars';
+           document.getElementById('technical_token_count').textContent = '0 chars';
+
+           // --- NEW: Input validation ---
+           if (!promptInput) {
+               appOutput.textContent = getMessage("no_input_provided", selectedLanguage);
+               appOutput.className = 'mt-4 warning';
+               setSaveActionButtonsDisabled(true);
+               setLLMWebsiteButtonsDisabled(true);
+               return; // Stop execution if no input
+           }
+           // --- END NEW ---
+
+           appOutput.textContent = getMessage("reverse_prompting", selectedLanguage);
+           appOutput.className = 'mt-4 info'; // Set to info during generation
+           generateButton.disabled = true;
+           reversePromptButton.disabled = true;
+           setSaveActionButtonsDisabled(true); // Disable all LLM-related buttons immediately
+           setLLMWebsiteButtonsDisabled(true); // Disable LLM website buttons immediately
+           reversePromptButton.textContent = 'Inferring...';
+           cooldownTimerDisplay.style.display = 'none';
+
+           console.log("Frontend: Sending request to /reverse_prompt...");
+
+           try {
+               const response = await fetch('/reverse_prompt', {
+                   method: 'POST',
+                   headers: {
+                       'Content-Type': 'application/json'
+                   },
+                   body: JSON.stringify({
+                       input_text: promptInput,
+                       language_code: selectedLanguage
+                   })
+               });
+
+               if (!response.ok) {
+                   const errorData = await response.json();
+                   if (errorData.cooldown_active && errorData.remaining_time) {
+                       appOutput.textContent = errorData.error;
+                       appOutput.className = 'mt-4 warning';
+                       startCooldownTimer(errorData.remaining_time);
+                   } else if (errorData.daily_limit_reached) { // Handle daily limit error
+                       appOutput.textContent = errorData.error;
+                       appOutput.className = 'mt-4 danger';
+                   }
+                   else if (response.status === 302) {
+                       window.location.href = response.url;
+                       return;
+                   } else {
+                       appOutput.textContent = getMessage("reverse_prompt_failed", selectedLanguage) + `: ${errorData.error || `HTTP error! status: ${response.status}`}`;
+                       appOutput.className = 'mt-4 danger';
+                   }
+                   return;
+               }
+
+               const data = await response.json();
+               if (data.error) {
+                   appOutput.textContent = getMessage("api_error", selectedLanguage, {error: data.error});
+                   appOutput.className = 'mt-4 danger';
+                   console.error("Backend error reported for reverse prompt:", data.error);
+               } else {
+                   // Display the inferred prompt in the polished output area
+                   document.getElementById('polished_output').textContent = data.inferred_prompt;
+                   document.getElementById('polished_token_count').textContent = `${data.inferred_prompt.length} chars`;
+                   appOutput.textContent = getMessage("reverse_prompt_complete", selectedLanguage);
+                   appOutput.className = 'mt-4 success';
+                   fetchAndDisplayRawPrompts();
+                   // Cooldown and button states will be handled by updateAllButtonStates in finally block
+               }
+
+           } catch (error) {
+               let errorMessage = getMessage("reverse_prompt_failed", selectedLanguage);
+               if (error.message.includes("Failed to fetch")) {
+                   errorMessage += `: Network error or server not reachable.`;
+               } else {
+                   errorMessage += `: ${error.message}`;
+               }
+               appOutput.textContent = errorMessage;
+               appOutput.className = 'mt-4 danger';
+               console.error("Fetch error caught in JS for reverse prompt:", error);
+           } finally {
+               reversePromptButton.textContent = 'Reverse Prompt';
+               updateAllButtonStates(); // Re-check status to re-enable buttons
+           }
+       });
+
+       // Event listeners for save buttons
+       document.querySelectorAll('.save-button').forEach(button => {
+           button.addEventListener('click', async function() {
+               const promptType = this.dataset.promptType;
+               const promptElementId = `${promptType}_output`;
+               const promptText = document.getElementById(promptElementId).textContent.trim();
+               const selectedLanguage = document.getElementById('lang_select').value;
+               const appOutput = document.getElementById('app_output');
+
+               if (!promptText) {
+                   appOutput.textContent = getMessage("no_prompt_to_save", selectedLanguage, {type: "selected"});
+                   appOutput.className = 'mt-4 warning';
+                   return;
+               }
+
+               try {
+                   const response = await fetch('/save_prompt', {
+                       method: 'POST',
+                       headers: {
+                           'Content-Type': 'application/json'
+                       },
+                       body: JSON.stringify({
+                           prompt_text: promptText,
+                           prompt_type: promptType
+                       })
+                   });
+
+                   if (!response.ok) {
+                       if (response.status === 302) {
+                           window.location.href = response.url;
+                           return;
+                       }
+                       const errorData = await response.json();
+                       throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+                   }
+
+                   const data = await response.json();
+                   if (data.success) {
+                       appOutput.textContent = getMessage("prompt_saved", selectedLanguage);
+                       appOutput.className = 'mt-4 success';
+                       fetchAndDisplaySavedPrompts();
+                   } else {
+                       appOutput.textContent = getMessage("save_failed", selectedLanguage) + ` ${data.message}`;
+                       appOutput.className = 'mt-4 danger';
+                       console.error("Save error:", data.message);
+                   }
+               } catch (error) {
+                   appOutput.textContent = getMessage("network_error_save", selectedLanguage) + ` ${error.message}`;
+                   appOutput.className = 'mt-4 danger';
+                   console.error("Network error saving prompt:", error);
+               }
+           });
+       });
+
+       // --- Web Speech API for Voice Input with Language Selector ---
+       const voiceInputButton = document.getElementById('voice_input_button');
+       const promptInputTextarea = document.getElementById('prompt_input');
+       const langSelect = document.getElementById('lang_select');
+       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+       if (!SpeechRecognition) {
+           voiceInputButton.disabled = true;
+           voiceInputButton.textContent = '🎤 Voice Input Not Supported';
+           appOutput.textContent = getMessage("voice_not_supported", "en-US");
+           appOutput.className = 'mt-4 warning';
+           langSelect.disabled = true;
+       } else {
+           const recognition = new SpeechRecognition();
+           recognition.continuous = false;
+           recognition.interimResults = false;
+           recognition.lang = langSelect.value;
+
+           let isRecording = false;
+
+           langSelect.addEventListener('change', () => {
+               const selectedLanguage = langSelect.value;
+               recognition.lang = selectedLanguage;
+               const langName = langSelect.options[langSelect.selectedIndex].text;
+               appOutput.textContent = `Voice input language set to ${langName}. Remember to click "Generate" to get prompts in this language.`;
+               appOutput.className = 'mt-4 info';
+               if (isRecording) {
+                   recognition.stop();
+               }
+           });
+
+           voiceInputButton.addEventListener('click', () => {
+               const selectedLanguage = langSelect.value;
+               if (isRecording) {
+                   recognition.stop();
+                   return;
+               }
+
+               if (!recognition.continuous) {
+                   promptInputTextarea.value = '';
+               }
+
+               try {
+                   recognition.start();
+                   isRecording = true;
+                   voiceInputButton.textContent = '🔴 Stop Recording';
+                   voiceInputButton.classList.add('btn-danger');
+                   voiceInputButton.classList.remove('btn-outline-secondary');
+                   const langName = langSelect.options[langSelect.selectedIndex].text;
+                   appOutput.textContent = getMessage("listening", selectedLanguage).replace("(English)", `(${langName})`);
+                   appOutput.className = 'mt-4 info';
+               } catch (error) {
+                   console.error("Error starting speech recognition:", error);
+                   appOutput.textContent = getMessage("voice_start_error", selectedLanguage) + ` ${error.message}`;
+                   appOutput.className = 'mt-4 danger';
+                   isRecording = false;
+                   voiceInputButton.textContent = '🎤 Start Voice Input';
+                   voiceInputButton.classList.remove('btn-danger');
+                   voiceInputButton.classList.add('btn-outline-secondary');
+               }
+           });
+
+           recognition.onresult = (event) => {
+               const selectedLanguage = langSelect.value;
+               const transcript = event.results[0][0].transcript;
+               promptInputTextarea.value = transcript;
+               appOutput.textContent = getMessage("voice_captured", selectedLanguage);
+               appOutput.className = 'mt-4 success';
+           };
+
+           recognition.onerror = (event) => {
+               const selectedLanguage = langSelect.value;
+               console.error('Speech recognition error:', event.error);
+               appOutput.textContent = getMessage("voice_error", selectedLanguage) + ` ${event.error}`;
+               appOutput.className = 'mt-4 danger';
+               isRecording = false;
+               voiceInputButton.textContent = '🎤 Start Voice Input';
+               voiceInputButton.classList.remove('btn-danger');
+               voiceInputButton.classList.add('btn-outline-secondary');
+           };
+
+           recognition.onend = () => {
+               const selectedLanguage = langSelect.value;
+               isRecording = false;
+               voiceInputButton.textContent = '🎤 Start Voice Input';
+               voiceInputButton.classList.remove('btn-danger');
+               voiceInputButton.classList.add('btn-outline-secondary');
+               if (!appOutput.textContent.startsWith( '❌' ) && !appOutput.textContent.startsWith( '✅' )) {
+                   appOutput.textContent = getMessage("voice_ended", selectedLanguage);
+                   appOutput.className = 'mt-4 info';
+               }
+           };
+       }
+
+       // --- Image Input JavaScript Logic ---
+       const imageInput = document.getElementById('image_input');
+       const triggerImageInputButton = document.getElementById('trigger_image_input');
+       const imagePreview = document.getElementById('image_preview');
+       const processImageButton = document.getElementById('process_image_button');
+       const imageLoadingSpinner = document.getElementById('image_loading_spinner');
+       const imageInputSection = document.querySelector('.image-input-section');
+
+
+       triggerImageInputButton.addEventListener('click', () => {
+           imageInput.click();
+       });
+
+       imageInput.addEventListener('change', function(event) {
+           const file = event.target.files[0];
+           if (file) {
+               const reader = new FileReader();
+               reader.onload = function(e) {
+                   imagePreview.src = e.target.result;
+                   imagePreview.style.display = 'block';
+                   imageInputSection.style.display = 'block';
+               };
+               reader.readAsDataURL(file);
+           } else {
+               imagePreview.src = '#';
+               imagePreview.style.display = 'none';
+               imageInputSection.style.display = 'none';
+           }
+       });
+
+       processImageButton.addEventListener('click', async function() {
+           const file = imageInput.files[0];
+           const selectedLanguage = langSelect.value;
+
+           if (!file) {
+               appOutput.textContent = getMessage("no_image_selected", selectedLanguage);
+               appOutput.className = 'mt-4 warning';
+               return;
+           }
+
+           // Show loading spinner and disable button
+           imageLoadingSpinner.style.display = 'block';
+           processImageButton.disabled = true;
+           appOutput.textContent = getMessage("image_processing", selectedLanguage);
+           appOutput.className = 'mt-4 info';
+
+           const reader = new FileReader();
+           reader.onloadend = async function() {
+               const base64data = reader.result.split(',')[1];
+
+               try {
+                   const response = await fetch('/process_image_prompt', {
+                       method: 'POST',
+                       headers: {
+                           'Content-Type': 'application/json'
+                       },
+                       body: JSON.stringify({
+                           image_data: base64data,
+                           language_code: selectedLanguage
+                       })
+                   });
+
+                   if (!response.ok) {
+                       if (response.status === 302) {
+                           window.location.href = response.url;
+                           return;
+                       }
+                       const errorData = await response.json();
+                       throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+                   }
+
+                   const data = await response.json();
+                   if (data.recognized_text) {
+                       promptInputTextarea.value = data.recognized_text;
+                       appOutput.textContent = getMessage("image_success", selectedLanguage);
+                       appOutput.className = 'mt-4 success';
+                       // Optionally, trigger generate prompts automatically
+                       // document.getElementById('promptForm').requestSubmit();
+                   } else {
+                       appOutput.textContent = getMessage("image_error", selectedLanguage) + ` No text recognized.`;
+                       appOutput.className = 'mt-4 danger';
+                   }
+
+               } catch (error) {
+                   appOutput.textContent = getMessage("image_error", selectedLanguage) + ` ${error.message}`;
+                   appOutput.className = 'mt-4 danger';
+                   console.error("Image processing fetch error:", error);
+               } finally {
+                   imageLoadingSpinner.style.display = 'none';
+                   processImageButton.disabled = false;
+                   imageInputSection.style.display = 'none';
+                   imagePreview.src = '#';
+                   imageInput.value = '';
+                   updateAllButtonStates(); // Re-check status to re-enable generate/reverse buttons
+               }
+           };
+           reader.readAsDataURL(file);
+       });
+
+       // --- Copy Prompt Text Function ---
+       async function copyPromptText(elementId) {
+           const promptText = document.getElementById(elementId).textContent.trim();
+           const selectedLanguage = document.getElementById('lang_select').value;
+
+           if (!promptText) {
+               appOutput.textContent = getMessage("no_prompt_to_save", selectedLanguage, {type: "selected"});
+               appOutput.className = 'mt-4 warning';
+               return;
+           }
+
+           try {
+               const textarea = document.createElement('textarea');
+               textarea.value = promptText;
+               document.body.appendChild(textarea);
+               textarea.select();
+               document.execCommand('copy');
+              
+               appOutput.textContent = getMessage("copy_success", selectedLanguage);
+               appOutput.className = 'mt-4 success';
+           } catch (err) {
+               appOutput.textContent = getMessage("copy_fail", selectedLanguage);
+               appOutput.className = 'mt-4 danger';
+               console.error('Failed to copy text:', err);
+           }
+       }
+
+       // --- Open LLM Function ---
+       const LLM_URLS = {
+           chatgpt: "https://chat.openai.com/",
+           claude: "https://claude.ai/chats",
+           mistral: "https://chat.mistral.ai/",
+           gemini: "https://gemini.google.com/app",
+           grok: "https://grok.x.ai/",
+           perplexity: "https://www.perplexity.ai/",
+           deepseek: "https://www.deepseek.com/chat"
+       };
+
+       function openLLM(llmKey) {
+           const selectedLanguage = document.getElementById('lang_select').value;
+
+           if (LLM_URLS[llmKey]) {
+               window.open(LLM_URLS[llmKey], '_blank');
+           } else {
+               appOutput.textContent = `Error: Unknown LLM key: ${llmKey}`;
+               appOutput.className = 'mt-4 danger';
+               console.error(`Unknown LLM key: ${llmKey}`);
+           }
+       }
+
+       // --- Full Context View Modal Functions ---
+       function openFullContextView(title, elementId) {
+           const modalOverlay = document.getElementById('fullContextModalOverlay');
+           const modalTitle = document.getElementById('fullContextModalTitle');
+           const modalText = document.getElementById('fullContextModalText');
+           const promptText = document.getElementById(elementId).textContent.trim();
+
+           modalTitle.textContent = title;
+           modalText.textContent = promptText;
+           modalOverlay.classList.add('show');
+       }
+
+       function closeFullContextView() {
+           const modalOverlay = document.getElementById('fullContextModalOverlay');
+           modalOverlay.classList.remove('show');
+       }
+       // --- END Full Context View Modal Functions ---
+   </script>
 </body>
 </html>
+
