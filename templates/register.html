@@ -1,181 +1,233 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Register</title>
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-    <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; /* Consistent font */
-            background-color: #f0f2f5; /* Consistent background */
-            display: flex;
-            flex-direction: column; /* Allow header/footer */
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            margin: 0;
-            padding: 0;
-        }
+   <meta charset="UTF-8">
+   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+   <title>Register</title>
+   <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+   <style>
+       body {
+           font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+           background-color: #f0f2f5;
+           display: flex;
+           flex-direction: column;
+           justify-content: center;
+           align-items: center;
+           min-height: 100vh;
+           margin: 0;
+           padding: 0;
+       }
+       /* Consistent Header Style */
+       .app-header {
+           background-color: #343a40;
+           color: #ffffff;
+           padding: 15px 30px;
+           display: flex;
+           justify-content: space-between;
+           align-items: center;
+           box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+           width: 100%; /* Ensure header spans full width */
+           position: fixed; /* Keep header fixed at top */
+           top: 0;
+           left: 0;
+           z-index: 1000;
+       }
 
-        /* Consistent Header Style */
-        .app-header {
-            background-color: #343a40;
-            color: #ffffff;
-            padding: 15px 30px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-            width: 100%; /* Full width */
-            position: absolute;
-            top: 0;
-            left: 0;
-        }
 
-        .app-header .logo-section {
-            display: flex;
-            align-items: center;
-        }
+       .app-header .logo-section {
+           display: flex;
+           align-items: center;
+       }
 
-        .app-header .app-logo {
-            height: 40px;
-            margin-right: 15px;
-            border-radius: 5px;
-        }
 
-        .app-header h1.header-title {
-            margin: 0;
-            font-size: 1.8rem;
-            color: #ffffff;
-            text-align: left;
-        }
+       .app-header .app-logo {
+           height: 40px;
+           margin-right: 15px;
+           border-radius: 5px;
+       }
 
-        .container {
-            max-width: 450px; /* Slightly wider for better form layout */
-            background-color: #ffffff;
-            padding: 40px; /* More padding */
-            border-radius: 10px; /* More rounded corners */
-            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1); /* Stronger shadow */
-            margin-top: 80px; /* Space for fixed header */
-            margin-bottom: 40px; /* Space for fixed footer */
-        }
-        h2 {
-            color: #2c3e50; /* Darker title color */
-            margin-bottom: 30px; /* More space below title */
-            text-align: center;
-            font-size: 2rem; /* Larger title */
-            font-weight: 600;
-        }
-        .form-group label {
-            font-weight: bold;
-            color: #555; /* Slightly darker label color */
-        }
-        .form-control {
-            border-radius: 8px; /* Rounded input fields */
-            padding: 12px; /* More padding in inputs */
-            border: 1px solid #ced4da;
-        }
-        .btn-primary {
-            background-color: #007bff;
-            border-color: #007bff;
-            padding: 12px 20px; /* Larger buttons */
-            font-size: 1.1rem;
-            border-radius: 8px; /* Rounded buttons */
-            transition: all 0.3s ease;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-        }
-        .btn-primary:hover {
-            background-color: #0056b3;
-            border-color: #0056b3;
-            transform: translateY(-2px);
-        }
-        .alert {
-            border-radius: 8px; /* Rounded alerts */
-            font-size: 0.95rem;
-        }
 
-        /* Consistent Footer Style */
-        .footer {
-            width: 100%;
-            padding: 15px;
-            text-align: center;
-            font-size: 0.8rem;
-            color: #777;
-            background-color: #e9ecef;
-            border-top: 1px solid #dee2e6;
-            position: absolute;
-            bottom: 0;
-            left: 0;
-        }
-        .footer-content a {
-            color: #007bff;
-            text-decoration: none;
-        }
-        .footer-content a:hover {
-            text-decoration: underline;
-        }
+       .app-header h1.header-title {
+           margin: 0;
+           font-size: 1.8rem;
+           color: #ffffff;
+           text-align: left;
+       }
 
-        /* Responsive adjustments */
-        @media (max-width: 768px) {
-            .app-header {
-                flex-direction: column;
-                padding: 10px 15px;
-            }
-            .app-header .logo-section {
-                margin-bottom: 10px;
-            }
-            .app-header h1.header-title {
-                font-size: 1.5rem;
-            }
-            .container {
-                max-width: 90%;
-                padding: 25px;
-                margin-top: 60px;
-                margin-bottom: 20px;
-            }
-            h2 {
-                font-size: 1.75rem;
-            }
-        }
-    </style>
+
+       .app-header .auth-section a {
+           color: #ffffff;
+           margin-left: 20px;
+           text-decoration: none;
+           transition: color 0.2s ease;
+       }
+
+
+       .app-header .auth-section a:hover {
+           color: #007bff;
+           text-decoration: underline;
+       }
+
+
+       .container {
+           max-width: 400px;
+           background-color: #ffffff;
+           padding: 30px;
+           border-radius: 8px;
+           box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+           margin-top: 100px; /* Adjust margin to account for fixed header */
+           margin-bottom: 50px;
+       }
+       h2 {
+           color: #343a40;
+           margin-bottom: 20px;
+           text-align: center;
+       }
+       .form-group label {
+           font-weight: bold;
+       }
+       .footer {
+           width: 100%;
+           padding: 15px;
+           text-align: center;
+           font-size: 0.8rem;
+           color: #777;
+           background-color: #e9ecef;
+           border-top: 1px solid #dee2e6;
+           margin-top: auto; /* Push footer to the bottom */
+       }
+       .footer-content {
+           max-width: 900px;
+           margin: 0 auto;
+       }
+       .footer-content a {
+           color: #007bff;
+           text-decoration: none;
+       }
+       .footer-content a:hover {
+           text-decoration: underline;
+       }
+       .suggestions-box {
+           background-color: #e9f7ef;
+           border: 1px solid #d4edda;
+           border-radius: 5px;
+           padding: 10px;
+           margin-top: 15px;
+       }
+       .suggestions-box h5 {
+           color: #28a745;
+           font-size: 1rem;
+           margin-bottom: 8px;
+       }
+       .suggestions-box ul {
+           list-style: none;
+           padding: 0;
+           margin: 0;
+       }
+       .suggestions-box li {
+           background-color: #d4edda;
+           border-radius: 3px;
+           padding: 5px 10px;
+           margin-bottom: 5px;
+           font-size: 0.9rem;
+           color: #155724;
+           cursor: pointer;
+           transition: background-color 0.2s ease;
+       }
+       .suggestions-box li:hover {
+           background-color: #c3e6cb;
+       }
+       @media (max-width: 768px) {
+           .app-header {
+               flex-direction: column;
+               padding: 10px 15px;
+           }
+           .app-header .logo-section {
+               margin-bottom: 10px;
+           }
+           .app-header h1.header-title {
+               font-size: 1.5rem;
+           }
+           .container {
+               margin-top: 80px; /* Adjust for smaller header on mobile */
+               padding: 20px;
+           }
+           .footer {
+               padding: 10px;
+           }
+       }
+   </style>
 </head>
 <body>
-    <header class="app-header">
-        <div class="logo-section">
-            <img src="https://placehold.co/40x40/007bff/ffffff?text=AI" alt="SuperPrompter Logo" class="app-logo">
-            <h1 class="header-title">SuperPrompter</h1>
-        </div>
-        <!-- No auth links here, as this is an auth page -->
-    </header>
-
-    <div class="container">
-        <h2>Register</h2>
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                {% for category, message in messages %}
-                    <div class="alert alert-{{ category }}">{{ message }}</div>
-                {% endfor %}
-            {% endif %}
-        {% endwith %}
-        <form method="POST">
-            <div class="form-group">
-                <label for="username">Username:</label>
-                <input type="text" class="form-control" id="username" name="username" required>
-            </div>
-            <div class="form-group">
-                <label for="password">Password:</label>
-                <input type="password" class="form-control" id="password" name="password" required>
-            </div>
-            <button type="submit" class="btn btn-primary btn-block">Register</button>
-            <p class="text-center mt-3">Already have an account? <a href="{{ url_for('login') }}">Login here</a></p>
-        </form>
-    </div>
-
-    <footer class="footer">
-       <div class="footer-content">
-           This is developed by Sushrut Kulkarni &nbsp; Email: <a href="mailto:info@promptsgenerator.ai">info@promptsgenerator.ai</a>
+   <header class="app-header">
+       <div class="logo-section">
+           <img src="https://placehold.co/40x40/007bff/ffffff?text=AI" alt="SuperPrompter Logo" class="app-logo">
+           <h1 class="header-title">SuperPrompter</h1>
        </div>
+       <div class="auth-section">
+           <a href="{{ url_for('landing') }}" class="btn btn-outline-light btn-sm mr-2">Home</a>
+           <a href="{{ url_for('login') }}" class="btn btn-outline-light btn-sm">Login</a>
+       </div>
+   </header>
+
+
+   <div class="container">
+       <h2>Register</h2>
+       {% with messages = get_flashed_messages(with_categories=true) %}
+           {% if messages %}
+               {% for category, message in messages %}
+                   <div class="alert alert-{{ category }}">{{ message }}</div>
+               {% endfor %}
+           {% endif %}
+       {% endwith %}
+       <form method="POST">
+           <div class="form-group">
+               <label for="username">Username:</label>
+               <input type="text" class="form-control" id="username" name="username" required value="{{ request.form.username if request.form.username }}">
+           </div>
+           <div class="form-group">
+               <label for="email">Email:</label>
+               <input type="email" class="form-control" id="email" name="email" required value="{{ request.form.email if request.form.email }}">
+           </div>
+           <div class="form-group">
+               <label for="password">Password:</label>
+               <input type="password" class="form-control" id="password" name="password" required>
+           </div>
+           <button type="submit" class="btn btn-primary btn-block">Register</button>
+           <p class="text-center mt-3">Already have an account? <a href="{{ url_for('login') }}">Login here</a></p>
+       </form>
+
+
+       {% if suggestions %}
+       <div class="suggestions-box">
+           <h5>Suggested Usernames:</h5>
+           <ul id="username_suggestions_list">
+               {% for suggestion in suggestions %}
+               <li onclick="applySuggestion('{{ suggestion }}')">{{ suggestion }}</li>
+               {% endfor %}
+           </ul>
+       </div>
+       {% endif %}
+   </div>
+
+
+   <footer class="footer">
+      <div class="footer-content">
+          This is developed by Sushrut Kulkarni &nbsp; Email: <a href="mailto:info@promptsgenerator.ai">info@promptsgenerator.ai</a>
+      </div>
    </footer>
+
+
+   <script>
+       function applySuggestion(suggestion) {
+           document.getElementById('username').value = suggestion;
+           // Optionally hide suggestions after selection
+           const suggestionsBox = document.querySelector('.suggestions-box');
+           if (suggestionsBox) {
+               suggestionsBox.style.display = 'none';
+           }
+       }
+   </script>
 </body>
 </html>
