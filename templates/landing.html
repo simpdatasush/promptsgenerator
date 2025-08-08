@@ -1,393 +1,390 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-   <meta charset="UTF-8">
-   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-   <title>SuperPrompter - AI Prompt Generator</title>
-   <!-- Bootstrap CSS for modern styling -->
-   <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-   <!-- Font Awesome for icons -->
-   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
-   <style>
-       body {
-           font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-           margin: 0;
-           padding: 0; /* Remove body padding as main-content-wrapper will handle it */
-           background-color: #f0f2f5;
-           color: #333;
-           line-height: 1.6;
-           display: flex;
-           flex-direction: column;
-           min-height: 100vh; /* Ensure the body takes at least the full viewport height */
-       }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SuperPrompter - AI Prompt Generator</title>
+    <!-- Bootstrap CSS for modern styling -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <style>
+        /* Global Box-Sizing Reset */
+        *, *::before, *::after {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f0f2f5;
+            color: #333;
+            line-height: 1.6;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        /* New Header Styles */
+        .app-header {
+            background-color: #343a40;
+            color: #ffffff;
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .app-header .logo-section {
+            display: flex;
+            align-items: center;
+        }
+
+        .app-header .app-logo {
+            height: 40px;
+            margin-right: 15px;
+            border-radius: 5px;
+        }
+
+        .app-header h1.header-title {
+            margin: 0;
+            font-size: 1.8rem;
+            color: #ffffff;
+            text-align: left;
+        }
+
+        .app-header .auth-section {
+            display: flex; /* Keep it flex for larger screens */
+            align-items: center;
+        }
+
+        .app-header .auth-section a {
+            color: #ffffff;
+            margin-left: 20px;
+            text-decoration: none;
+            transition: color 0.2s ease;
+            white-space: nowrap; /* Prevent text wrapping on larger screens */
+        }
+
+        .app-header .auth-section a:hover {
+            color: #007bff;
+            text-decoration: underline;
+        }
+
+        .app-header .auth-section .navbar-text {
+            color: #ffffff;
+            margin-left: 20px;
+            white-space: nowrap;
+        }
 
 
-       /* New Header Styles */
-       .app-header {
-           background-color: #343a40; /* Dark background for header */
-           color: #ffffff;
-           padding: 15px 30px;
-           display: flex;
-           justify-content: space-between;
-           align-items: center;
-           box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-           position: sticky;
-           top: 0;
-           z-index: 1000;
-       }
+        /* Main Content Wrapper */
+        .main-content-wrapper {
+            flex-grow: 1;
+            padding: 30px;
+            max-width: 1200px;
+            margin: 20px auto;
+            background-color: #ffffff;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
 
+        h2.section-title {
+            color: #2c3e50;
+            margin-bottom: 25px;
+            font-weight: 600;
+            text-align: center;
+            position: relative;
+            padding-bottom: 10px;
+        }
 
-       .app-header .logo-section {
-           display: flex;
-           align-items: center;
-       }
+        h2.section-title::after {
+            content: '';
+            position: absolute;
+            left: 50%;
+            bottom: 0;
+            transform: translateX(-50%);
+            height: 3px;
+            width: 80px;
+            background-color: #007bff;
+            border-radius: 5px;
+        }
 
+        .card {
+            border: none;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
 
-       .app-header .app-logo {
-           height: 40px;
-           margin-right: 15px;
-           border-radius: 5px;
-       }
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
+        }
 
+        .card-header {
+            background-color: #e9ecef;
+            font-weight: bold;
+            color: #343a40;
+            padding: 15px;
+            border-bottom: 1px solid #dee2e6;
+        }
 
-       .app-header h1.header-title {
-           margin: 0;
-           font-size: 1.8rem;
-           color: #ffffff;
-           text-align: left;
-       }
+        .card-body {
+            padding: 20px;
+        }
 
+        .card-title {
+            font-size: 1.25rem;
+            color: #007bff;
+            margin-bottom: 10px;
+        }
 
-       .app-header .auth-section a {
-           color: #ffffff;
-           margin-left: 20px;
-           text-decoration: none;
-           transition: color 0.2s ease;
-       }
+        .card-text {
+            font-size: 0.95rem;
+            color: #555;
+            margin-bottom: 15px;
+        }
 
+        .card-link {
+            color: #007bff;
+            font-weight: 500;
+            text-decoration: none;
+            transition: color 0.2s ease;
+        }
 
-       .app-header .auth-section a:hover {
-           color: #007bff;
-           text-decoration: underline;
-       }
+        .card-link:hover {
+            color: #0056b3;
+            text-decoration: underline;
+        }
 
+        .meta-info {
+            font-size: 0.85rem;
+            color: #777;
+            margin-top: 10px;
+        }
 
-       /* Main Content Wrapper */
-       .main-content-wrapper {
-           flex-grow: 1; /* Allow content to take up available space */
-           padding: 30px;
-           max-width: 1200px;
-           margin: 20px auto;
-           background-color: #ffffff;
-           border-radius: 10px;
-           box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-       }
+        /* Newsletter Section */
+        .newsletter-section {
+            background-color: #f8f9fa;
+            padding: 40px 20px;
+            border-radius: 10px;
+            text-align: center;
+            margin-top: 40px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+        }
+        .newsletter-section h2 { /* Changed h3 to h2 as per HTML */
+            font-size: 2rem;
+            margin-bottom: 15px;
+            color: #2c3e50;
+        }
+        .newsletter-section p {
+            font-size: 1.1rem;
+            margin-bottom: 25px;
+            color: #555;
+        }
+        /* No specific form here, but the link styling is fine */
 
+        /* Footer Styles */
+        .footer {
+            width: 100%;
+            padding: 15px;
+            text-align: center;
+            font-size: 0.8rem;
+            color: #777;
+            background-color: #e9ecef;
+            border-top: 1px solid #dee2e6;
+            margin-top: auto;
+        }
 
-       h2.section-title {
-           color: #2c3e50;
-           margin-bottom: 25px;
-           font-weight: 600;
-           text-align: center;
-           position: relative;
-           padding-bottom: 10px;
-       }
+        .footer-content {
+            max-width: 900px;
+            margin: 0 auto;
+        }
 
+        .footer-content a {
+            color: #007bff;
+            text-decoration: none;
+        }
 
-       h2.section-title::after {
-           content: '';
-           position: absolute;
-           left: 50%;
-           bottom: 0;
-           transform: translateX(-50%);
-           height: 3px;
-           width: 80px;
-           background-color: #007bff;
-           border-radius: 5px;
-       }
+        .footer-content a:hover {
+            text-decoration: underline;
+        }
 
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .app-header {
+                flex-direction: column;
+                padding: 10px 15px;
+                align-items: stretch; /* Stretch to fill width */
+            }
+            .app-header .logo-section {
+                margin-bottom: 10px;
+                justify-content: center; /* Center logo on small screens */
+            }
+            .app-header h1.header-title {
+                font-size: 1.5rem; /* Slightly smaller for mobile */
+                text-align: center; /* Center title */
+            }
 
-       .card {
-           border: none;
-           border-radius: 8px;
-           overflow: hidden;
-           margin-bottom: 20px;
-           box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-           transition: transform 0.2s ease, box-shadow 0.2s ease;
-       }
+            .app-header .auth-section {
+                flex-direction: column; /* Stack auth items vertically */
+                width: 100%; /* Take full width */
+                align-items: center; /* Center items */
+            }
 
+            .app-header .auth-section a,
+            .app-header .auth-section .navbar-text {
+                margin: 5px 0; /* Vertical margin for stacked items */
+                width: 100%; /* Make links/text take full width */
+                text-align: center;
+            }
 
-       .card:hover {
-           transform: translateY(-5px);
-           box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
-       }
+            .jumbotron {
+                padding: 25px !important; /* Slightly less padding on mobile */
+            }
 
+            .jumbotron h1.display-4 {
+                font-size: 2.5rem; /* Smaller display-4 for mobile */
+            }
 
-       .card-header {
-           background-color: #e9ecef;
-           font-weight: bold;
-           color: #343a40;
-           padding: 15px;
-           border-bottom: 1px solid #dee2e6;
-       }
+            .jumbotron .lead {
+                font-size: 1rem; /* Smaller lead text for mobile */
+            }
 
+            .main-content-wrapper {
+                padding: 15px;
+                margin: 15px auto;
+            }
+            h2.section-title {
+                font-size: 1.8rem;
+            }
+            /* The newsletter section looks fine with its existing responsiveness for the button */
+            .footer {
+                padding: 10px;
+            }
+        }
 
-       .card-body {
-           padding: 20px;
-       }
-
-
-       .card-title {
-           font-size: 1.25rem;
-           color: #007bff;
-           margin-bottom: 10px;
-       }
-
-
-       .card-text {
-           font-size: 0.95rem;
-           color: #555;
-           margin-bottom: 15px;
-       }
-
-
-       .card-link {
-           color: #007bff;
-           font-weight: 500;
-           text-decoration: none;
-           transition: color 0.2s ease;
-       }
-
-
-       .card-link:hover {
-           color: #0056b3;
-           text-decoration: underline;
-       }
-
-
-       .meta-info {
-           font-size: 0.85rem;
-           color: #777;
-           margin-top: 10px;
-       }
-
-
-       /* Newsletter Section */
-       .newsletter-section {
-           background-color: #f8f9fa;
-           padding: 40px 20px;
-           border-radius: 10px;
-           text-align: center;
-           margin-top: 40px;
-           box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
-       }
-       .newsletter-section h3 {
-           font-size: 2rem;
-           margin-bottom: 15px;
-           color: #2c3e50;
-       }
-       .newsletter-section p {
-           font-size: 1.1rem;
-           margin-bottom: 25px;
-           color: #555;
-       }
-       .newsletter-form {
-           max-width: 500px;
-           margin: 0 auto;
-           display: flex;
-           justify-content: center;
-           gap: 10px; /* Space between input and button */
-       }
-       .newsletter-form .form-control {
-           flex-grow: 1;
-           border-radius: 5px;
-           padding: 10px 15px;
-           border: 1px solid #ced4da;
-       }
-       .newsletter-form .btn-primary {
-           background-color: #007bff;
-           border-color: #007bff;
-           border-radius: 5px;
-           padding: 10px 20px;
-           font-weight: bold;
-           transition: background-color 0.3s ease, border-color 0.3s ease;
-       }
-       .newsletter-form .btn-primary:hover {
-           background-color: #0056b3;
-           border-color: #0056b3;
-       }
-
-
-
-
-       /* Footer Styles */
-       .footer {
-           width: 100%;
-           padding: 15px;
-           text-align: center;
-           font-size: 0.8rem;
-           color: #777;
-           background-color: #e9ecef;
-           border-top: 1px solid #dee2e6;
-           margin-top: auto; /* Push footer to the bottom */
-       }
-
-
-       .footer-content {
-           max-width: 900px;
-           margin: 0 auto;
-       }
-
-
-       .footer-content a {
-           color: #007bff;
-           text-decoration: none;
-       }
-
-
-       .footer-content a:hover {
-           text-decoration: underline;
-       }
-
-
-       /* Responsive adjustments */
-       @media (max-width: 768px) {
-           .app-header {
-               flex-direction: column;
-               padding: 10px 15px;
-           }
-           .app-header .logo-section {
-               margin-bottom: 10px;
-           }
-           .app-header h1.header-title {
-               font-size: 1.5rem;
-           }
-           .main-content-wrapper {
-               padding: 15px;
-               margin: 15px auto;
-           }
-           h2.section-title {
-               font-size: 1.8rem;
-           }
-           .newsletter-form {
-               flex-direction: column;
-               gap: 15px;
-           }
-           .newsletter-form .form-control,
-           .newsletter-form .btn-primary {
-               width: 100%;
-           }
-           .footer {
-               padding: 10px;
-           }
-       }
-   </style>
+        /* Further adjustments for very small screens (e.g., iPhone SE) */
+        @media (max-width: 480px) {
+            .app-header h1.header-title {
+                font-size: 1.3rem; /* Even smaller for very small screens */
+            }
+            .jumbotron h1.display-4 {
+                font-size: 2rem; /* Adjust heading for very small screens */
+            }
+            .newsletter-section h2 {
+                font-size: 1.6rem; /* Adjust newsletter heading */
+            }
+        }
+    </style>
 </head>
 <body>
-   <header class="app-header">
-       <div class="logo-section">
-           <img src="https://placehold.co/40x40/007bff/ffffff?text=AI" alt="SuperPrompter Logo" class="app-logo">
-           <h1 class="header-title">SuperPrompter</h1>
-       </div>
-       <div class="auth-section">
-           {% if current_user.is_authenticated %}
-               <a href="{{ url_for('app_home') }}" class="btn btn-outline-light btn-sm mr-2">App Home</a>
-               <a href="{{ url_for('llm_benchmark') }}" class="btn btn-outline-light btn-sm mr-2">LLM Benchmarks</a>
-               <span class="navbar-text mr-2">Logged in as: <strong>{{ current_user.username }}</strong></span>
-               <a href="{{ url_for('logout') }}" class="btn btn-outline-light btn-sm">Logout</a>
-           {% else %}
-               <a href="{{ url_for('llm_benchmark') }}" class="btn btn-outline-light btn-sm mr-2">LLM Benchmarks</a>
-               <a href="{{ url_for('login') }}" class="btn btn-outline-light btn-sm mr-2">Login</a>
-               <a href="{{ url_for('register') }}" class="btn btn-light btn-sm">Register</a>
-           {% endif %}
-       </div>
-   </header>
+    <header class="app-header">
+        <div class="logo-section">
+            <img src="https://placehold.co/40x40/007bff/ffffff?text=AI" alt="SuperPrompter Logo" class="app-logo">
+            <h1 class="header-title">SuperPrompter</h1>
+        </div>
+        <div class="auth-section">
+            {% if current_user.is_authenticated %}
+                <a href="{{ url_for('app_home') }}" class="btn btn-outline-light btn-sm mr-2">App Home</a>
+                <a href="{{ url_for('llm_benchmark') }}" class="btn btn-outline-light btn-sm mr-2">LLM Benchmarks</a>
+                <span class="navbar-text mr-2">Logged in as: <strong>{{ current_user.username }}</strong></span>
+                <a href="{{ url_for('logout') }}" class="btn btn-outline-light btn-sm">Logout</a>
+            {% else %}
+                <a href="{{ url_for('llm_benchmark') }}" class="btn btn-outline-light btn-sm mr-2">LLM Benchmarks</a>
+                <a href="{{ url_for('login') }}" class="btn btn-outline-light btn-sm mr-2">Login</a>
+                <a href="{{ url_for('register') }}" class="btn btn-light btn-sm">Register</a>
+            {% endif %}
+        </div>
+    </header>
 
+    <div class="main-content-wrapper">
+        <div class="jumbotron text-center bg-light p-5 rounded shadow-sm mb-5">
+            <h1 class="display-4 text-primary">Welcome to SuperPrompter!</h1>
+            <p class="lead">Your ultimate tool for refining, enhancing, and generating powerful AI prompts.</p>
+            <hr class="my-4">
+            <p>Leverage the power of AI to transform your raw ideas into perfectly crafted prompts for large language models.</p>
+            {% if current_user.is_authenticated %}
+                <a class="btn btn-primary btn-lg" href="{{ url_for('app_home') }}" role="button">Start Generating Prompts</a>
+            {% else %}
+                <p class="text-muted">Please log in or register to start generating prompts.</p>
+                <a class="btn btn-primary btn-lg" href="{{ url_for('login') }}" role="button">Login to Get Started</a>
+            {% endif %}
+        </div>
 
-   <div class="main-content-wrapper">
-       <div class="jumbotron text-center bg-light p-5 rounded shadow-sm mb-5">
-           <h1 class="display-4 text-primary">Welcome to SuperPrompter!</h1>
-           <p class="lead">Your ultimate tool for refining, enhancing, and generating powerful AI prompts.</p>
-           <hr class="my-4">
-           <p>Leverage the power of AI to transform your raw ideas into perfectly crafted prompts for large language models.</p>
-           {% if current_user.is_authenticated %}
-               <a class="btn btn-primary btn-lg" href="{{ url_for('app_home') }}" role="button">Start Generating Prompts</a>
-           {% else %}
-               <p class="text-muted">Please log in or register to start generating prompts.</p>
-               <a class="btn btn-primary btn-lg" href="{{ url_for('login') }}" role="button">Login to Get Started</a>
-           {% endif %}
-       </div>
+        <section class="news-section mb-5">
+            <h2 class="section-title">Latest News</h2>
+            <div class="row">
+                {% for item in news_items %}
+                <div class="col-md-6 col-lg-4">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">{{ item.title }}</h5>
+                            <p class="card-text">{{ item.description | truncate(150) }}</p>
+                            <a href="{{ item.url }}" target="_blank" class="card-link">Read More <i class="fas fa-external-link-alt"></i></a>
+                            <p class="meta-info">Published: {{ item.published_date.strftime('%Y-%m-%d') if item.published_date else 'N/A' }}</p>
+                            <p class="meta-info">Added: {{ item.timestamp.strftime('%Y-%m-%d %H:%M') }}</p>
+                        </div>
+                    </div>
+                </div>
+                {% else %}
+                <div class="col-12">
+                    <p class="text-center text-muted">No news items available yet. Check back soon!</p>
+                </div>
+                {% endfor %}
+            </div>
+        </section>
 
+        <section class="jobs-section mb-5">
+            <h2 class="section-title">Job Listings</h2>
+            <div class="row">
+                {% for job in job_listings %}
+                <div class="col-md-6 col-lg-4">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">{{ job.title }}</h5>
+                            <h6 class="card-subtitle mb-2 text-muted">{{ job.company }} - {{ job.location if job.location else 'Remote' }}</h6>
+                            <p class="card-text">{{ job.description | truncate(150) }}</p>
+                            <a href="{{ job.url }}" target="_blank" class="card-link">Apply Now <i class="fas fa-external-link-alt"></i></a>
+                            <p class="meta-info">Published: {{ job.published_date.strftime('%Y-%m-%d') if job.published_date else 'N/A' }}</p>
+                            <p class="meta-info">Added: {{ job.timestamp.strftime('%Y-%m-%d %H:%M') }}</p>
+                        </div>
+                    </div>
+                </div>
+                {% else %}
+                <div class="col-12">
+                    <p class="text-center text-muted">No job listings available yet. Check back soon!</p>
+                </div>
+                {% endfor %}
+            </div>
+        </section>
 
-       <section class="news-section mb-5">
-           <h2 class="section-title">Latest News</h2>
-           <div class="row">
-               {% for item in news_items %}
-               <div class="col-md-6 col-lg-4">
-                   <div class="card">
-                       <div class="card-body">
-                           <h5 class="card-title">{{ item.title }}</h5>
-                           <p class="card-text">{{ item.description | truncate(150) }}</p>
-                           <a href="{{ item.url }}" target="_blank" class="card-link">Read More <i class="fas fa-external-link-alt"></i></a>
-                           <p class="meta-info">Published: {{ item.published_date.strftime('%Y-%m-%d') if item.published_date else 'N/A' }}</p>
-                           <p class="meta-info">Added: {{ item.timestamp.strftime('%Y-%m-%d %H:%M') }}</p>
-                       </div>
-                   </div>
-               </div>
-               {% else %}
-               <div class="col-12">
-                   <p class="text-center text-muted">No news items available yet. Check back soon!</p>
-               </div>
-               {% endfor %}
-           </div>
-       </section>
+        <!-- Newsletter Section -->
+        <div class="newsletter-section">
+            <h2>Join Our Newsletter!</h2>
+            <p>Stay updated with the latest AI prompt generation tips, news, and features.</p>
+            <a href="https://flow.cleverreach.com/fl/f1b39182-4b74-4664-9c1d-c175cb3a670c/" target="_blank" class="btn btn-primary">Subscribe Now</a>
+        </div>
+        <!-- End Newsletter Section -->
+    </div>
 
+    <footer class="footer">
+        <div class="footer-content">
+            This is developed by Sushrut Kulkarni &nbsp; Email: <a href="mailto:info@promptsgenerator.ai">info@promptsgenerator.ai</a>
+        </div>
+    </footer>
 
-       <section class="jobs-section mb-5">
-           <h2 class="section-title">Job Listings</h2>
-           <div class="row">
-               {% for job in job_listings %}
-               <div class="col-md-6 col-lg-4">
-                   <div class="card">
-                       <div class="card-body">
-                           <h5 class="card-title">{{ job.title }}</h5>
-                           <h6 class="card-subtitle mb-2 text-muted">{{ job.company }} - {{ job.location if job.location else 'Remote' }}</h6>
-                           <p class="card-text">{{ job.description | truncate(150) }}</p>
-                           <a href="{{ job.url }}" target="_blank" class="card-link">Apply Now <i class="fas fa-external-link-alt"></i></a>
-                           <p class="meta-info">Published: {{ job.published_date.strftime('%Y-%m-%d') if job.published_date else 'N/A' }}</p>
-                           <p class="meta-info">Added: {{ job.timestamp.strftime('%Y-%m-%d %H:%M') }}</p>
-                       </div>
-                   </div>
-               </div>
-               {% else %}
-               <div class="col-12">
-                   <p class="text-center text-muted">No job listings available yet. Check back soon!</p>
-               </div>
-               {% endfor %}
-           </div>
-       </section>
-
-
-       <!-- Newsletter Section -->
-       <div class="newsletter-section">
-           <h2>Join Our Newsletter!</h2>
-           <p>Stay updated with the latest AI prompt generation tips, news, and features.</p>
-           <a href="https://flow.cleverreach.com/fl/f1b39182-4b74-4664-9c1d-c175cb3a670c/" target="_blank" class="btn btn-primary">Subscribe Now</a>
-       </div>
-       <!-- End Newsletter Section -->
-   </div>
-
-
-   <footer class="footer">
-      <div class="footer-content">
-          This is developed by Sushrut Kulkarni &nbsp; Email: <a href="mailto:info@promptsgenerator.ai">info@promptsgenerator.ai</a>
-      </div>
-   </footer>
-
-
-   <!-- Bootstrap JS and its dependencies -->
-   <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
-   <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
-   <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <!-- Bootstrap JS and its dependencies -->
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 </body>
 </html>
