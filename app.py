@@ -330,12 +330,10 @@ def ask_gemini_for_prompt(prompt_instruction, max_output_tokens=1024):
   except google_api_exceptions.GoogleAPICallError as e: # Catch specific API errors
       app.logger.error(f"DEBUG: Google API Call Error: {e}", exc_info=True)
       # Pass the string representation of the exception to the filter
-      return filter_gemini_response(f"Error communicating with Gemini API: {str(e)}")
+      return filter_gemini_response(f"Error communicating with SuperPrompter AI, please try after sometime.")
   except Exception as e: # Catch any other unexpected errors
       app.logger.error(f"DEBUG: Unexpected Error calling Gemini API: {e}", exc_info=True)
-      return filter_gemini_response(f"An unexpected error occurred: {str(e)}")
-
-
+      return filter_gemini_response(f"Error communicating with SuperPrompter AI, please try after sometime.")
 
 
 # --- NEW: Gemini API for Image Understanding ---
@@ -366,13 +364,11 @@ def ask_gemini_for_image_text(image_data_bytes):
       return filter_gemini_response(extracted_text).strip() # Filter image response too
   except google_api_exceptions.GoogleAPICallError as e: # Catch specific API errors
       app.logger.error(f"Error calling Gemini API for image text extraction: {e}", exc_info=True)
-      return filter_gemini_response(f"Error extracting text from image: {str(e)}")
+      return filter_gemini_response(f"Error communicating with SuperPrompter AI, please try after sometime.")
   except Exception as e: # Catch any other unexpected errors
       app.logger.error(f"Unexpected Error calling Gemini API for image text extraction: {e}", exc_info=True)
-      return filter_gemini_response(f"An unexpected error occurred during image text extraction: {str(e)}")
+      return filter_gemini_response(f"Error communicating with SuperPrompter AI, please try after sometime.")
 # --- END NEW ---
-
-
 
 
 # --- generate_prompts_async function (main async logic for prompt variations) ---
