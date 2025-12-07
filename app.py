@@ -311,7 +311,7 @@ def ask_gemini_for_prompt(prompt_instruction, max_output_tokens=1024):
 
 
   try:
-      gemini_model_instance = genai.GenerativeModel('gemini-2.5-flash')
+      gemini_model_instance = genai.GenerativeModel('gemini-2.5-flash-lite')
 
 
       generation_config = {
