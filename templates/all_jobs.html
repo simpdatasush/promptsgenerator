@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI & Prompt Engineering Jobs - SuperPrompter AI</title>
+<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+<style>
+/* Reusing styles from previous pages */
+:root {
+--color-primary: #C3497C;
+--color-secondary: #5CA0DC;
+--color-dark-bg: #311B92;
+--color-text-dark: #2c3e50;
+--color-text-muted: #777;
+}
+
+body {
+font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+margin: 0;
+padding-top: 70px;
+background-color: #f8f9fa;
+color: var(--color-text-dark);
+line-height: 1.6;
+}
+.app-header {
+background-color: var(--color-dark-bg);
+color: #ffffff;
+padding: 15px 30px;
+display: flex;
+justify-content: space-between;
+align-items: center;
+box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+width: 100%;
+position: fixed;
+top: 0;
+left: 0;
+z-index: 1000;
+}
+.job-card {
+border: 1px solid #dee2e6;
+border-left: 5px solid var(--color-secondary); /* Blue accent on left */
+margin-bottom: 20px;
+padding: 20px;
+border-radius: 8px;
+box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+background-color: #fff;
+transition: transform 0.2s;
+}
+.job-card:hover {
+transform: translateY(-2px);
+box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+.job-title {
+color: var(--color-primary); /* Pinkish-red title */
+font-size: 1.3rem;
+margin-bottom: 5px;
+font-weight: 600;
+}
+.job-meta span {
+font-size: 0.9rem;
+color: var(--color-text-muted);
+margin-right: 20px;
+}
+</style>
+</head>
+<body>
+
+<header class="app-header">
+<div class="logo-section">
+<img src="https://placehold.co/40x40/007bff/ffffff?text=AI" alt="SuperPrompter Logo" class="app-logo">
+<h1 class="header-title">SuperPrompter</h1>
+</div>
+<nav>
+<a href="{{ url_for('all_news') }}" class="text-white mx-2">AI News</a>
+</nav>
+</header>
+
+<div class="container">
+<h1 class="text-center mb-5" style="color: var(--color-dark-bg);">🚀 AI & Prompt Engineering Jobs</h1>
+
+<form method="GET" action="{{ url_for('all_jobs') }}" class="mb-4">
+    <div class="input-group">
+        <input type="text" class="form-control" placeholder="Search jobs by title, company, or location..." name="q" value="{{ request.args.get('q', '') }}">
+        <div class="input-group-append">
+            <button class="btn btn-secondary" style="background-color: var(--color-secondary); color: white;" type="submit">Search</button>
+        </div>
+    </div>
+</form>
+{% if jobs %}
+{% for job in jobs %}
+<div class="job-card">
+<h3 class="job-title">
+<a href="{{ job.job_url }}" target="_blank" style="color: inherit; text-decoration: none;">
+{{ job.title }}
+</a>
+</h3>
+
+<div class="job-meta mb-3">
+<span><i class="fas fa-building"></i> {{ job.company }}</span>
+{% if job.location %}
+<span><i class="fas fa-map-marker-alt"></i> {{ job.location }}</span>
+{% endif %}
+<span><i class="fas fa-calendar-alt"></i> Posted: {{ job.date_posted.strftime('%b %d, %Y') }}</span>
+</div>
+
+<p>{{ job.description_summary }}</p>
+<a href="{{ job.job_url }}" target="_blank" class="btn btn-sm" style="background-color: var(--color-secondary); color: white;">Apply Now <i class="fas fa-external-link-alt"></i></a>
+</div>
+{% endfor %}
+{% else %}
+<div class="alert alert-info text-center">
+    No job postings found.
+    {% if request.args.get('q') %}
+        Please try a different search term or check back later.
+    {% else %}
+        No job postings available yet. Check back soon!
+    {% endif %}
+</div>
+{% endif %}
+</div>
+
+<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</body>
+</html>
