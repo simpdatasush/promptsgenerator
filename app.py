@@ -785,50 +785,53 @@ def check_cooldown_endpoint():
    }), 200
 # --- END UPDATED ---
 
-# --- NEW: All News Public Page Route with Search ---
+# In app.py, add a constant near the top:
+ITEMS_PER_PAGE = 10
+
+# --- UPDATED: All News Public Page Route with Search and Pagination ---
 @app.route('/all_news', methods=['GET'])
 def all_news():
     search_query = request.args.get('q', '').strip()
+    page = request.args.get('page', 1, type=int) # Get current page number, defaults to 1
 
     query = News.query.order_by(News.timestamp.desc())
 
     if search_query:
-        # Filter by title or description containing the search query (case-insensitive)
-        # Using a simple LIKE search on both title and description
         search_term = f"%{search_query}%"
-        # Use ilike for case-insensitive search
         query = query.filter(
             (News.title.ilike(search_term)) | (News.description.ilike(search_term))
         )
 
-    articles = query.all()
+    # Apply pagination
+    pagination = query.paginate(page=page, per_page=ITEMS_PER_PAGE, error_out=False)
+    articles = pagination.items
 
-    # Format the articles for the template using the field names expected by all__news.html
+    # Format the articles for the template
     formatted_articles = [{
         "title": article.title,
-        # Maps News.description to article.summary in template
         "summary": article.description if article.description else "No summary provided.",
-        # Maps News.url to article.source_url in template
         "source_url": article.url,
-        # Uses published_date if available, otherwise uses timestamp (when added to app)
         "date_published": article.published_date if article.published_date else article.timestamp
     } for article in articles]
 
-    return render_template('all_news.html', articles=formatted_articles, current_user=current_user)
-# --- END NEW: All News Public Page Route ---
+    return render_template('all_news.html', 
+                           articles=formatted_articles, 
+                           pagination=pagination, # Pass pagination object to template
+                           search_query=search_query, # Pass search query to preserve it in pagination links
+                           current_user=current_user)
+# --- END UPDATED: All News Public Page Route ---
 
 
-# --- NEW: All Jobs Public Page Route with Search ---
+# --- UPDATED: All Jobs Public Page Route with Search and Pagination ---
 @app.route('/all_jobs', methods=['GET'])
 def all_jobs():
     search_query = request.args.get('q', '').strip()
+    page = request.args.get('page', 1, type=int) # Get current page number, defaults to 1
 
     query = Job.query.order_by(Job.timestamp.desc())
 
     if search_query:
-        # Filter by title, company, location, or description containing the search query (case-insensitive)
         search_term = f"%{search_query}%"
-        # Use ilike for case-insensitive search
         query = query.filter(
             (Job.title.ilike(search_term)) |
             (Job.company.ilike(search_term)) |
@@ -836,25 +839,26 @@ def all_jobs():
             (Job.description.ilike(search_term))
         )
 
-    job_listings = query.all()
+    # Apply pagination
+    pagination = query.paginate(page=page, per_page=ITEMS_PER_PAGE, error_out=False)
+    job_listings = pagination.items
 
-    # Format the job listings for the template using the field names expected by all_jobs.html
+    # Format the job listings for the template
     formatted_jobs = [{
         "title": job.title,
         "company": job.company,
         "location": job.location,
-        # Maps Job.description to job.description_summary in template
         "description_summary": job.description if job.description else "No description provided.",
-        # Maps Job.url to job.job_url in template
         "job_url": job.url,
-        # Uses published_date if available, otherwise uses timestamp (when added to app)
         "date_posted": job.published_date if job.published_date else job.timestamp
     } for job in job_listings]
 
-    return render_template('all_jobs.html', jobs=formatted_jobs, current_user=current_user)
-# --- END NEW: All Jobs Public Page Route ---
-
-
+    return render_template('all_jobs.html', 
+                           jobs=formatted_jobs, 
+                           pagination=pagination, # Pass pagination object to template
+                           search_query=search_query, # Pass search query to preserve it in pagination links
+                           current_user=current_user)
+# --- END UPDATED: All Jobs Public Page Route ---
 
 
 # --- UPDATED: Admin News Management Routes ---
