@@ -475,9 +475,9 @@ async def generate_reverse_prompt_async(input_text, language_code="en-US"):
 @app.route('/')
 def landing():
   # Fetch latest 10 news items for the landing page
-  news_items = News.query.order_by(News.timestamp.desc()).limit(10).all()
+  news_items = News.query.order_by(News.timestamp.desc()).limit(6).all()
   # Fetch latest 10 job listings for the landing page
-  job_listings = Job.query.order_by(Job.timestamp.desc()).limit(10).all()
+  job_listings = Job.query.order_by(Job.timestamp.desc()).limit(6).all()
   return render_template('landing.html', news_items=news_items, job_listings=job_listings, current_user=current_user)
 
 
@@ -784,6 +784,75 @@ def check_cooldown_endpoint():
        "is_admin": user.is_admin
    }), 200
 # --- END UPDATED ---
+
+# --- NEW: All News Public Page Route with Search ---
+@app.route('/all_news', methods=['GET'])
+def all_news():
+    search_query = request.args.get('q', '').strip()
+
+    query = News.query.order_by(News.timestamp.desc())
+
+    if search_query:
+        # Filter by title or description containing the search query (case-insensitive)
+        # Using a simple LIKE search on both title and description
+        search_term = f"%{search_query}%"
+        # Use ilike for case-insensitive search
+        query = query.filter(
+            (News.title.ilike(search_term)) | (News.description.ilike(search_term))
+        )
+
+    articles = query.all()
+
+    # Format the articles for the template using the field names expected by all__news.html
+    formatted_articles = [{
+        "title": article.title,
+        # Maps News.description to article.summary in template
+        "summary": article.description if article.description else "No summary provided.",
+        # Maps News.url to article.source_url in template
+        "source_url": article.url,
+        # Uses published_date if available, otherwise uses timestamp (when added to app)
+        "date_published": article.published_date if article.published_date else article.timestamp
+    } for article in articles]
+
+    return render_template('all_news.html', articles=formatted_articles, current_user=current_user)
+# --- END NEW: All News Public Page Route ---
+
+
+# --- NEW: All Jobs Public Page Route with Search ---
+@app.route('/all_jobs', methods=['GET'])
+def all_jobs():
+    search_query = request.args.get('q', '').strip()
+
+    query = Job.query.order_by(Job.timestamp.desc())
+
+    if search_query:
+        # Filter by title, company, location, or description containing the search query (case-insensitive)
+        search_term = f"%{search_query}%"
+        # Use ilike for case-insensitive search
+        query = query.filter(
+            (Job.title.ilike(search_term)) |
+            (Job.company.ilike(search_term)) |
+            (Job.location.ilike(search_term)) |
+            (Job.description.ilike(search_term))
+        )
+
+    job_listings = query.all()
+
+    # Format the job listings for the template using the field names expected by all_jobs.html
+    formatted_jobs = [{
+        "title": job.title,
+        "company": job.company,
+        "location": job.location,
+        # Maps Job.description to job.description_summary in template
+        "description_summary": job.description if job.description else "No description provided.",
+        # Maps Job.url to job.job_url in template
+        "job_url": job.url,
+        # Uses published_date if available, otherwise uses timestamp (when added to app)
+        "date_posted": job.published_date if job.published_date else job.timestamp
+    } for job in job_listings]
+
+    return render_template('all_jobs.html', jobs=formatted_jobs, current_user=current_user)
+# --- END NEW: All Jobs Public Page Route ---
 
 
 
