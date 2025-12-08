@@ -139,6 +139,7 @@
 
         .card-body {
             padding: 20px;
+            min-height: 200px; /* Adjust this value (e.g., 200px) based on how much space you need for the longest title/meta/description snippet */
         }
 
         .card-title {
@@ -151,6 +152,8 @@
             font-size: 0.95rem;
             color: #555;
             margin-bottom: 15px;
+            height: 70px; /* Calculate this based on your desired number of lines (e.g., 3 lines @ 1.6 line-height) */
+            overflow: hidden; /* Crucial: ensures extra text is hidden */
         }
 
         .card-link {
