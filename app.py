@@ -1361,25 +1361,35 @@ def generate_unique_username_suggestions(base_username, num_suggestions=3):
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-  if current_user.is_authenticated:
-      flash('You are already logged in.', 'info')
-      return redirect(url_for('app_home'))
+    if current_user.is_authenticated:
+        flash('You are already logged in.', 'info')
+        return redirect(url_for('app_home'))
 
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        remember_me = 'remember_me' in request.form
 
-  if request.method == 'POST':
-      username = request.form['username']
-      password = request.form['password']
-      remember_me = 'remember_me' in request.form
+        user = User.query.filter_by(username=username).first()
+        if user and user.check_password(password):
+            login_user(user, remember=remember_me)
+            flash('Logged in successfully!', 'success')
+            
+            # --- UPDATED LOGIC TO HANDLE REDIRECTION ---
+            # 1. Get the 'next' URL parameter passed by Flask-Login (e.g., /all_jobs)
+            next_page = request.args.get('next')
+            
+            # 2. Redirect to the 'next' page if it exists, otherwise redirect to 'app_home'
+            # (In a production environment, you should use 'is_safe_url' here to prevent phishing)
+            return redirect(next_page or url_for('app_home')) 
+            
+        else:
+            flash('Login Unsuccessful. Please check username and password.', 'danger')
+            # For POST failure, re-render the login page
+            return render_template('login.html') 
 
-
-      user = User.query.filter_by(username=username).first()
-      if user and user.check_password(password):
-          login_user(user, remember=remember_me)
-          flash('Logged in successfully!', 'success')
-          return redirect(url_for('app_home')) # Redirect directly to app_home
-      else:
-          flash('Login Unsuccessful. Please check username and password.', 'danger')
-  return render_template('login.html')
+    # For GET request, render the login page
+    return render_template('login.html')
 
 
 @app.route('/logout')
