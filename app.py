@@ -824,6 +824,7 @@ def all_news():
 
 # --- UPDATED: All Jobs Public Page Route with Search and Pagination ---
 @app.route('/all_jobs', methods=['GET'])
+@login_required
 def all_jobs():
     search_query = request.args.get('q', '').strip()
     page = request.args.get('page', 1, type=int) # Get current page number, defaults to 1
