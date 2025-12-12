@@ -88,19 +88,18 @@ margin-right: 15px;
 <h1 class="text-center mb-5" style="color: var(--color-dark-bg);">📰 Latest AI News & Updates</h1>
 
 <form method="GET" action="{{ url_for('all_news') }}" class="mb-4">
-    <div class="input-group">
-                <input type="text" class="form-control" 
+    <div class="input-group">
+        <input type="text" class="form-control" 
                placeholder="Search news by title or summary..." 
                name="q" 
-               value="{{ request.args.get('q', '') }}" 
-               list="autocomplete-list"> 
+               value="{{ request.args.get('q', '') }}"
+               list="autocomplete-list">
         
-        <datalist id="autocomplete-list"></datalist>
-
-        <div class="input-group-append">
-            <button class="btn btn-secondary" style="background-color: var(--color-secondary); color: white;" type="submit">Search</button>
-        </div>
-    </div>
+        <div class="input-group-append">
+            <button class="btn btn-secondary" style="background-color: var(--color-secondary); color: white;" type="submit">Search</button>
+        </div>
+    </div>
+    <datalist id="autocomplete-list"></datalist>
 </form>
 
 {% if articles %}
