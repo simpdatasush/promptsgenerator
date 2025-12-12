@@ -160,5 +160,46 @@ margin-right: 15px;
 <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
 <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // Target the input with name="q"
+        const input = document.querySelector('input[name="q"]');
+        const dataList = document.getElementById('autocomplete-list');
+
+        // Set the API endpoint URL for this specific page
+        const API_URL = '{{ url_for("news_autocomplete") }}'; 
+        
+        let typingTimer;
+        const doneTypingInterval = 300; // Time in ms (e.g., 0.3 seconds)
+
+        input.addEventListener('keyup', () => {
+            clearTimeout(typingTimer);
+            if (input.value.length >= 2) { // Trigger only if 2 or more characters are typed
+                typingTimer = setTimeout(fetchSuggestions, doneTypingInterval);
+            } else {
+                dataList.innerHTML = ''; // Clear suggestions if input is too short
+            }
+        });
+
+        function fetchSuggestions() {
+            const query = input.value;
+            if (!query) return;
+
+            fetch(API_URL + '?q=' + encodeURIComponent(query))
+                .then(response => response.json())
+                .then(data => {
+                    dataList.innerHTML = ''; // Clear previous suggestions
+                    data.forEach(suggestion => {
+                        const option = document.createElement('option');
+                        option.value = suggestion;
+                        dataList.appendChild(option);
+                    });
+                })
+                .catch(error => console.error('Error fetching autocomplete data:', error));
+        }
+    });
+</script>
+    
 </body>
 </html>
