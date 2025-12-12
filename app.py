@@ -785,6 +785,7 @@ def check_cooldown_endpoint():
    }), 200
 # --- END UPDATED ---
 
+
 # In app.py, add a constant near the top:
 ITEMS_PER_PAGE = 10
 
@@ -821,6 +822,27 @@ def all_news():
                            current_user=current_user)
 # --- END UPDATED: All News Public Page Route ---
 
+# --- NEW: Autocomplete API for News Titles ---
+@app.route('/api/news_autocomplete', methods=['GET'])
+def news_autocomplete():
+    """Returns a JSON list of news titles matching the query."""
+    query_term = request.args.get('q', '').strip()
+    if not query_term:
+        return jsonify([])
+
+    # Use ilike for case-insensitive partial matching
+    search_pattern = f"%{query_term}%"
+    
+    # Fetch top 10 matching titles
+    results = News.query.filter(News.title.ilike(search_pattern)) \
+                        .limit(10) \
+                        .all()
+    
+    # Format results as a list of strings (titles)
+    titles = [item.title for item in results]
+    
+    return jsonify(titles)
+# --- END NEW: Autocomplete API for News Titles ---
 
 # --- UPDATED: All Jobs Public Page Route with Search and Pagination ---
 @app.route('/all_jobs', methods=['GET'])
