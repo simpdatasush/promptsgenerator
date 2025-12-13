@@ -107,17 +107,21 @@ margin-right: 15px;
 <div class="article-card">
 <h3 class="article-title">
     {% if article.id in blog_id_tracker %}
-    <a href="{{ article.url }}" 
-       data-toggle="modal" 
-       data-target="#blogModal" 
-       data-title="{{ article.title }}" 
-       data-content="{{ article.description }}" 
-       style="color: var(--color-secondary); text-decoration: none;">
-        <i class="fas fa-book-open" style="font-size: 0.9em;"></i> 
-        {{ article.title }} 
-        <small>(In-App Article)</small>
-    </a>
-{% else %}
+        <a href="#" 
+           data-toggle="modal" 
+           data-target="#blogModal" 
+           data-title="{{ article.title }}" 
+           data-content="{{ article.description }}" 
+           onclick="return false;" 
+           style="color: var(--color-secondary); text-decoration: none;">
+            <i class="fas fa-book-open" style="font-size: 0.9em;"></i> 
+            {{ article.title }} 
+            <small>(In-App Article)</small>
+        </a>
+    {% else %}
+        <a href="{{ article.source_url }}" target="_blank" style="color: inherit; text-decoration: none;">
+            {{ article.title }} <i class="fas fa-external-link-alt" style="font-size: 0.8em;"></i>
+        </a>
     {% endif %}
 </h3>
 
