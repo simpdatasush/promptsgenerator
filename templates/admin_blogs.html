@@ -175,8 +175,6 @@
 <h1 class="header-title">SuperPrompter</h1>
 </div>
 <div class="auth-section">
-<a href="{{ url_for('admin_news') }}" class="btn btn-outline-light btn-sm mr-2">Admin News</a>
-<a href="{{ url_for('admin_blogs') }}" class="btn btn-outline-light btn-sm mr-2">Admin Blogs</a>
 <a href="{{ url_for('app_home') }}" class="btn btn-outline-light btn-sm mr-2">Back to App</a>
 {% if current_user.is_authenticated %}
 <a href="{{ url_for('logout') }}" class="btn btn-outline-light btn-sm">Logout</a>
