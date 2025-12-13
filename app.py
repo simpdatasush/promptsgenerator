@@ -1108,10 +1108,12 @@ def add_blog_post():
 @app.route('/blog_content/<uuid:blog_uuid>', methods=['GET'])
 def view_blog_content(blog_uuid):
     """Displays a single blog post by its unique URL identifier."""
-    
+    # Ensure the UUID is converted to a string before f-string formatting
+    blog_uuid_str = str(blog_uuid)
+  
     # 1. Reconstruct the placeholder URL string stored in the News table
     # This must match the format used in add_blog_post()
-    placeholder_url = f"/blog_content/{blog_uuid}"
+    placeholder_url = f"/blog_content/{blog_uuid_str}"
     
     # 2. Find the News item (Blog Post) that matches this URL
     blog_post = News.query.filter_by(url=placeholder_url).first()
