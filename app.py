@@ -1103,6 +1103,34 @@ def add_blog_post():
 
 # You will need corresponding routes for delete_blog_post and edit_blog_post (similar to news)
 
+# In app.py
+
+@app.route('/blog_content/<uuid:blog_uuid>', methods=['GET'])
+def view_blog_content(blog_uuid):
+    """Displays a single blog post by its unique URL identifier."""
+    
+    # 1. Reconstruct the placeholder URL string stored in the News table
+    # This must match the format used in add_blog_post()
+    placeholder_url = f"/blog_content/{blog_uuid}"
+    
+    # 2. Find the News item (Blog Post) that matches this URL
+    blog_post = News.query.filter_by(url=placeholder_url).first()
+    
+    if not blog_post:
+        # If the UUID doesn't match any stored URL, return 404
+        return render_template('404.html'), 404 
+    
+    # 3. Ensure it's marked as a blog post (optional, but good for validation)
+    global blog_id_tracker
+    if blog_post.id not in blog_id_tracker:
+        # If it's a valid UUID URL but wasn't marked as a blog, maybe redirect or 404
+        return render_template('404.html'), 404 
+
+    # 4. Render a dedicated template to show the full content
+    return render_template('single_blog_post.html', post=blog_post)
+
+# You will also need to update the delete_news route to remove the item 
+# from the blog_id_tracker if it exists, as done previously.
 
 
 # --- NEW: Change Password Route ---
