@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Blog Management</title>
+<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+<style>
+/* Replicate CSS styles from admin_news.html for consistency */
+/* ... (Ensure your consistent admin CSS styles are included here) ... */
+</style>
+</head>
+<body>
+<header class="app-header">
+<div class="logo-section">
+<img src="https://placehold.co/40x40/007bff/ffffff?text=AI" alt="SuperPrompter Logo" class="app-logo">
+<h1 class="header-title">SuperPrompter</h1>
+</div>
+<div class="auth-section">
+<a href="{{ url_for('admin_news') }}" class="btn btn-outline-light btn-sm mr-2">Admin News</a>
+<a href="{{ url_for('admin_blogs') }}" class="btn btn-outline-light btn-sm mr-2">Admin Blogs</a>
+<a href="{{ url_for('app_home') }}" class="btn btn-outline-light btn-sm mr-2">Back to App</a>
+{% if current_user.is_authenticated %}
+<a href="{{ url_for('logout') }}" class="btn btn-outline-light btn-sm">Logout</a>
+{% endif %}
+</div>
+</header>
+
+<div class="container">
+<h2>Admin Blog Post Management</h2>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+{% if messages %}
+<div class="alert-container">
+{% for category, message in messages %}
+<div class="alert alert-{{ category }}">{{ message }}</div>
+{% endfor %}
+</div>
+{% endif %}
+{% endwith %}
+
+<div class="card mb-4">
+    <div class="card-header">
+        <h4>Write New Blog Post</h4>
+    </div>
+    <div class="card-body">
+        <form action="{{ url_for('add_blog_post') }}" method="POST">
+            <div class="form-group">
+                <label for="title">Title:</label>
+                <input type="text" class="form-control" id="title" name="title" required>
+            </div>
+            <div class="form-group">
+                <label for="description">Content (This will be the main body of the blog):</label>
+                <textarea class="form-control" id="description" name="description" rows="10" required></textarea>
+            </div>
+            <div class="form-group">
+                <label for="published_date">Published Date (YYYY-MM-DD):</label>
+                <input type="date" class="form-control" id="published_date" name="published_date">
+            </div>
+            <button type="submit" class="btn btn-primary">Publish Blog Post</button>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h4>Published Blog Posts (Active in All News)</h4>
+    </div>
+    <div class="card-body">
+        {% if blog_items %}
+            {% for item in blog_items %}
+                {% if item.id in blog_id_tracker %}
+                    <div class="news-item">
+                        <div class="news-item-content">
+                            <i class="fas fa-edit text-info mr-2"></i>
+                            <span class="text-info font-weight-bold">BLOG POST:</span>
+                            <h5>{{ item.title }}</h5>
+                            <p class="timestamp">
+                                Published: {{ item.timestamp.strftime('%Y-%m-%d %H:%M') }}
+                            </p>
+                        </div>
+                        <div class="actions">
+                            <form action="{{ url_for('delete_news', news_id=item.id) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this blog post?');" style="display: inline-block;">
+                                <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                            </form>
+                        </div>
+                    </div>
+                {% endif %}
+            {% endfor %}
+        {% else %}
+            <p>No blog posts published yet.</p>
+        {% endif %}
+    </div>
+</div>
+</div>
+
+<footer class="footer">
+</footer>
+</body>
+</html>
