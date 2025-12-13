@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ post.title }}</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <style>
+        /* Use your standard header/footer styles here */
+        body { padding-top: 70px; background-color: #f8f9fa; }
+        .app-header { /* ... (Your standard header style) ... */ }
+        .post-container { 
+            max-width: 800px; margin: 30px auto; padding: 40px; 
+            background: #fff; border-radius: 8px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); 
+        }
+        .post-content { white-space: pre-wrap; line-height: 1.8; font-size: 1.1rem; }
+        .post-title { color: #311B92; margin-bottom: 20px; font-weight: 700; }
+        .post-meta { font-size: 0.9em; color: #777; margin-bottom: 30px; border-bottom: 1px solid #eee; padding-bottom: 15px; }
+    </style>
+</head>
+<body>
+    <header class="app-header">
+        <div class="logo-section">
+            <h1 class="header-title">SuperPrompter</h1>
+        </div>
+        <nav>
+            <a href="{{ url_for('landing') }}" class="btn btn-outline-light btn-sm mr-2">Home</a>
+            <a href="{{ url_for('all_news') }}" class="btn btn-outline-light btn-sm mr-2">AI News</a>
+        </nav>
+    </header>
+
+    <div class="container post-container">
+        <h1 class="post-title">{{ post.title }}</h1>
+        <div class="post-meta">
+            Published: {{ post.timestamp.strftime('%B %d, %Y') }} 
+            {% if post.user %} | By: {{ post.user.username }} {% endif %}
+        </div>
+        
+        <div class="post-content">
+            {{ post.description }}
+        </div>
+
+        <div class="mt-5 pt-3 border-top text-center">
+            <a href="{{ url_for('all_news') }}" class="btn btn-primary">Back to All News</a>
+        </div>
+    </div>
+    
+    </body>
+</html>
