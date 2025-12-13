@@ -6,97 +6,115 @@
     <title>{{ post.title }}</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    
     <style>
-    /* Global Variables for Consistency */
-    :root {
-        --color-primary: #C3497C;
-        --color-secondary: #5CA0DC;
-        --color-dark-bg: #311B92;
-        --color-text-dark: #2c3e50;
-        --color-text-muted: #777;
-    }
+        /* Global Variables for Consistency */
+        :root {
+            --color-primary: #C3497C;
+            --color-secondary: #5CA0DC;
+            --color-dark-bg: #311B92;
+            --color-text-dark: #2c3e50;
+            --color-text-muted: #777;
+        }
 
-    /* Base Body and Layout */
-    body { 
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        padding-top: 70px; /* Space for fixed header */
-        background-color: #f8f9fa; /* Light background */
-        color: var(--color-text-dark);
-        line-height: 1.6;
-    }
+        /* Base Body and Layout */
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding-top: 70px; /* Space for fixed header */
+            background-color: #f8f9fa; /* Light background */
+            color: var(--color-text-dark);
+            line-height: 1.6;
+        }
 
-    /* Standard App Header Style */
-    .app-header { 
-        background-color: var(--color-dark-bg);
-        color: #ffffff;
-        padding: 15px 30px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-        width: 100%;
-        position: fixed;
-        top: 0;
-        left: 0;
-        z-index: 1000;
-    }
-    .app-header .header-title {
-        font-size: 1.8rem;
-        font-weight: 600;
-        color: #fff;
-    }
-    .app-header a {
-        color: #fff;
-        text-decoration: none;
-    }
+        /* Standard App Header Style */
+        .app-header { 
+            background-color: var(--color-dark-bg);
+            color: #ffffff;
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+            width: 100%;
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 1000;
+        }
+        .app-header .header-title {
+            font-size: 1.8rem;
+            font-weight: 600;
+            color: #fff;
+        }
+        .app-header a {
+            color: #fff;
+            text-decoration: none;
+        }
+        .app-header .logo-section {
+            display: flex;
+            align-items: center;
+        }
+        .app-header .app-logo {
+            height: 40px;
+            margin-right: 15px;
+            border-radius: 5px;
+        }
 
-    /* Blog Post Container */
-    .post-container { 
-        max-width: 800px; 
-        margin: 30px auto; 
-        padding: 40px; 
-        background: #fff; 
-        border-radius: 8px; 
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); 
-    }
+        /* Blog Post Container */
+        .post-container { 
+            max-width: 800px; 
+            margin: 30px auto; 
+            padding: 40px; 
+            background: #fff; 
+            border-radius: 8px; 
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); 
+        }
 
-    /* Post Title and Meta Data */
-    .post-title { 
-        color: var(--color-dark-bg); /* Deep violet color */
-        margin-bottom: 20px; 
-        font-weight: 700; 
-        font-size: 2.2rem;
-    }
-    .post-meta { 
-        font-size: 0.9em; 
-        color: var(--color-text-muted); 
-        margin-bottom: 30px; 
-        border-bottom: 1px solid #eee; 
-        padding-bottom: 15px; 
-    }
+        /* Post Title and Meta Data */
+        .post-title { 
+            color: var(--color-dark-bg); /* Deep violet color */
+            margin-bottom: 20px; 
+            font-weight: 700; 
+            font-size: 2.2rem;
+        }
+        
+        /* Layout for Meta Info + Copy Button */
+        .post-meta-strip {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px; 
+            border-bottom: 1px solid #eee; 
+            padding-bottom: 15px; 
+        }
+        .post-meta { 
+            font-size: 0.9em; 
+            color: var(--color-text-muted); 
+        }
 
-    /* Post Content (Main Body) */
-    .post-content { 
-        white-space: pre-wrap; /* Preserves newlines/spacing from textarea input */
-        line-height: 1.8; 
-        font-size: 1.1rem; 
-        color: var(--color-text-dark);
-        /* Add basic typography for readability */
-    }
-    .post-content p { margin-bottom: 1.5rem; }
+        /* Post Content (Main Body) */
+        .post-content { 
+            white-space: pre-wrap; /* Preserves newlines/spacing from textarea input */
+            line-height: 1.8; 
+            font-size: 1.1rem; 
+            color: var(--color-text-dark);
+        }
+        .post-content p { margin-bottom: 1.5rem; }
 
-    /* Button Styling */
-    .btn-primary {
-        background-color: var(--color-primary) !important;
-        border-color: var(--color-primary) !important;
-    }
-    .btn-primary:hover {
-        background-color: #a33b66 !important; /* Slightly darker primary color */
-        border-color: #a33b66 !important;
-    }
-</style>
-</head>
+        /* Button Styling */
+        .btn-primary {
+            background-color: var(--color-primary) !important;
+            border-color: var(--color-primary) !important;
+        }
+        .btn-primary:hover {
+            background-color: #a33b66 !important; /* Slightly darker primary color */
+            border-color: #a33b66 !important;
+        }
+    </style>
+    </head>
 <body>
+
     <header class="app-header">
         <div class="logo-section">
             <img src="https://placehold.co/40x40/007bff/ffffff?text=AI" alt="SuperPrompter Logo" class="app-logo">
@@ -110,9 +128,16 @@
 
     <div class="container post-container">
         <h1 class="post-title">{{ post.title }}</h1>
-        <div class="post-meta">
-            Published: {{ post.timestamp.strftime('%B %d, %Y') }} 
-            {% if post.user %} | By: {{ post.user.username }} {% endif %}
+        
+        <div class="post-meta-strip">
+            <div class="post-meta">
+                Published: {{ post.timestamp.strftime('%B %d, %Y') if post.timestamp else 'N/A' }} 
+                {% if post.user %} | By: {{ post.user.username }} {% endif %}
+            </div>
+            
+            <button class="btn btn-sm btn-outline-secondary" id="copyLinkBtn">
+                <i class="fas fa-copy"></i> Copy Link
+            </button>
         </div>
         
         <div class="post-content">
@@ -124,5 +149,34 @@
         </div>
     </div>
     
-    </body>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const copyButton = document.getElementById('copyLinkBtn');
+            const originalText = 'Copy Link';
+            
+            copyButton.addEventListener('click', async () => {
+                // Get the current URL of the page
+                const linkToCopy = window.location.href;
+
+                try {
+                    // Use the modern Clipboard API
+                    await navigator.clipboard.writeText(linkToCopy);
+                    
+                    // Provide feedback to the user
+                    copyButton.innerHTML = '<i class="fas fa-check"></i> Copied!';
+                    
+                    // Reset button text after a short delay
+                    setTimeout(() => {
+                        copyButton.innerHTML = '<i class="fas fa-copy"></i> ' + originalText;
+                    }, 2000);
+
+                } catch (err) {
+                    // Fallback for security errors or older browsers
+                    console.error('Failed to copy link using Clipboard API. Falling back to alert.', err);
+                    alert("The link is: " + linkToCopy + "\nPlease copy it manually.");
+                }
+            });
+        });
+    </script>
+</body>
 </html>
