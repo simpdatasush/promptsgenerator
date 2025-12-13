@@ -7,17 +7,94 @@
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
     <style>
-        /* Use your standard header/footer styles here */
-        body { padding-top: 70px; background-color: #f8f9fa; }
-        .app-header { /* ... (Your standard header style) ... */ }
-        .post-container { 
-            max-width: 800px; margin: 30px auto; padding: 40px; 
-            background: #fff; border-radius: 8px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); 
-        }
-        .post-content { white-space: pre-wrap; line-height: 1.8; font-size: 1.1rem; }
-        .post-title { color: #311B92; margin-bottom: 20px; font-weight: 700; }
-        .post-meta { font-size: 0.9em; color: #777; margin-bottom: 30px; border-bottom: 1px solid #eee; padding-bottom: 15px; }
-    </style>
+    /* Global Variables for Consistency */
+    :root {
+        --color-primary: #C3497C;
+        --color-secondary: #5CA0DC;
+        --color-dark-bg: #311B92;
+        --color-text-dark: #2c3e50;
+        --color-text-muted: #777;
+    }
+
+    /* Base Body and Layout */
+    body { 
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        padding-top: 70px; /* Space for fixed header */
+        background-color: #f8f9fa; /* Light background */
+        color: var(--color-text-dark);
+        line-height: 1.6;
+    }
+
+    /* Standard App Header Style */
+    .app-header { 
+        background-color: var(--color-dark-bg);
+        color: #ffffff;
+        padding: 15px 30px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        width: 100%;
+        position: fixed;
+        top: 0;
+        left: 0;
+        z-index: 1000;
+    }
+    .app-header .header-title {
+        font-size: 1.8rem;
+        font-weight: 600;
+        color: #fff;
+    }
+    .app-header a {
+        color: #fff;
+        text-decoration: none;
+    }
+
+    /* Blog Post Container */
+    .post-container { 
+        max-width: 800px; 
+        margin: 30px auto; 
+        padding: 40px; 
+        background: #fff; 
+        border-radius: 8px; 
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); 
+    }
+
+    /* Post Title and Meta Data */
+    .post-title { 
+        color: var(--color-dark-bg); /* Deep violet color */
+        margin-bottom: 20px; 
+        font-weight: 700; 
+        font-size: 2.2rem;
+    }
+    .post-meta { 
+        font-size: 0.9em; 
+        color: var(--color-text-muted); 
+        margin-bottom: 30px; 
+        border-bottom: 1px solid #eee; 
+        padding-bottom: 15px; 
+    }
+
+    /* Post Content (Main Body) */
+    .post-content { 
+        white-space: pre-wrap; /* Preserves newlines/spacing from textarea input */
+        line-height: 1.8; 
+        font-size: 1.1rem; 
+        color: var(--color-text-dark);
+        /* Add basic typography for readability */
+    }
+    .post-content p { margin-bottom: 1.5rem; }
+
+    /* Button Styling */
+    .btn-primary {
+        background-color: var(--color-primary) !important;
+        border-color: var(--color-primary) !important;
+    }
+    .btn-primary:hover {
+        background-color: #a33b66 !important; /* Slightly darker primary color */
+        border-color: #a33b66 !important;
+    }
+</style>
 </head>
 <body>
     <header class="app-header">
