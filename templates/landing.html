@@ -346,6 +346,53 @@
             </div>
         </section>
 
+        <section class="news-section mb-5">
+    <h2 class="section-title"><a href="{{ url_for('all_news') }}" class="text-decoration-none text-dark">Latest News</a></h2>
+    <div class="row">
+        {% for item in news_items %}
+        <div class="col-md-6 col-lg-4">
+            <div class="card">
+                <div class="card-body">
+                    
+                    <h5 class="card-title">
+                        {% if item.id in blog_id_tracker %}
+                            <a href="{{ item.url }}" class="text-decoration-none" style="color: var(--color-dark-bg);">
+                                <i class="fas fa-book-open" style="font-size: 0.9em; color: var(--color-secondary);"></i> 
+                                {{ item.title }} 
+                                <small class="text-secondary">(Article)</small>
+                            </a>
+                        {% else %}
+                            <a href="{{ item.url }}" target="_blank" class="text-decoration-none text-dark">
+                                {{ item.title }}
+                            </a>
+                        {% endif %}
+                    </h5>
+                    
+                    <p class="card-text">{{ item.description | truncate(150) }}</p>
+                    
+                    {% if item.id in blog_id_tracker %}
+                        <a href="{{ item.url }}" class="card-link">
+                            Read Article <i class="fas fa-arrow-right"></i>
+                        </a>
+                    {% else %}
+                        <a href="{{ item.url }}" target="_blank" class="card-link">
+                            Read More <i class="fas fa-external-link-alt"></i>
+                        </a>
+                    {% endif %}
+
+                    <p class="meta-info">Published: {{ item.published_date.strftime('%Y-%m-%d') if item.published_date else 'N/A' }}</p>
+                    <p class="meta-info">Added: {{ item.timestamp.strftime('%Y-%m-%d %H:%M') }}</p>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="col-12">
+            <p class="text-center text-muted">No news items available yet. Check back soon!</p>
+        </div>
+        {% endfor %}
+    </div>
+</section>
+        
         <section class="jobs-section mb-5">
             <h2 class="section-title"><a href="{{ url_for('all_jobs') }}" class="text-decoration-none text-dark">Job Listings</a></h2>
             <div class="row">
