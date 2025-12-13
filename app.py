@@ -79,6 +79,9 @@ app.logger.addHandler(stream_handler) # Add the configured handler to the app lo
 
 # --- Temporary In-Memory Storage for Saved Prompts (Unchanged) ---
 saved_prompts_in_memory = []
+blog_id_tracker = []
+
+# ... (rest of the global trackers and configuration) ...
 
 
 # --- NEW: Cooldown configuration (no longer in-memory dict for last_request_time) ---
@@ -819,6 +822,7 @@ def all_news():
                            articles=formatted_articles, 
                            pagination=pagination, # Pass pagination object to template
                            search_query=search_query, # Pass search query to preserve it in pagination links
+                           blog_id_tracker=blog_id_tracker, # NEW
                            current_user=current_user)
 # --- END UPDATED: All News Public Page Route ---
 
@@ -1037,6 +1041,67 @@ def repost_job(job_id):
    return redirect(url_for('admin_jobs'))
 # --- END UPDATED: Admin Jobs Management Routes ---
 
+# In app.py
+
+@app.route('/admin/blogs', methods=['GET'])
+@login_required
+@admin_required
+def admin_blogs():
+    # Fetch all News items, similar to admin_news, so the admin can see their blog list.
+    # We will pass the global tracker list to the template for display logic.
+    blog_items = News.query.order_by(News.timestamp.desc()).all()
+    
+    return render_template('admin_blogs.html', 
+                           blog_items=blog_items,
+                           blog_id_tracker=blog_id_tracker,
+                           current_user=current_user)
+
+@app.route('/admin/blogs/add', methods=['POST'])
+@login_required
+@admin_required
+def add_blog_post():
+    title = request.form.get('title')
+    description = request.form.get('description') # This is the main blog content
+    published_date_str = request.form.get('published_date')
+    
+    # We use a placeholder URL because the content lives *inside* the app, not externally.
+    blog_url = f"/blog_content/{uuid.uuid4()}" 
+    
+    if not title or not description:
+        flash('Title and Blog Content are required to add a blog post.', 'danger')
+        return redirect(url_for('admin_blogs'))
+
+    published_date = None
+    if published_date_str:
+        try:
+            published_date = datetime.strptime(published_date_str, '%Y-%m-%d')
+        except ValueError:
+            flash('Invalid Published Date format. Please use YYYY-MM-DD.', 'danger')
+            return redirect(url_for('admin_blogs'))
+
+    try:
+        # 1. Create news item using the News model
+        new_blog = News(
+            title=title, 
+            url=blog_url, # Store placeholder URL
+            description=description, 
+            published_date=published_date, 
+            user_id=current_user.id
+        ) 
+        db.session.add(new_blog)
+        db.session.commit()
+        
+        # 2. Mark this item as a blog post in the in-memory tracker
+        global blog_id_tracker
+        blog_id_tracker.insert(0, new_blog.id) 
+        
+        flash('Blog Post added successfully and is visible in News!', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error adding blog post: {e}', 'danger')
+    return redirect(url_for('admin_blogs'))
+
+# You will need corresponding routes for delete_blog_post and edit_blog_post (similar to news)
 
 
 
