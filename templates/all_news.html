@@ -107,9 +107,12 @@ margin-right: 15px;
 <div class="article-card">
 <h3 class="article-title">
     {% if article.id in blog_id_tracker %}
-        <a href="#" data-toggle="modal" data-target="#blogModal" 
+        <a href="#" 
+           data-toggle="modal" 
+           data-target="#blogModal" 
            data-title="{{ article.title }}" 
-           data-content="{{ article.summary }}" 
+           data-content="{{ article.description }}" 
+           onclick="return false;" 
            style="color: var(--color-secondary); text-decoration: none;">
             <i class="fas fa-book-open" style="font-size: 0.9em;"></i> 
             {{ article.title }} 
