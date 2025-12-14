@@ -1181,33 +1181,52 @@ def add_blog_post():
 
 @app.route('/blog_content/<uuid:blog_uuid>', methods=['GET'])
 def view_blog_content(blog_uuid):
-    """Displays a single blog post by its unique URL identifier."""
-    # Ensure the UUID is converted to a string before f-string formatting
+    """Displays a single blog post by its unique URL identifier and populates the sidebar."""
+    
     blog_uuid_str = str(blog_uuid)
-  
-    # 1. Reconstruct the placeholder URL string stored in the News table
-    # This must match the format used in add_blog_post()
     placeholder_url = f"/blog_content/{blog_uuid_str}"
     
-    # 2. Find the News item (Blog Post) that matches this URL
     blog_post = News.query.filter_by(url=placeholder_url).first()
     
     if not blog_post:
-        # If the UUID doesn't match any stored URL, return 404
-        return render_template('404.html'), 404 
+        return render_template('404.html'), 404
     
-    # 3. Ensure it's marked as a blog post (optional, but good for validation)
     global blog_id_tracker
     if blog_post.id not in blog_id_tracker:
-        # If it's a valid UUID URL but wasn't marked as a blog, maybe redirect or 404
         return render_template('404.html'), 404
 
-    latest_blogs = News.query.filter(News.id.in_(blog_id_tracker)).\
-                           order_by(News.timestamp.desc()).\
-                           limit(20).all()
+    # 1. Fetch the raw list of the 20 most recent internal blog posts
+    raw_latest_blogs = News.query.filter(News.id.in_(blog_id_tracker)).\
+                                 order_by(News.timestamp.desc()).\
+                                 limit(20).all()
 
-    # 4. Render a dedicated template to show the full content
-    return render_template('single_blog_post.html', post=blog_post, latest_blogs=latest_blogs)
+    # 2. Process the list to create the clean data structure needed by the template
+    # This step is critical because it generates the correct UUID-based URL.
+    processed_latest_blogs = []
+    for blog in raw_latest_blogs:
+        # Extract the UUID from the stored URL string
+        # Assuming the URL is always '/blog_content/UUID_STRING'
+        try:
+            # We split the URL '/blog_content/XXXXX' and take the last part (the UUID)
+            uuid_part = blog.url.split('/')[-1]
+            
+            # Generate the link using the URL endpoint name and the UUID part
+            blog_link = url_for('view_blog_content', blog_uuid=uuid_part)
+            
+            processed_latest_blogs.append({
+                'id': blog.id,
+                'title': blog.title,
+                'url': blog_link # The corrected link for the sidebar
+            })
+        except Exception as e:
+            # Simple error handling for articles without a correctly formatted UUID URL
+            print(f"Error processing blog URL for ID {blog.id}: {e}")
+            continue
+
+    # 3. Render the dedicated template, passing the processed list
+    return render_template('single_blog_post.html', 
+                           post=blog_post, 
+                           latest_blogs=processed_latest_blogs) # <-- Pass the PROCESSED list
 
 # You will also need to update the delete_news route to remove the item 
 # from the blog_id_tracker if it exists, as done previously.
