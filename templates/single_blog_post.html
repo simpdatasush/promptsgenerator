@@ -147,6 +147,75 @@
             background-color: #a33b66 !important; /* Slightly darker primary color */
             border-color: #a33b66 !important;
         }
+
+        /* Sidebar Styles for Latest Blogs */
+    .sidebar-widget {
+        padding: 15px;
+        background-color: #ffffff;
+        border: 1px solid #e0ee0e0;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        /* Make the sidebar sticky for better navigation */
+        position: sticky; 
+        top: 80px; /* Adjust based on your fixed header height */
+    }
+
+    .sidebar-title {
+        color: var(--color-dark-bg);
+        font-size: 1.2rem;
+        font-weight: 600;
+        margin-bottom: 15px;
+        border-bottom: 2px solid var(--color-primary); /* Pink accent */
+        padding-bottom: 5px;
+    }
+
+    .sidebar-widget li {
+        margin-bottom: 8px;
+    }
+
+    .sidebar-link {
+        color: var(--color-text-dark);
+        font-size: 0.95rem;
+        text-decoration: none;
+        display: block;
+        line-height: 1.3;
+    }
+
+    .sidebar-link:hover {
+        color: var(--color-secondary);
+        text-decoration: underline;
+    }
+
+    /* Style for the currently viewed blog post link */
+    .active-link {
+        font-weight: bold;
+        color: var(--color-primary) !important; /* Highlight current page */
+    }
+
+    /* Adjust the main post container for the new grid layout */
+    /* Remove max-width and margins from post-container, as the row/col controls the width */
+    .post-container-main { /* Renamed the main container's class to differentiate */
+        padding: 40px; 
+        background: #fff; 
+        border-radius: 8px; 
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); 
+    }
+    
+    /* Ensure the main container's post-container styling applies to the new element */
+    .post-container {
+        /* This class is now the container for the entire grid layout */
+        max-width: 1200px; /* Wider main container for two columns */
+        margin: 30px auto;
+        padding: 0; /* Remove padding here, apply it to the .post-container-main */
+    }
+    
+    /* Ensure small screens hide the sidebar to maintain readability */
+    @media (max-width: 767.98px) {
+        .d-md-block {
+            display: none !important;
+        }
+    }
+           
     </style>
     </head>
 <body>
@@ -163,62 +232,79 @@
         </nav>
     </header>
 
-    <div class="container post-container">
-        <h1 class="post-title">{{ post.title }}</h1>
-        
-        <div class="post-meta-strip">
-            <div class="post-meta">
-                Published: {{ post.timestamp.strftime('%B %d, %Y') if post.timestamp else 'N/A' }} 
-                {% if post.user %} | By: {{ post.user.username }} {% endif %}
+    <div class="container mt-4">
+        <div class="row">
+            
+            <div class="col-md-3 d-none d-md-block">
+                <div class="sidebar-widget">
+                    <h4 class="sidebar-title">Latest Blogs</h4>
+                    <ul class="list-unstyled">
+                        {% for item in latest_blogs %}
+                            <li>
+                                <a href="{{ item.url }}" class="sidebar-link {% if item.id == post.id %}active-link{% endif %}">
+                                    {{ item.title | truncate(45) }}
+                                </a>
+                            </li>
+                        {% else %}
+                            <li><p class="text-muted">No other blogs available.</p></li>
+                        {% endfor %}
+                    </ul>
+                </div>
             </div>
             
-            <button class="btn btn-sm btn-outline-secondary" id="copyLinkBtn">
-                <i class="fas fa-copy"></i> Copy Link
-            </button>
-        </div>
-        
-        <div class="post-content">
-            {{ post.description }}
-        </div>
+            <div class="col-md-9">
+                <div class="post-container-main"> 
+                    
+                    <h1 class="post-title">{{ post.title }}</h1>
+                    
+                    <div class="post-meta-strip">
+                        <div class="post-meta">
+                            Published: {{ post.timestamp.strftime('%B %d, %Y') if post.timestamp else 'N/A' }} 
+                            {% if post.user %} | By: {{ post.user.username }} {% endif %}
+                        </div>
+                        
+                        <button class="btn btn-sm btn-outline-secondary" id="copyLinkBtn">
+                            <i class="fas fa-copy"></i> Copy Link
+                        </button>
+                    </div>
+                    
+                    <div class="post-content">
+                        {{ post.description }}
+                    </div>
 
-        <hr class="mt-5 mb-5">
-        
-        <section id="comments-section" class="mb-5">
-            <h3 class="text-center mb-4" style="color: var(--color-dark-bg);">Join the Conversation</h3>
-            
-            <div id="disqus_thread"></div>
-            <script>
-                /**
-                 * RECOMMENDED CONFIGURATION VARIABLES: EDIT AND UNCOMMENT THE SECTION BELOW TO INSERT DYNAMIC VALUES FROM YOUR PLATFORM OR CMS.
-                 * LEARN WHY DEFINING THESE VARIABLES IS IMPORTANT: https://disqus.com/admin/universalcode/#configuration-variables
-                 */
-                var disqus_config = function () {
-                    this.page.url = '{{ request.url }}';  // The canonical URL of the page
-                    this.page.identifier = 'blog-{{ post.id }}'; // The unique identifier for the thread
-                };
-                
-                (function() { // DON'T EDIT BELOW THIS LINE
-                    var d = document, s = d.createElement('script');
-                    s.src = 'https://superprompterai.disqus.com/embed.js'; // REPLACE WITH YOUR SHORTNAME
-                    s.setAttribute('data-timestamp', +new Date());
-                    (d.head || d.body).appendChild(s);
-                })();
-            </script>
-            <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
-        </section>
+                    <hr class="mt-5 mb-5">
+                    
+                    <section id="comments-section" class="mb-5">
+                        <h3 class="text-center mb-4" style="color: var(--color-dark-bg);">Join the Conversation</h3>
+                        
+                        <div id="disqus_thread"></div>
+                        <script>
+                            var disqus_config = function () {
+                                this.page.url = '{{ request.url }}';
+                                this.page.identifier = 'blog-{{ post.id }}';
+                            };
+                            
+                            (function() {
+                                var d = document, s = d.createElement('script');
+                                s.src = 'https://superprompterai.disqus.com/embed.js';
+                                s.setAttribute('data-timestamp', +new Date());
+                                (d.head || d.body).appendChild(s);
+                            })();
+                        </script>
+                        <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+                    </section>
 
-        <section id="subscription-cta" class="p-4 mb-5 text-center" style="background-color: #f0f2f5; border-radius: 8px;">
-            <h4 style="color: var(--color-dark-bg); margin-bottom: 15px;">Stay Updated!</h4>
-            <p class="lead">Stay updated with the latest AI prompt generation tips, news, and features.</p>
-            <a href="https://flow.cleverreach.com/fl/f1b39182-4b74-4664-9c1d-c175cb3a670c/" target="_blank" class="btn btn-primary btn-lg">Share Your Email ID</a>
-        </section>
+                    <section id="subscription-cta" class="p-4 mb-5 text-center" style="background-color: #f0f2f5; border-radius: 8px;">
+                        <h4 style="color: var(--color-dark-bg); margin-bottom: 15px;">Stay Updated!</h4>
+                        <p class="lead">Stay updated with the latest AI prompt generation tips, news, and features.</p>
+                        <a href="https://flow.cleverreach.com/fl/f1b39182-4b74-4664-9c1d-c175cb3a670c/" target="_blank" class="btn btn-primary btn-lg">Share Your Email ID</a>
+                    </section>
 
-        <div class="mt-5 pt-3 border-top text-center">
-            <a href="{{ url_for('all_news') }}" class="btn btn-primary">Back to All News</a>
-        </div>
-    </div>
-    
-    <script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
+                    <div class="mt-5 pt-3 border-top text-center">
+                        <a href="{{ url_for('all_news') }}" class="btn btn-primary">Back to All News</a>
+                    </div>
+                </div> </div> </div> </div> <script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
+    <script>
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
