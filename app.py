@@ -788,6 +788,16 @@ def check_cooldown_endpoint():
    }), 200
 # --- END UPDATED ---
 
+def strip_html_tags(html_content):
+    """Removes HTML tags and non-breaking space entities from a string."""
+    if html_content:
+        # 1. Replace HTML entities like &nbsp; with a standard space
+        content = html_content.replace('&nbsp;', ' ')
+        
+        # 2. Use regex to strip HTML tags
+        clean = re.compile('<.*?>')
+        return re.sub(clean, '', content)
+    return ""
 
 # In app.py, add a constant near the top:
 ITEMS_PER_PAGE = 10
@@ -796,7 +806,7 @@ ITEMS_PER_PAGE = 10
 @app.route('/all_news', methods=['GET'])
 def all_news():
     search_query = request.args.get('q', '').strip()
-    page = request.args.get('page', 1, type=int) # Get current page number, defaults to 1
+    page = request.args.get('page', 1, type=int)
 
     query = News.query.order_by(News.timestamp.desc())
 
@@ -810,20 +820,31 @@ def all_news():
     pagination = query.paginate(page=page, per_page=ITEMS_PER_PAGE, error_out=False)
     articles = pagination.items
 
-    # Format the articles for the template
-    formatted_articles = [{
-        "title": article.title,
-        "summary": article.description if article.description else "No summary provided.",
-        "source_url": article.url,
-        "date_published": article.published_date if article.published_date else article.timestamp
-    } for article in articles]
-
-    return render_template('all_news.html', 
-                           articles=formatted_articles, 
-                           pagination=pagination, # Pass pagination object to template
-                           search_query=search_query, # Pass search query to preserve it in pagination links
-                           blog_id_tracker=blog_id_tracker, # NEW
-                           current_user=current_user)
+    # --- FIX APPLIED HERE: Format the articles for the template ---
+    formatted_articles = []
+    for article in articles:
+        # 1. Strip all HTML tags to prevent raw HTML from displaying
+        clean_text = strip_html_tags(article.description) if article.description else "No summary provided."
+        
+        # 2. Truncate the clean text for a short snippet on the main page
+        # Truncate to a reasonable length (e.g., 200 characters)
+        summary_snippet = clean_text[:200] + ('...' if len(clean_text) > 200 else '')
+        
+        formatted_articles.append({
+            "title": article.title,
+            # Pass the clean, short snippet to the template
+            "summary": summary_snippet, 
+            "source_url": article.url,
+            "date_published": article.published_date if article.published_date else article.timestamp
+        })
+    # --- END FIX ---
+    
+    return render_template('all_news.html',
+                            articles=formatted_articles,
+                            pagination=pagination, 
+                            search_query=search_query,
+                            blog_id_tracker=blog_id_tracker,
+                            current_user=current_user)
 # --- END UPDATED: All News Public Page Route ---
 
 # --- NEW: Autocomplete API for News Titles ---
