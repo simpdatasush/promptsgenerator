@@ -159,6 +159,7 @@
         <nav>
             <a href="{{ url_for('landing') }}" class="btn btn-outline-light btn-sm mr-2">Home</a>
             <a href="{{ url_for('all_news') }}" class="btn btn-outline-light btn-sm mr-2">AI News</a>
+            <a href="{{ url_for('login') }}" class="btn btn-outline-light btn-sm mr-2">Login</a>
         </nav>
     </header>
 
@@ -179,6 +180,38 @@
         <div class="post-content">
             {{ post.description }}
         </div>
+
+        <hr class="mt-5 mb-5">
+        
+        <section id="comments-section" class="mb-5">
+            <h3 class="text-center mb-4" style="color: var(--color-dark-bg);">Join the Conversation</h3>
+            
+            <div id="disqus_thread"></div>
+            <script>
+                /**
+                 * RECOMMENDED CONFIGURATION VARIABLES: EDIT AND UNCOMMENT THE SECTION BELOW TO INSERT DYNAMIC VALUES FROM YOUR PLATFORM OR CMS.
+                 * LEARN WHY DEFINING THESE VARIABLES IS IMPORTANT: https://disqus.com/admin/universalcode/#configuration-variables
+                 */
+                var disqus_config = function () {
+                    this.page.url = '{{ request.url }}';  // The canonical URL of the page
+                    this.page.identifier = 'blog-{{ post.id }}'; // The unique identifier for the thread
+                };
+                
+                (function() { // DON'T EDIT BELOW THIS LINE
+                    var d = document, s = d.createElement('script');
+                    s.src = 'https://superprompterai.disqus.com/embed.js'; // REPLACE WITH YOUR SHORTNAME
+                    s.setAttribute('data-timestamp', +new Date());
+                    (d.head || d.body).appendChild(s);
+                })();
+            </script>
+            <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+        </section>
+
+        <section id="subscription-cta" class="p-4 mb-5 text-center" style="background-color: #f0f2f5; border-radius: 8px;">
+            <h4 style="color: var(--color-dark-bg); margin-bottom: 15px;">Stay Updated!</h4>
+            <p class="lead">Stay updated with the latest AI prompt generation tips, news, and features.</p>
+            <a href="https://flow.cleverreach.com/fl/f1b39182-4b74-4664-9c1d-c175cb3a670c/" target="_blank" class="btn btn-primary btn-lg">Share Your Email ID</a>
+        </section>
 
         <div class="mt-5 pt-3 border-top text-center">
             <a href="{{ url_for('all_news') }}" class="btn btn-primary">Back to All News</a>
