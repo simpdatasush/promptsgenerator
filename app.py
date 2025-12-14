@@ -1126,10 +1126,14 @@ def view_blog_content(blog_uuid):
     global blog_id_tracker
     if blog_post.id not in blog_id_tracker:
         # If it's a valid UUID URL but wasn't marked as a blog, maybe redirect or 404
-        return render_template('404.html'), 404 
+        return render_template('404.html'), 404
+
+    latest_blogs = News.query.filter(News.id.in_(blog_id_tracker)).\
+                           order_by(News.timestamp.desc()).\
+                           limit(20).all()
 
     # 4. Render a dedicated template to show the full content
-    return render_template('single_blog_post.html', post=blog_post)
+    return render_template('single_blog_post.html', post=blog_post, latest_blogs=latest_blogs)
 
 # You will also need to update the delete_news route to remove the item 
 # from the blog_id_tracker if it exists, as done previously.
