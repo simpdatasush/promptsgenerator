@@ -240,7 +240,7 @@
                            <div class="news-item-content">
                                <h5><a href="{{ news.url }}" target="_blank">{{ news.title }}</a></h5>
                                {% if news.description %}
-                                   <p>{{ news.description }}</p>
+                                   <p>{{ news.description | truncate(20) }}</p>
                                {% endif %}
                                <p class="timestamp">
                                    Added to App: {{ news.timestamp.strftime('%Y-%m-%d %H:%M') }} by {{ news.user.username if news.user else 'N/A' }}
