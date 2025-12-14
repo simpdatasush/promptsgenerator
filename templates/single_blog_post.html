@@ -116,6 +116,28 @@
             color: var(--color-secondary); /* Makes links blue/secondary color for visibility */
         }
 
+        /* Video Embed Container for Responsiveness (Widescreen 16:9 aspect ratio) */
+        .post-content .video-container {
+            position: relative;
+            padding-bottom: 56.25%; /* 16:9 ratio (9/16 * 100) */
+            padding-top: 30px;
+            height: 0;
+            overflow: hidden;
+        margin: 15px auto; /* Add vertical spacing */
+        }
+
+        /* Ensure the iframe fills the container and is centered */
+        .post-content .video-container iframe,
+        .post-content .video-container object,
+        .post-content .video-container embed {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border-radius: 8px; /* Optional: adds rounded corners to the video player */
+        }
+
         /* Button Styling */
         .btn-primary {
             background-color: var(--color-primary) !important;
@@ -163,6 +185,8 @@
         </div>
     </div>
     
+    <script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
+
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const copyButton = document.getElementById('copyLinkBtn');
