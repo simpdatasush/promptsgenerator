@@ -971,54 +971,96 @@ def admin_news():
    return render_template('admin_news.html', news_items=news_items, current_user=current_user)
 
 
+# In app.py
+
 @app.route('/admin/news/add', methods=['POST'])
 @login_required
 @admin_required
 def add_news():
-   title = request.form.get('title')
-   url = request.form.get('url')
-   description = request.form.get('description')
-   published_date_str = request.form.get('published_date') # NEW: Get published_date string
+    title = request.form.get('title')
+    url = request.form.get('url')
+    description = request.form.get('description')
+    published_date_str = request.form.get('published_date')
 
+    if not title or not url:
+        flash('Title and URL are required to add news.', 'danger')
+        return redirect(url_for('admin_news'))
 
-   if not title or not url:
-       flash('Title and URL are required to add news.', 'danger')
-       return redirect(url_for('admin_news'))
+    published_date = None
+    if published_date_str:
+        try:
+            published_date = datetime.strptime(published_date_str, '%Y-%m-%d')
+        except ValueError:
+            flash('Invalid Published Date format. Please use YYYY-MM-DD.', 'danger')
+            return redirect(url_for('admin_news'))
 
+    try:
+        new_news = News(
+            title=title, 
+            url=url, 
+            description=description, 
+            published_date=published_date, 
+            user_id=current_user.id
+        )
+        db.session.add(new_news)
+        db.session.commit()
+        
+        # --- ENHANCEMENT (Optional): Explicitly confirm this is NOT a blog ---
+        # Since this route is for external news, we ensure its ID is NOT in the tracker.
+        # This is primarily defensive programming, as the blog route should handle adding.
+        global blog_id_tracker
+        if new_news.id in blog_id_tracker:
+             # If somehow the ID got added (which shouldn't happen here), remove it.
+             blog_id_tracker.remove(new_news.id)
+             
+        # --- END ENHANCEMENT ---
+        
+        flash('News item added successfully!', 'success')
+        
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error adding news item: {e}', 'danger')
+        
+    return redirect(url_for('admin_news'))
 
-   published_date = None
-   if published_date_str:
-       try:
-           published_date = datetime.strptime(published_date_str, '%Y-%m-%d') # Parse date
-       except ValueError:
-           flash('Invalid Published Date format. Please use YYYY-MM-DD.', 'danger')
-           return redirect(url_for('admin_news'))
-
-
-   try:
-       new_news = News(title=title, url=url, description=description, published_date=published_date, user_id=current_user.id) # Use published_date
-       db.session.add(new_news)
-       db.session.commit()
-       flash('News item added successfully!', 'success')
-   except Exception as e:
-       db.session.rollback()
-       flash(f'Error adding news item: {e}', 'danger')
-   return redirect(url_for('admin_news'))
-
+# In app.py
 
 @app.route('/admin/news/delete/<int:news_id>', methods=['POST'])
 @login_required
 @admin_required
 def delete_news(news_id):
-   news_item = News.query.get_or_404(news_id)
-   try:
-       db.session.delete(news_item)
-       db.session.commit()
-       flash('News item deleted successfully!', 'success')
-   except Exception as e:
-       db.session.rollback()
-       flash(f'Error deleting news item: {e}', 'danger')
-   return redirect(url_for('admin_news'))
+    news_item = News.query.get_or_404(news_id)
+    
+    # 1. Check the type of item BEFORE deleting it (we need its ID)
+    global blog_id_tracker
+    was_blog = news_item.id in blog_id_tracker
+    
+    try:
+        # Perform the database deletion
+        db.session.delete(news_item)
+        db.session.commit()
+        
+        # 2. Update the tracker if it was a blog
+        if was_blog:
+            blog_id_tracker.remove(news_item.id)
+            flash(f'Blog Post "{news_item.title}" deleted successfully!', 'success')
+        else:
+            flash('News item deleted successfully!', 'success')
+            
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error deleting item: {e}', 'danger')
+        
+        # Fallback redirect: If the deletion failed, return to the default news page
+        return redirect(url_for('admin_news'))
+        
+    # 3. CRITICAL REDIRECT LOGIC: Redirect based on the item type
+    if was_blog:
+        # If it was a blog, redirect back to the blog management page
+        return redirect(url_for('admin_blogs')) # <-- FIX 1: Redirect to admin_blogs
+    else:
+        # If it was a regular news item, redirect back to the news management page
+        return redirect(url_for('admin_news')) # <-- FIX 2: Redirect to admin_news
 
 
 # --- NEW: Repost News Route ---
