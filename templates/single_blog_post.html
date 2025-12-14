@@ -93,50 +93,75 @@
             color: var(--color-text-muted); 
         }
 
-        /* Post Content (Main Body) */
-        .post-content { 
-            white-space: pre-wrap; /* Preserves newlines/spacing from textarea input */
-            line-height: 1.8; 
-            font-size: 1.1rem; 
-            color: var(--color-text-dark);
-        }
-        .post-content p { margin-bottom: 1.5rem; }
-
         /* Inside the <style> block of single_blog_post.html */
-        .post-content img {
-            max-width: 100%; /* Makes all images responsive */
-            height: auto;
-            display: block; /* Centers block images */
-            margin: 15px auto;
-            border-radius: 5px;
-        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-        }
 
-        .post-content a {
-            color: var(--color-secondary); /* Makes links blue/secondary color for visibility */
-        }
+/* Post Content (Main Body) */
+.post-content { 
+    white-space: pre-wrap; /* Preserves newlines/spacing from textarea input */
+    line-height: 1.8; 
+    font-size: 1.1rem; 
+    color: var(--color-text-dark);
+}
+.post-content p { margin-bottom: 1.5rem; }
 
-        /* Video Embed Container for Responsiveness (Widescreen 16:9 aspect ratio) */
-        .post-content .video-container {
-            position: relative;
-            padding-bottom: 56.25%; /* 16:9 ratio (9/16 * 100) */
-            padding-top: 30px;
-            height: 0;
-            overflow: hidden;
-        margin: 15px auto; /* Add vertical spacing */
-        }
+/* 1. UNIVERSAL IMAGE CENTERING (No Change, Already Centered) */
+.post-content img {
+    max-width: 100%; /* Makes all images responsive */
+    height: auto;
+    display: block; /* Required for margin: auto to work */
+    margin: 15px auto; /* CENTERS THE IMAGE */
+    border-radius: 5px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
 
-        /* Ensure the iframe fills the container and is centered */
-        .post-content .video-container iframe,
-        .post-content .video-container object,
-        .post-content .video-container embed {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            border-radius: 8px; /* Optional: adds rounded corners to the video player */
-        }
+.post-content a {
+    color: var(--color-secondary); /* Makes links blue/secondary color for visibility */
+}
+
+/* 2. UNIVERSAL VIDEO CONTAINER CENTERING (Enhancement) */
+.post-content .video-container {
+    position: relative;
+    padding-bottom: 56.25%; /* 16:9 ratio (9/16 * 100) */
+    padding-top: 30px;
+    height: 0;
+    overflow: hidden;
+    
+    /* ENHANCEMENT: Center the video wrapper */
+    margin: 15px auto; 
+    /* Optional: Limit width for centering if you don't want it full width */
+    max-width: 700px; 
+}
+
+/* Ensure the iframe fills the container and is centered */
+.post-content .video-container iframe,
+.post-content .video-container object,
+.post-content .video-container embed {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border-radius: 8px;
+}
+
+/* 🎯 3. NEW UNIVERSAL RULE for CENTERING BLOCK-LEVEL EMBEDS (Twitter/X) */
+.post-content blockquote {
+    /* Required for centering block elements with a set width */
+    margin-left: auto !important;
+    margin-right: auto !important;
+    
+    /* Ensure maximum width is defined for centering to work */
+    max-width: 550px !important;
+    
+    /* Add vertical spacing and a visual touch for embeds */
+    padding: 15px 0;
+}
+
+/* Optional: Styling specific to the X/Twitter embed for better presentation */
+.post-content blockquote.twitter-tweet {
+    border-left: 5px solid var(--color-secondary);
+    padding-left: 15px; 
+}
 
         /* Button Styling */
         .btn-primary {
