@@ -6,6 +6,9 @@
 <title>Admin Blog Management</title>
 <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+   
+<script src="https://cdn.tiny.cloud/1/no-api-key/tinymce/6/tinymce.min.js" referrerpolicy="origin"></script>
+   
    <style>
        body {
            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -206,8 +209,8 @@
                 <input type="text" class="form-control" id="title" name="title" required>
             </div>
             <div class="form-group">
-                <label for="description">Content (This will be the main body of the blog):</label>
-                <textarea class="form-control" id="description" name="description" rows="10" required></textarea>
+                <label for="blog_content_editor">Content (This will be the main body of the blog):</label>
+                <textarea class="form-control" id="blog_content_editor" name="description" rows="15" required></textarea>
             </div>
             <div class="form-group">
                 <label for="published_date">Published Date (YYYY-MM-DD):</label>
@@ -252,5 +255,18 @@
 
 <footer class="footer">
 </footer>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        tinymce.init({
+            selector: '#blog_content_editor', // Target the textarea by its ID
+            plugins: 'advlist autolink lists link image charmap print preview anchor searchreplace visualblocks code fullscreen insertdatetime media table paste help wordcount',
+            toolbar: 'undo redo | formatselect | bold italic backcolor | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | link image media | code | removeformat help',
+            height: 550,
+            menubar: true
+        });
+    });
+</script>
+
 </body>
 </html>
