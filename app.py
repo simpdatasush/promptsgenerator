@@ -475,13 +475,52 @@ async def generate_reverse_prompt_async(input_text, language_code="en-US"):
 
 
 # UPDATED: Landing page route to fetch more news AND jobs
+# Assuming the strip_html_tags function is defined above this route:
+# def strip_html_tags(html_content):
+#     ... (implementation) ...
+
 @app.route('/')
 def landing():
-  # Fetch latest 10 news items for the landing page
-  news_items = News.query.order_by(News.timestamp.desc()).limit(6).all()
-  # Fetch latest 10 job listings for the landing page
-  job_listings = Job.query.order_by(Job.timestamp.desc()).limit(6).all()
-  return render_template('landing.html', news_items=news_items, job_listings=job_listings, current_user=current_user)
+    # Fetch latest 6 news items for the landing page
+    raw_news_items = News.query.order_by(News.timestamp.desc()).limit(6).all()
+    
+    # Process news items to clean the description for the summary view
+    cleaned_news_items = []
+    SUMMARY_LENGTH = 150 # Define a suitable length for your card summaries
+    
+    for item in raw_news_items:
+        
+        # Check if the item is a blog post (i.e., requires HTML cleaning)
+        # Assuming you only need to clean content if it came from the rich editor
+        # The blog_id_tracker check is useful here.
+        if item.id in blog_id_tracker:
+            clean_text = strip_html_tags(item.description) if item.description else "No content provided."
+        else:
+            # If it's a regular news item, assume the content is already plain text
+            clean_text = item.description if item.description else "No content provided."
+
+        # Truncate the clean text to create the final summary snippet
+        summary_snippet = clean_text[:SUMMARY_LENGTH] + ('...' if len(clean_text) > SUMMARY_LENGTH else '')
+        
+        # Create a dictionary to pass the cleaned data to the template
+        cleaned_news_items.append({
+            "id": item.id,
+            "title": item.title,
+            "summary_snippet": summary_snippet, # <-- NEW CLEAN FIELD
+            "url": item.url,
+            "timestamp": item.timestamp,
+            # Pass the full, uncleaned description for any potential hover/full view if needed
+            "description": item.description 
+        })
+    
+    # Fetch latest 6 job listings (no change needed here unless they also use RTE)
+    job_listings = Job.query.order_by(Job.timestamp.desc()).limit(6).all()
+    
+    return render_template('landing.html', 
+                           news_items=cleaned_news_items, # Pass the cleaned list
+                           job_listings=job_listings, 
+                           current_user=current_user,
+                           blog_id_tracker=blog_id_tracker)
 
 
 # Renamed original index route to /app_home
