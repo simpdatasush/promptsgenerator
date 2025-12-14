@@ -331,7 +331,7 @@
                     <div class="card">
                         <div class="card-body">
                             <h5 class="card-title">{{ item.title }}</h5>
-                            <p class="card-text">{{ item.description | truncate(150) }}</p>
+                            <p class="card-text">{{ item.summary_snippet | truncate(150) }}</p>
                             <a href="{{ item.url }}" target="_blank" class="card-link">Read More <i class="fas fa-external-link-alt"></i></a>
                             <p class="meta-info">Published: {{ item.published_date.strftime('%Y-%m-%d') if item.published_date else 'N/A' }}</p>
                             <p class="meta-info">Added: {{ item.timestamp.strftime('%Y-%m-%d %H:%M') }}</p>
