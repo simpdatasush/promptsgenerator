@@ -102,6 +102,20 @@
         }
         .post-content p { margin-bottom: 1.5rem; }
 
+        /* Inside the <style> block of single_blog_post.html */
+        .post-content img {
+            max-width: 100%; /* Makes all images responsive */
+            height: auto;
+            display: block; /* Centers block images */
+            margin: 15px auto;
+            border-radius: 5px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .post-content a {
+            color: var(--color-secondary); /* Makes links blue/secondary color for visibility */
+        }
+
         /* Button Styling */
         .btn-primary {
             background-color: var(--color-primary) !important;
