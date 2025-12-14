@@ -789,14 +789,18 @@ def check_cooldown_endpoint():
 # --- END UPDATED ---
 
 def strip_html_tags(html_content):
-    """Removes HTML tags and non-breaking space entities from a string."""
+    """Removes HTML tags and entities from a string to create a clean text summary."""
     if html_content:
-        # 1. Replace HTML entities like &nbsp; with a standard space
+        # 1. Replace common HTML entities (&nbsp;, &lt;, etc.) with spaces
         content = html_content.replace('&nbsp;', ' ')
+        # You may need more robust entity handling depending on your needs, 
+        # but this simple replace often works for RTE output.
         
-        # 2. Use regex to strip HTML tags
+        # 2. Use regex to strip all HTML tags (<...>)
         clean = re.compile('<.*?>')
-        return re.sub(clean, '', content)
+        text_without_tags = re.sub(clean, '', content)
+        
+        return text_without_tags.strip() # Remove leading/trailing whitespace
     return ""
 
 # In app.py, add a constant near the top:
@@ -820,20 +824,29 @@ def all_news():
     pagination = query.paginate(page=page, per_page=ITEMS_PER_PAGE, error_out=False)
     articles = pagination.items
 
-    # --- FIX APPLIED HERE: Format the articles for the template ---
+    # --- FIX APPLIED HERE: Format and Clean the Content ---
     formatted_articles = []
+    SUMMARY_LENGTH = 200 # Define the max length for the snippet
+    
     for article in articles:
-        # 1. Strip all HTML tags to prevent raw HTML from displaying
-        clean_text = strip_html_tags(article.description) if article.description else "No summary provided."
         
-        # 2. Truncate the clean text for a short snippet on the main page
-        # Truncate to a reasonable length (e.g., 200 characters)
-        summary_snippet = clean_text[:200] + ('...' if len(clean_text) > 200 else '')
-        
+        # Check if it's a blog post (coming from the admin)
+        if article.id in blog_id_tracker:
+            # For blog posts, strip HTML and create a clean snippet
+            clean_text = strip_html_tags(article.description) if article.description else "No content provided."
+            # Truncate the clean text
+            summary_snippet = clean_text[:SUMMARY_LENGTH] + ('...' if len(clean_text) > SUMMARY_LENGTH else '')
+        else:
+            # For regular news articles, use the original description (assuming it's already clean text)
+            summary_snippet = article.description if article.description else "No summary provided."
+            # Also apply truncation if needed
+            if len(summary_snippet) > SUMMARY_LENGTH:
+                summary_snippet = summary_snippet[:SUMMARY_LENGTH] + '...'
+
+
         formatted_articles.append({
             "title": article.title,
-            # Pass the clean, short snippet to the template
-            "summary": summary_snippet, 
+            "summary": summary_snippet, # <-- Using the clean, short snippet
             "source_url": article.url,
             "date_published": article.published_date if article.published_date else article.timestamp
         })
@@ -845,6 +858,7 @@ def all_news():
                             search_query=search_query,
                             blog_id_tracker=blog_id_tracker,
                             current_user=current_user)
+
 # --- END UPDATED: All News Public Page Route ---
 
 # --- NEW: Autocomplete API for News Titles ---
