@@ -148,15 +148,14 @@ margin-right: 15px;
     </div>
 </div>
 {% endfor %}
-{% endif %}
 
 <div class="d-flex justify-content-center mt-5">
     <nav>
         <ul class="pagination">
             <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
                 <a class="page-link" 
-                   href="{{ url_for(request.endpoint, page=pagination.prev_num, q=search_query) if pagination.has_prev else '#' }}">
-                   Previous
+                    href="{{ url_for(request.endpoint, page=pagination.prev_num, q=search_query) if pagination.has_prev else '#' }}">
+                    Previous
                 </a>
             </li>
 
@@ -176,13 +175,25 @@ margin-right: 15px;
 
             <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
                 <a class="page-link" 
-                   href="{{ url_for(request.endpoint, page=pagination.next_num, q=search_query) if pagination.has_next else '#' }}">
-                   Next
+                    href="{{ url_for(request.endpoint, page=pagination.next_num, q=search_query) if pagination.has_next else '#' }}">
+                    Next
                 </a>
             </li>
         </ul>
     </nav>
 </div>
+{# 
+  *** CRITICAL FIX: The {% else %} block was running here without a preceding {% if %} ***
+  The correct place for this content is inside the main {% if articles %} block's ELSE section.
+  Since this content is now the ELSE part of the main condition, we remove the standalone tags here.
+#}
+
+
+{#
+  The following alert block is the content that should be in the ELSE of the main IF block.
+  If the main article listing section (which should wrap articles and pagination) ends just before this,
+  it will work correctly.
+#}
 {% else %}
 <div class="alert alert-info text-center">
     No news articles found.
@@ -194,6 +205,7 @@ margin-right: 15px;
 </div>
 {% endif %}
 </div>
+
 
 <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
