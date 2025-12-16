@@ -486,13 +486,11 @@ def landing():
     
     # Process news items to clean the description for the summary view
     cleaned_news_items = []
-    SUMMARY_LENGTH = 150 # Define a suitable length for your card summaries
+    SUMMARY_LENGTH = 150
     
     for item in raw_news_items:
         
         # Check if the item is a blog post (i.e., requires HTML cleaning)
-        # Assuming you only need to clean content if it came from the rich editor
-        # The blog_id_tracker check is useful here.
         if item.id in blog_id_tracker:
             clean_text = strip_html_tags(item.description) if item.description else "No content provided."
         else:
@@ -506,21 +504,27 @@ def landing():
         cleaned_news_items.append({
             "id": item.id,
             "title": item.title,
-            "summary_snippet": summary_snippet, # <-- NEW CLEAN FIELD
+            "summary_snippet": summary_snippet,
             "url": item.url,
             "timestamp": item.timestamp,
-            # Pass the full, uncleaned description for any potential hover/full view if needed
             "description": item.description 
         })
     
-    # Fetch latest 6 job listings (no change needed here unless they also use RTE)
+    # Fetch latest 6 job listings
     job_listings = Job.query.order_by(Job.timestamp.desc()).limit(6).all()
     
+    # --- The Key Logic ---
+    # is_content_empty is True if cleaned_news_items is empty AND job_listings is empty.
+    is_content_empty = not cleaned_news_items and not job_listings
+    # --- End Key Logic ---
+    
     return render_template('landing.html', 
-                           news_items=cleaned_news_items, # Pass the cleaned list
-                           job_listings=job_listings, 
-                           current_user=current_user,
-                           blog_id_tracker=blog_id_tracker)
+                            news_items=cleaned_news_items,
+                            job_listings=job_listings, 
+                            current_user=current_user,
+                            blog_id_tracker=blog_id_tracker,
+                            # Flag passed to the template
+                            is_content_empty=is_content_empty)
 
 
 # Renamed original index route to /app_home
