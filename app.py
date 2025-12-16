@@ -842,6 +842,30 @@ def strip_html_tags(html_content):
         return text_without_tags.strip() # Remove leading/trailing whitespace
     return ""
 
+# In app.py
+
+@app.route('/news_item/<int:item_id>', methods=['GET'])
+def view_news_item(item_id):
+    """
+    Finds the News item by ID and redirects the user immediately 
+    to the original external source URL (News.url).
+    """
+    news_item = News.query.get_or_404(item_id)
+    
+    # 1. Check if it's a blog post; if so, redirect to the internal blog route
+    # (This step is good defensive coding to prevent accidentally redirecting internal blogs)
+    global blog_id_tracker
+    if news_item.id in blog_id_tracker:
+        blog_uuid = news_item.url.split('/')[-1]
+        return redirect(url_for('view_blog_content', blog_uuid=blog_uuid))
+        
+    # 2. PERFORM THE REDIRECT
+    # This line is the key change. Flask's redirect() function tells the browser 
+    # to load the URL stored in news_item.url (e.g., the CNN link).
+    return redirect(news_item.url) 
+    # By default, this uses a 302 Found status code. You can optionally 
+    # use redirect(news_item.url, code=301) for a permanent redirect if needed.
+
 # In app.py, add a constant near the top:
 ITEMS_PER_PAGE = 10
 
@@ -863,42 +887,52 @@ def all_news():
     pagination = query.paginate(page=page, per_page=ITEMS_PER_PAGE, error_out=False)
     articles = pagination.items
 
-    # --- FIX APPLIED HERE: Format and Clean the Content ---
     formatted_articles = []
-    SUMMARY_LENGTH = 200 # Define the max length for the snippet
-    
+    SUMMARY_LENGTH = 200
+
     for article in articles:
         
-        # Check if it's a blog post (coming from the admin)
+        # --- NEW CODE: Generate the Internal Shareable Link ---
+        # The link for sharing MUST be the internal URL which triggers the redirect (for news) 
+        # or the modal/viewer (for blogs). We need the ID for this.
+        
+        # We assume the route for blogs is view_blog_content and uses the UUID 
+        # (which is stored in article.url for blogs)
         if article.id in blog_id_tracker:
-            # For blog posts, strip HTML and create a clean snippet
+             # Blog posts use the UUID-based link (assuming 'view_blog_content' exists)
+             blog_uuid = article.url.split('/')[-1]
+             share_link = url_for('view_blog_content', blog_uuid=blog_uuid, _external=True)
+        else:
+             # External news uses the new ID-based redirect link
+             share_link = url_for('view_news_item', item_id=article.id, _external=True)
+        # --- END NEW CODE ---
+
+        
+        # Summary generation logic remains the same
+        if article.id in blog_id_tracker:
             clean_text = strip_html_tags(article.description) if article.description else "No content provided."
-            # Truncate the clean text
             summary_snippet = clean_text[:SUMMARY_LENGTH] + ('...' if len(clean_text) > SUMMARY_LENGTH else '')
         else:
-            # For regular news articles, use the original description (assuming it's already clean text)
             summary_snippet = article.description if article.description else "No summary provided."
-            # Also apply truncation if needed
             if len(summary_snippet) > SUMMARY_LENGTH:
                 summary_snippet = summary_snippet[:SUMMARY_LENGTH] + '...'
 
 
         formatted_articles.append({
+            "id": article.id,                 # <-- REQUIRED for checking blog_id_tracker in HTML
             "title": article.title,
-            "summary": summary_snippet, # <-- Using the clean, short snippet
+            "summary": summary_snippet,
             "source_url": article.url,
+            "share_url": share_link,           # <-- NEW FIELD for Copy Button
             "date_published": article.published_date if article.published_date else article.timestamp
         })
-    # --- END FIX ---
     
     return render_template('all_news.html',
                             articles=formatted_articles,
-                            pagination=pagination, 
+                            pagination=pagination,
                             search_query=search_query,
                             blog_id_tracker=blog_id_tracker,
                             current_user=current_user)
-
-# --- END UPDATED: All News Public Page Route ---
 
 # --- NEW: Autocomplete API for News Titles ---
 @app.route('/api/news_autocomplete', methods=['GET'])
