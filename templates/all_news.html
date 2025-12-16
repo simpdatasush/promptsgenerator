@@ -113,11 +113,10 @@ margin-right: 15px;
                 data-target="#blogModal" 
                 data-title="{{ article.title }}" 
                 data-content="{{ article.description }}" 
-                onclick="return false;" 
                 style="color: var(--color-secondary); text-decoration: none;">
                 <i class="fas fa-book-open" style="font-size: 0.9em;"></i> 
                 {{ article.title }} 
-                <small>(In-App Article)</small>
+                <small>(*)</small>
             </a>
         {% else %}
             {# CORRECTED EXTERNAL NEWS LOGIC: Title links DIRECTLY to the source #}
