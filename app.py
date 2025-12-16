@@ -474,14 +474,18 @@ async def generate_reverse_prompt_async(input_text, language_code="en-US"):
 # --- Flask Routes ---
 
 
-# UPDATED: Landing page route to fetch more news AND jobs
-# Assuming the strip_html_tags function is defined above this route:
-# def strip_html_tags(html_content):
-#     ... (implementation) ...
+# In app.py
+from datetime import datetime, timedelta, timezone # Import necessary time libraries
 
 @app.route('/')
 def landing():
-    # Fetch latest 6 news items for the landing page
+    # Define "recent" as the last 24 hours (adjust timedelta as needed)
+    # Use timezone-aware comparison if your database timestamps are timezone-aware
+    RECENT_THRESHOLD = datetime.now(timezone.utc) - timedelta(hours=24)
+    has_new_news = False
+    has_new_jobs = False
+
+    # 1. Fetch latest 6 news items
     raw_news_items = News.query.order_by(News.timestamp.desc()).limit(6).all()
     
     # Process news items to clean the description for the summary view
@@ -489,6 +493,11 @@ def landing():
     SUMMARY_LENGTH = 150
     
     for item in raw_news_items:
+        
+        # --- FRESHNESS CHECK FOR NEWS ---
+        if item.timestamp.replace(tzinfo=timezone.utc) > RECENT_THRESHOLD:
+             has_new_news = True
+        # -------------------------------
         
         # Check if the item is a blog post (i.e., requires HTML cleaning)
         if item.id in blog_id_tracker:
@@ -510,21 +519,46 @@ def landing():
             "description": item.description 
         })
     
-    # Fetch latest 6 job listings
+    # 2. Fetch latest 6 job listings
     job_listings = Job.query.order_by(Job.timestamp.desc()).limit(6).all()
     
-    # --- The Key Logic ---
-    # is_content_empty is True if cleaned_news_items is empty AND job_listings is empty.
-    is_content_empty = not cleaned_news_items and not job_listings
-    # --- End Key Logic ---
+    for job in job_listings:
+        # --- FRESHNESS CHECK FOR JOBS ---
+        if job.timestamp.replace(tzinfo=timezone.utc) > RECENT_THRESHOLD:
+            has_new_jobs = True
+        # -------------------------------
+
+    # --- NEW LOGIC: Determine the Single Strip Status ---
+    if not raw_news_items and not job_listings:
+        # Case 1: Database is totally empty (most critical warning)
+        status_message = "The site is currently empty. No items to display in any section."
+        status_class = "alert-danger"
+    elif has_new_news and has_new_jobs:
+        # Case 2: Both have recent additions
+        status_message = "New News and Job listings added recently!"
+        status_class = "alert-success"
+    elif has_new_news:
+        # Case 3: Only news has recent additions
+        status_message = "New News items added recently. Displaying latest available jobs."
+        status_class = "alert-success"
+    elif has_new_jobs:
+        # Case 4: Only jobs has recent additions
+        status_message = "New Job listings added recently. Displaying latest available news."
+        status_class = "alert-success"
+    else:
+        # Case 5: Content exists, but none of the 6 displayed items are less than 24 hours old
+        status_message = "Displaying latest available items. No new additions in the last 24 hours."
+        status_class = "alert-info"
+    # --- END NEW LOGIC ---
     
     return render_template('landing.html', 
                             news_items=cleaned_news_items,
                             job_listings=job_listings, 
                             current_user=current_user,
                             blog_id_tracker=blog_id_tracker,
-                            # Flag passed to the template
-                            is_content_empty=is_content_empty)
+                            # Pass the message and styling class for the single strip
+                            status_message=status_message,
+                            status_class=status_class)
 
 
 # Renamed original index route to /app_home
