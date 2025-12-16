@@ -288,10 +288,11 @@
                             {% if post.user %} | By: {{ post.user.username }} {% endif %}
                         </div>
                         
-                        <button class="btn btn-sm btn-outline-secondary" id="copyLinkBtn">
-                            <i class="fas fa-copy"></i> Copy Link
+                        <button id="copy-link-btn" 
+                                data-url="{{ url_for('view_blog_content', blog_uuid=post.url.split('/')[-1], _external=True) }}"
+                                class="btn btn-sm btn-secondary">
+                                Copy Link
                         </button>
-                    </div>
                     
                     <div class="post-content">
                         {{ post.description | safe }}
@@ -332,33 +333,85 @@
     <script>
 
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const copyButton = document.getElementById('copyLinkBtn');
-            const originalText = 'Copy Link';
-            
-            copyButton.addEventListener('click', async () => {
-                // Get the current URL of the page
-                const linkToCopy = window.location.href;
+    document.addEventListener('DOMContentLoaded', () => {
+        const copyButton = document.getElementById('copyLinkBtn');
+        const originalText = 'Copy Link';
+        
+        // Ensure the button element exists before adding the listener
+        if (!copyButton) {
+            console.error('Copy button with ID "copyLinkBtn" not found.');
+            return;
+        }
 
+        copyButton.addEventListener('click', async () => {
+            const linkToCopy = window.location.href;
+
+            // --- 1. MODERN CLIPBOARD API (HTTPS Only) ---
+            if (navigator.clipboard && window.isSecureContext) {
                 try {
-                    // Use the modern Clipboard API
                     await navigator.clipboard.writeText(linkToCopy);
                     
-                    // Provide feedback to the user
-                    copyButton.innerHTML = '<i class="fas fa-check"></i> Copied!';
-                    
-                    // Reset button text after a short delay
-                    setTimeout(() => {
-                        copyButton.innerHTML = '<i class="fas fa-copy"></i> ' + originalText;
-                    }, 2000);
+                    // Success Feedback
+                    showCopySuccessFeedback(copyButton, originalText);
 
                 } catch (err) {
-                    // Fallback for security errors or older browsers
-                    console.error('Failed to copy link using Clipboard API. Falling back to alert.', err);
-                    alert("The link is: " + linkToCopy + "\nPlease copy it manually.");
+                    // 2. Fallback if modern API fails (e.g., security error)
+                    console.warn('Clipboard API failed. Falling back to execCommand.', err);
+                    fallbackCopyTextToClipboard(linkToCopy, copyButton, originalText);
                 }
-            });
+            } else {
+                // 3. Fallback for HTTP or older browsers
+                console.warn('Insecure context or old browser. Falling back to execCommand.');
+                fallbackCopyTextToClipboard(linkToCopy, copyButton, originalText);
+            }
         });
-    </script>
+    });
+
+    /** Utility function to show success feedback */
+    function showCopySuccessFeedback(button, originalText) {
+        button.innerHTML = '<i class="fas fa-check"></i> Copied!';
+        // Optional: Change button style for visual feedback (assuming you use CSS/Bootstrap classes)
+        button.classList.add('btn-success');
+        button.classList.remove('btn-secondary'); 
+        
+        setTimeout(() => {
+            button.innerHTML = '<i class="fas fa-copy"></i> ' + originalText;
+            button.classList.remove('btn-success');
+            button.classList.add('btn-secondary'); 
+        }, 2000);
+    }
+
+    /** Fallback function using the deprecated but widely supported document.execCommand */
+    function fallbackCopyTextToClipboard(text, button, originalText) {
+        const textArea = document.createElement("textarea");
+        textArea.value = text;
+        
+        // Make the text area invisible and off-screen
+        textArea.style.position = "fixed";
+        textArea.style.top = 0;
+        textArea.style.left = 0;
+        textArea.style.opacity = 0; 
+        
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        
+        let successful = false;
+        try {
+            successful = document.execCommand('copy');
+        } catch (err) {
+            console.error('Fallback copy failed completely:', err);
+        }
+
+        document.body.removeChild(textArea);
+        
+        if (successful) {
+            showCopySuccessFeedback(button, originalText);
+        } else {
+            // Final, lowest level fallback
+            alert("Copy failed. Please manually copy the link: " + text);
+        }
+    }
+</script>
 </body>
 </html>
