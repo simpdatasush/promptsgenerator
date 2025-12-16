@@ -105,33 +105,50 @@ margin-right: 15px;
 {% if articles %}
 {% for article in articles %}
 <div class="article-card">
-<h3 class="article-title">
-    {% if article.id in blog_id_tracker %}
-        <a href="#" 
-           data-toggle="modal" 
-           data-target="#blogModal" 
-           data-title="{{ article.title }}" 
-           data-content="{{ article.description }}" 
-           onclick="return false;" 
-           style="color: var(--color-secondary); text-decoration: none;">
-            <i class="fas fa-book-open" style="font-size: 0.9em;"></i> 
-            {{ article.title }} 
-            <small>(In-App Article)</small>
-        </a>
-    {% else %}
-        <a href="{{ article.source_url }}" target="_blank" style="color: inherit; text-decoration: none;">
-            {{ article.title }} <i class="fas fa-external-link-alt" style="font-size: 0.8em;"></i>
-        </a>
-    {% endif %}
-</h3>
+    <h3 class="article-title">
+        {% if article.id in blog_id_tracker %}
+            {# INTERNAL BLOG POST LOGIC (Opens modal) #}
+            <a href="#" 
+                data-toggle="modal" 
+                data-target="#blogModal" 
+                data-title="{{ article.title }}" 
+                data-content="{{ article.description }}" 
+                onclick="return false;" 
+                style="color: var(--color-secondary); text-decoration: none;">
+                <i class="fas fa-book-open" style="font-size: 0.9em;"></i> 
+                {{ article.title }} 
+                <small>(In-App Article)</small>
+            </a>
+        {% else %}
+            {# CORRECTED EXTERNAL NEWS LOGIC: Title links DIRECTLY to the source #}
+            <a href="{{ article.source_url }}" target="_blank" style="color: inherit; text-decoration: none;">
+                {{ article.title }} <i class="fas fa-external-link-alt" style="font-size: 0.8em;"></i>
+            </a>
+        {% endif %}
+    </h3>
 
-<p>{{ article.summary | truncate(200) }}</p>
+    <p>{{ article.summary | truncate(200) }}</p>
 
-<div class="article-meta">
-<span><i class="fas fa-calendar-alt"></i> Published: {{ article.date_published.strftime('%b %d, %Y') }}</span>
-</div>
+    <div class="article-meta">
+        
+        {# 1. PUBLICATION DATE/METADATA #}
+        <span><i class="fas fa-calendar-alt"></i> Published: {{ article.date_published.strftime('%b %d, %Y') }}</span>
+        
+        {# 2. COPY LINK BUTTON PLACEMENT #}
+        {# This button correctly uses the internal redirect link for copying/sharing #}
+        {% if article.share_url %}
+        <button type="button" 
+                class="btn btn-sm btn-outline-secondary copy-link-btn" 
+                data-url="{{ article.share_url }}" 
+                style="margin-left: 10px;">
+            <i class="fas fa-copy"></i> Copy Link
+        </button>
+        {% endif %}
+
+    </div>
 </div>
 {% endfor %}
+{% endif %}
 
 <div class="d-flex justify-content-center mt-5">
     <nav>
@@ -259,6 +276,96 @@ margin-right: 15px;
     });
     
 </script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Select ALL buttons with the class 'copy-link-btn'
+        const copyButtons = document.querySelectorAll('.copy-link-btn'); 
+        
+        if (copyButtons.length === 0) return; // Exit if no buttons are found
+
+        copyButtons.forEach(copyButton => {
+            // Store the original HTML content to restore it after copying
+            const originalHTML = copyButton.innerHTML;
+            
+            copyButton.addEventListener('click', async function() {
+                // Get URL from the 'data-url' attribute of the specific button clicked
+                const linkToCopy = this.getAttribute('data-url'); 
+
+                if (!linkToCopy) {
+                    console.error("Copy failed: data-url attribute is missing.");
+                    return;
+                }
+
+                // --- 1. MODERN CLIPBOARD API (Preferred method, requires HTTPS) ---
+                if (navigator.clipboard && window.isSecureContext) {
+                    try {
+                        await navigator.clipboard.writeText(linkToCopy);
+                        
+                        // Success Feedback
+                        showCopySuccessFeedback(this, originalHTML);
+
+                    } catch (err) {
+                        // 2. Fallback if modern API fails (e.g., due to permission/security error)
+                        console.warn('Clipboard API failed. Falling back to execCommand.', err);
+                        fallbackCopyTextToClipboard(linkToCopy, this, originalHTML);
+                    }
+                } else {
+                    // 3. Fallback for HTTP or older browsers
+                    console.warn('Insecure context or old browser. Falling back to execCommand.');
+                    fallbackCopyTextToClipboard(linkToCopy, this, originalHTML);
+                }
+            });
+        });
+    });
+
+    /** Utility function to show success feedback and reset the button state. */
+    function showCopySuccessFeedback(button, originalHTML) {
+        // Show success message and change color (assuming Bootstrap classes)
+        button.innerHTML = '<i class="fas fa-check"></i> Copied!';
+        button.classList.add('btn-success');
+        button.classList.remove('btn-outline-secondary'); 
+        
+        setTimeout(() => {
+            // Reset button text and color after 2 seconds
+            button.innerHTML = originalHTML;
+            button.classList.remove('btn-success');
+            button.classList.add('btn-outline-secondary'); 
+        }, 2000);
+    }
+
+    /** Fallback function using the document.execCommand method. */
+    function fallbackCopyTextToClipboard(text, button, originalHTML) {
+        const textArea = document.createElement("textarea");
+        textArea.value = text;
+        
+        // Make the text area invisible and off-screen
+        textArea.style.position = "fixed";
+        textArea.style.top = 0;
+        textArea.style.left = 0;
+        textArea.style.opacity = 0; 
+        
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        
+        let successful = false;
+        try {
+            successful = document.execCommand('copy');
+        } catch (err) {
+            console.error('Fallback copy failed completely:', err);
+        }
+
+        document.body.removeChild(textArea);
+        
+        if (successful) {
+            showCopySuccessFeedback(button, originalHTML);
+        } else {
+            // Final, lowest level fallback (user must manually copy)
+            alert("Copy failed. Please manually copy the link: " + text);
+        }
+    }
+</script>    
     
 </body>
 </html>
