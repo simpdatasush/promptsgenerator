@@ -1347,62 +1347,46 @@ def view_blog_content(blog_uuid):
 
 @app.route('/api/ai-summary', methods=['GET'])
 def ai_summary():
-    # 1. Get the search query from the frontend
     query = request.args.get('q', '').strip()
     
     if not query:
-        return jsonify({"summary": "Please enter a search term for the AI to analyze."}), 400
-
-    # 2. Database Retrieval: Fetch top 5 relevant articles for context
-    # This provides the "Data in Database" part of your request
-    search_results = NewsArticle.query.filter(
-        (NewsArticle.title.ilike(f'%{query}%')) | 
-        (NewsArticle.summary.ilike(f'%{query}%'))
-    ).limit(5).all()
-
-    # Format the DB data into a string for the AI
-    if search_results:
-        db_context = "Recent articles from our database:\n" + "\n".join(
-            [f"- {a.title}: {a.summary[:150]}..." for a in search_results]
-        )
-    else:
-        db_context = "No specific articles found in our local database for this query."
-
-    # 3. Construct the "Instruction" for your existing Gemini logic
-    # We strictly enforce the 70-word limit and character stripping here
-    ai_instruction = f"""
-    You are the 'Smart AI' search assistant for SuperPrompter.
-    
-    CONTEXT FROM OUR DATABASE:
-    {db_context}
-    
-    USER QUERY: 
-    {query}
-    
-    TASK:
-    Based on the database info above and your internal training data, provide a consolidated search summary.
-    
-    STRICT RULES:
-    1. Maximum 70 words.
-    2. DO NOT use ANY special characters like asterisks (*), hashtags (#), or underscores (_).
-    3. Use plain text only. 
-    4. If no database info exists, use your internal data to explain the topic briefly.
-    """
+        return jsonify({"summary": "Please enter a search term."}), 400
 
     try:
-        # 4. Use your existing logic function
-        # We set max_output_tokens lower (e.g., 200) because we only need ~70 words
+        # 1. DATABASE SEARCH
+        # Replace 'News' with whatever your class name is (e.g., Article, Post, etc.)
+        # If your model is in another file, ensure you have: from models import News
+        search_results = News.query.filter(
+            (News.title.ilike(f'%{query}%')) | 
+            (News.description.ilike(f'%{query}%'))
+        ).limit(5).all()
+
+        # 2. CONTEXT PREPARATION
+        if search_results:
+            db_context = "Relevant data from our database:\n" + "\n".join(
+                [f"Title: {n.title} - Details: {n.description[:200]}" for n in search_results]
+            )
+        else:
+            db_context = "No specific match found in the local database."
+
+        # 3. AI INSTRUCTION
+        ai_instruction = f"""
+        Task: Summary of '{query}' based on: {db_context} and your training data.
+        Rules: Max 70 words. Plain text only. NO special characters like * or #.
+        """
+
+        # 4. CALL YOUR EXISTING GEMINI FUNCTION
         summary_text = ask_gemini_for_prompt(ai_instruction, max_output_tokens=250)
         
-        # 5. Final Regex safety clean (to ensure no '*' remain)
-        clean_summary = re.sub(r'[*#_]', '', summary_text)
+        # Clean special characters just in case
+        clean_summary = summary_text.replace('*', '').replace('#', '').replace('_', '')
         
         return jsonify({"summary": clean_summary})
 
     except Exception as e:
-        app.logger.error(f"AI Summary Route Error: {e}")
-        return jsonify({"summary": "Smart AI is temporarily unavailable. Please use standard search results."}), 500
-
+        app.logger.error(f"AI Summary Error: {e}")
+        return jsonify({"summary": "AI is taking a moment to breathe. Please try again."}), 500
+    
 
 # --- NEW: Change Password Route ---
 @app.route('/change_password', methods=['GET', 'POST'])
