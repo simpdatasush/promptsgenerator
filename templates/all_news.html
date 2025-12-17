@@ -177,9 +177,35 @@
                 </div>
             </div>
         {% endfor %}
-        
+
+        <div class="d-flex justify-content-center mt-5">
+            <nav>
+                <ul class="pagination">
+                    <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
+                        <a class="page-link" href="{{ url_for(request.endpoint, page=pagination.prev_num, q=request.args.get('q', '')) if pagination.has_prev else '#' }}">Previous</a>
+                    </li>
+
+                    {% for p in pagination.iter_pages() %}
+                        {% if p %}
+                            <li class="page-item {% if p == pagination.page %}active{% endif %}">
+                                <a class="page-link" href="{{ url_for(request.endpoint, page=p, q=request.args.get('q', '')) }}">{{ p }}</a>
+                            </li>
+                        {% else %}
+                            <li class="page-item disabled"><a class="page-link" href="#">...</a></li>
+                        {% endif %}
+                    {% endfor %}
+
+                    <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+                        <a class="page-link" href="{{ url_for(request.endpoint, page=pagination.next_num, q=request.args.get('q', '')) if pagination.has_next else '#' }}">Next</a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
         {% else %}
-        <div class="alert alert-info text-center">No news articles found.</div>
+        <div class="alert alert-info text-center">
+            No news articles found. 
+            {% if request.args.get('q') %} for "{{ request.args.get('q') }}"{% endif %}
+        </div>
     {% endif %}
 </div>
 
