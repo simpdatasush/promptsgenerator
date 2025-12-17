@@ -1,214 +1,188 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Latest AI News - SuperPrompter AI</title>
-<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
-<style>
-/* Reusing styles from previous pages */
-:root {
---color-primary: #C3497C;
---color-secondary: #5CA0DC;
---color-dark-bg: #311B92;
---color-text-dark: #2c3e50;
---color-text-muted: #777;
-}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Latest AI News - SuperPrompter AI</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <style>
+        :root {
+            --color-primary: #C3497C;
+            --color-secondary: #5CA0DC;
+            --color-dark-bg: #311B92;
+            --color-text-dark: #2c3e50;
+            --color-text-muted: #777;
+        }
 
-body {
-font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-margin: 0;
-padding-top: 70px;
-background-color: #f8f9fa;
-color: var(--color-text-dark);
-line-height: 1.6;
-}
-.app-header {
-background-color: var(--color-dark-bg);
-color: #ffffff;
-padding: 15px 30px;
-display: flex;
-justify-content: space-between;
-align-items: center;
-box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-width: 100%;
-position: fixed;
-top: 0;
-left: 0;
-z-index: 1000;
-}
-.logo-section a {
-color: #fff;
-text-decoration: none;
-font-size: 1.5rem;
-font-weight: 600;
-}
-.article-card {
-border: 1px solid #dee2e6;
-border-left: 5px solid var(--color-primary); /* Pink accent on left */
-margin-bottom: 20px;
-padding: 20px;
-border-radius: 8px;
-box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-background-color: #fff;
-transition: transform 0.2s;
-}
-.article-card:hover {
-transform: translateY(-2px);
-box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-}
-.article-title {
-color: var(--color-dark-bg);
-font-size: 1.3rem;
-margin-bottom: 10px;
-font-weight: 600;
-}
-.article-meta span {
-font-size: 0.9rem;
-color: var(--color-text-muted);
-margin-right: 15px;
-}
-</style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding-top: 70px;
+            background-color: #f8f9fa;
+            color: var(--color-text-dark);
+            line-height: 1.6;
+        }
+
+        .app-header {
+            background-color: var(--color-dark-bg);
+            color: #ffffff;
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+            width: 100%;
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 1000;
+        }
+
+        .logo-section a {
+            color: #fff;
+            text-decoration: none;
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .article-card {
+            border: 1px solid #dee2e6;
+            border-left: 5px solid var(--color-primary);
+            margin-bottom: 20px;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            background-color: #fff;
+            transition: transform 0.2s;
+        }
+
+        .article-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .article-title {
+            color: var(--color-dark-bg);
+            font-size: 1.3rem;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        /* --- Smart AI Styles --- */
+        #ai-summary-wrapper {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.6s cubic-bezier(0.4, 0, 0.2, 1), margin-bottom 0.4s ease;
+            margin-bottom: 0;
+        }
+
+        #ai-summary-content {
+            background-color: #ffffff;
+            border-left: 5px solid var(--color-primary);
+            border-radius: 8px;
+            padding: 20px;
+        }
+
+        #ai-result-text {
+            font-size: 1.1rem;
+            color: #333;
+            display: inline;
+        }
+
+        /* Blinking Cursor Effect */
+        .cursor {
+            display: inline-block;
+            width: 8px;
+            height: 1.2em;
+            background-color: var(--color-primary);
+            margin-left: 4px;
+            vertical-align: middle;
+            animation: blink 1s step-end infinite;
+        }
+
+        @keyframes blink {
+            from, to { opacity: 1; }
+            50% { opacity: 0; }
+        }
+    </style>
 </head>
 <body>
 
 <header class="app-header">
-<div class="logo-section">
-<img src="https://placehold.co/40x40/007bff/ffffff?text=AI" alt="SuperPrompter Logo" class="app-logo">
-<h1 class="header-title">SuperPrompter</h1>
-</div>
-<nav>
-<a href="{{ url_for('landing') }}" class="btn btn-outline-light btn-sm mr-2">Back to Landing Page</a>
-<a href="{{ url_for('all_jobs') }}" class="btn btn-outline-light btn-sm mr-2">AI Jobs</a>
-</nav>
+    <div class="logo-section">
+        <img src="https://placehold.co/40x40/007bff/ffffff?text=AI" alt="SuperPrompter Logo" class="app-logo">
+        <h1 class="header-title">SuperPrompter</h1>
+    </div>
+    <nav>
+        <a href="{{ url_for('landing') }}" class="btn btn-outline-light btn-sm mr-2">Back to Landing Page</a>
+        <a href="{{ url_for('all_jobs') }}" class="btn btn-outline-light btn-sm mr-2">AI Jobs</a>
+    </nav>
 </header>
 
 <div class="container">
-<h1 class="text-center mb-5" style="color: var(--color-dark-bg);">📰 Latest AI News & Updates</h1>
+    <h1 class="text-center mb-5" style="color: var(--color-dark-bg);">📰 Latest AI News & Updates</h1>
 
-<form method="GET" action="{{ url_for('all_news') }}" class="mb-4">
-    <div class="input-group">
-        <input type="text" class="form-control" 
-               placeholder="Search news by title or summary..." 
-               name="q" 
-               value="{{ request.args.get('q', '') }}"
-               list="autocomplete-list">
-        
-        <div class="input-group-append">
-            <button class="btn btn-secondary" style="background-color: var(--color-secondary); color: white;" type="submit">Search</button>
+    <form method="GET" action="{{ url_for('all_news') }}" class="mb-4">
+        <div class="input-group shadow-sm">
+            <input type="text" id="news-search-input" class="form-control" 
+                   placeholder="Search news..." name="q" value="{{ request.args.get('q', '') }}" list="autocomplete-list">
+            
+            <div class="input-group-append">
+                <button class="btn btn-secondary" style="background-color: var(--color-secondary); border: none;" type="submit">Search</button>
+                <button class="btn btn-info" id="smart-ai-btn" type="button" style="background-color: var(--color-primary); border: none;">
+                    <i class="fas fa-robot"></i> Smart AI
+                </button>
+            </div>
+        </div>
+        <datalist id="autocomplete-list"></datalist>
+    </form>
+
+    <div id="ai-summary-wrapper">
+        <div id="ai-summary-content" class="shadow-sm border">
+            <div class="d-flex align-items-center mb-2">
+                <div class="spinner-border spinner-border-sm text-primary mr-2" id="ai-loader" role="status" style="display: none;"></div>
+                <strong style="color: var(--color-dark-bg); font-size: 1.1rem;">
+                    <i class="fas fa-magic"></i> Smart AI Insight
+                </strong>
+            </div>
+            <p id="ai-result-text"></p><span id="ai-cursor" class="cursor" style="display:none;"></span>
         </div>
     </div>
-    <datalist id="autocomplete-list"></datalist>
-</form>
 
-{% if articles %}
-{% for article in articles %}
-<div class="article-card">
-    <h3 class="article-title">
-        {% if article.id in blog_id_tracker %}
-            {# INTERNAL BLOG POST LOGIC (Opens modal) #}
-            <a href="#" 
-                data-toggle="modal" 
-                data-target="#blogModal" 
-                data-title="{{ article.title }}" 
-                data-content="{{ article.description }}" 
-                style="color: var(--color-secondary); text-decoration: none;">
-                <i class="fas fa-book-open" style="font-size: 0.9em;"></i> 
-                {{ article.title }} 
-                <small>(*)</small>
-            </a>
-        {% else %}
-            {# CORRECTED EXTERNAL NEWS LOGIC: Title links DIRECTLY to the source #}
-            <a href="{{ article.source_url }}" target="_blank" style="color: inherit; text-decoration: none;">
-                {{ article.title }} <i class="fas fa-external-link-alt" style="font-size: 0.8em;"></i>
-            </a>
-        {% endif %}
-    </h3>
-
-    <p>{{ article.summary | truncate(200) }}</p>
-
-    <div class="article-meta">
-        
-        {# 1. PUBLICATION DATE/METADATA #}
-        <span><i class="fas fa-calendar-alt"></i> Published: {{ article.date_published.strftime('%b %d, %Y') }}</span>
-        
-        {# 2. COPY LINK BUTTON PLACEMENT #}
-        {# This button correctly uses the internal redirect link for copying/sharing #}
-        {% if article.share_url %}
-        <button type="button" 
-                class="btn btn-sm btn-outline-secondary copy-link-btn" 
-                data-url="{{ article.share_url }}" 
-                style="margin-left: 10px;">
-            <i class="fas fa-copy"></i> Copy Link
-        </button>
-        {% endif %}
-
-    </div>
-</div>
-{% endfor %}
-
-<div class="d-flex justify-content-center mt-5">
-    <nav>
-        <ul class="pagination">
-            <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
-                <a class="page-link" 
-                    href="{{ url_for(request.endpoint, page=pagination.prev_num, q=search_query) if pagination.has_prev else '#' }}">
-                    Previous
-                </a>
-            </li>
-
-            {% for p in pagination.iter_pages() %}
-                {% if p %}
-                    {% if p == pagination.page %}
-                        <li class="page-item active"><a class="page-link" href="#">{{ p }}</a></li>
+    {% if articles %}
+        {% for article in articles %}
+            <div class="article-card">
+                <h3 class="article-title">
+                    {% if article.id in blog_id_tracker %}
+                        <a href="#" data-toggle="modal" data-target="#blogModal" 
+                           data-title="{{ article.title }}" data-content="{{ article.description }}" 
+                           style="color: var(--color-secondary); text-decoration: none;">
+                            <i class="fas fa-book-open" style="font-size: 0.9em;"></i> {{ article.title }} <small>(*)</small>
+                        </a>
                     {% else %}
-                        <li class="page-item">
-                            <a class="page-link" href="{{ url_for(request.endpoint, page=p, q=search_query) }}">{{ p }}</a>
-                        </li>
+                        <a href="{{ article.source_url }}" target="_blank" style="color: inherit; text-decoration: none;">
+                            {{ article.title }} <i class="fas fa-external-link-alt" style="font-size: 0.8em;"></i>
+                        </a>
                     {% endif %}
-                {% else %}
-                    <li class="page-item disabled"><a class="page-link" href="#">...</a></li>
-                {% endif %}
-            {% endfor %}
-
-            <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
-                <a class="page-link" 
-                    href="{{ url_for(request.endpoint, page=pagination.next_num, q=search_query) if pagination.has_next else '#' }}">
-                    Next
-                </a>
-            </li>
-        </ul>
-    </nav>
-</div>
-{# 
-  *** CRITICAL FIX: The {% else %} block was running here without a preceding {% if %} ***
-  The correct place for this content is inside the main {% if articles %} block's ELSE section.
-  Since this content is now the ELSE part of the main condition, we remove the standalone tags here.
-#}
-
-
-{#
-  The following alert block is the content that should be in the ELSE of the main IF block.
-  If the main article listing section (which should wrap articles and pagination) ends just before this,
-  it will work correctly.
-#}
-{% else %}
-<div class="alert alert-info text-center">
-    No news articles found.
-    {% if request.args.get('q') %}
-        Please try a different search term or check back later.
-    {% else %}
-        No news articles have been added yet. Check back soon!
+                </h3>
+                <p>{{ article.summary | truncate(200) }}</p>
+                <div class="article-meta">
+                    <span><i class="fas fa-calendar-alt"></i> Published: {{ article.date_published.strftime('%b %d, %Y') }}</span>
+                    {% if article.share_url %}
+                    <button type="button" class="btn btn-sm btn-outline-secondary copy-link-btn" data-url="{{ article.share_url }}">
+                        <i class="fas fa-copy"></i> Copy Link
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+        {% endfor %}
+        
+        {% else %}
+        <div class="alert alert-info text-center">No news articles found.</div>
     {% endif %}
 </div>
-{% endif %}
-</div>
 
-
-<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
-<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 
 <div class="modal fade" id="blogModal" tabindex="-1" role="dialog" aria-labelledby="blogModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg" role="document">
@@ -229,154 +203,134 @@ margin-right: 15px;
         </div>
     </div>
 </div>
-    
+
+<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+
 <script>
     document.addEventListener('DOMContentLoaded', () => {
-        // Target the input with name="q"
-        const input = document.querySelector('input[name="q"]');
+        // --- 1. Smart AI Logic (Typewriter & Dynamic Expansion) ---
+        const smartAiBtn = document.getElementById('smart-ai-btn');
+        const aiWrapper = document.getElementById('ai-summary-wrapper');
+        const aiResultText = document.getElementById('ai-result-text');
+        const aiLoader = document.getElementById('ai-loader');
+        const aiCursor = document.getElementById('ai-cursor');
+        const searchInput = document.getElementById('news-search-input');
+
+        smartAiBtn.addEventListener('click', function() {
+            const query = searchInput.value.trim();
+            if (!query) {
+                alert("Please enter a search term first.");
+                return;
+            }
+
+            // Show container and loading state
+            aiWrapper.style.maxHeight = "500px"; 
+            aiWrapper.style.marginBottom = "30px";
+            aiLoader.style.display = "inline-block";
+            aiResultText.innerHTML = "<em>Analyzing database and generating smart summary...</em>";
+            aiCursor.style.display = "none";
+
+            fetch(`/api/ai-summary?q=${encodeURIComponent(query)}`)
+                .then(response => response.json())
+                .then(data => {
+                    aiLoader.style.display = "none";
+                    aiResultText.innerHTML = ""; // Clear loader text
+                    aiCursor.style.display = "inline-block";
+                    
+                    // Start Typewriter effect
+                    typeWriter(data.summary, aiResultText, 0, () => {
+                        aiCursor.style.display = "none"; // Hide cursor when finished
+                    });
+                })
+                .catch(err => {
+                    aiLoader.style.display = "none";
+                    aiResultText.innerText = "Smart AI is currently unavailable. Showing standard results below.";
+                });
+        });
+
+        function typeWriter(text, target, i, callback) {
+            if (i < text.length) {
+                target.innerHTML += text.charAt(i);
+                setTimeout(() => typeWriter(text, target, i + 1, callback), 25);
+            } else if (callback) {
+                callback();
+            }
+        }
+
+        // --- 2. Autocomplete Logic ---
         const dataList = document.getElementById('autocomplete-list');
-
-        // Set the API endpoint URL for this specific page
         const API_URL = '{{ url_for("news_autocomplete") }}'; 
-        
         let typingTimer;
-        const doneTypingInterval = 300; // Time in ms (e.g., 0.3 seconds)
+        const doneTypingInterval = 300;
 
-        input.addEventListener('keyup', () => {
+        searchInput.addEventListener('keyup', () => {
             clearTimeout(typingTimer);
-            if (input.value.length >= 2) { // Trigger only if 2 or more characters are typed
+            if (searchInput.value.length >= 2) {
                 typingTimer = setTimeout(fetchSuggestions, doneTypingInterval);
             } else {
-                dataList.innerHTML = ''; // Clear suggestions if input is too short
+                dataList.innerHTML = '';
             }
         });
 
         function fetchSuggestions() {
-            const query = input.value;
-            if (!query) return;
-
+            const query = searchInput.value;
             fetch(API_URL + '?q=' + encodeURIComponent(query))
                 .then(response => response.json())
                 .then(data => {
-                    dataList.innerHTML = ''; // Clear previous suggestions
+                    dataList.innerHTML = ''; 
                     data.forEach(suggestion => {
                         const option = document.createElement('option');
                         option.value = suggestion;
                         dataList.appendChild(option);
                     });
-                })
-                .catch(error => console.error('Error fetching autocomplete data:', error));
+                });
         }
-    });
 
-// --- 2. Blog Modal Logic ---
-    // Uses jQuery (loaded above) for Bootstrap Modal functionality
-    $('#blogModal').on('show.bs.modal', function (event) {
-        var button = $(event.relatedTarget); // Link that triggered the modal
-        var title = button.data('title'); 
-        var content = button.data('content'); 
-        
-        var modal = $(this);
-        
-        // Populate Title
-        modal.find('#modal-title').text(title);
-        
-        // Populate Content (Using text() and pre-wrap CSS for secure display of newline characters)
-        // We retrieve the raw text, apply newlines via JS/CSS, ensuring no accidental HTML injection.
-        modal.find('#modal-content-body').text(content); 
-    });
-    
-</script>
-
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Select ALL buttons with the class 'copy-link-btn'
-        const copyButtons = document.querySelectorAll('.copy-link-btn'); 
-        
-        if (copyButtons.length === 0) return; // Exit if no buttons are found
-
-        copyButtons.forEach(copyButton => {
-            // Store the original HTML content to restore it after copying
-            const originalHTML = copyButton.innerHTML;
-            
-            copyButton.addEventListener('click', async function() {
-                // Get URL from the 'data-url' attribute of the specific button clicked
-                const linkToCopy = this.getAttribute('data-url'); 
-
-                if (!linkToCopy) {
-                    console.error("Copy failed: data-url attribute is missing.");
-                    return;
-                }
-
-                // --- 1. MODERN CLIPBOARD API (Preferred method, requires HTTPS) ---
+        // --- 3. Clipboard / Copy Link Logic ---
+        const copyButtons = document.querySelectorAll('.copy-link-btn');
+        copyButtons.forEach(btn => {
+            const originalHTML = btn.innerHTML;
+            btn.addEventListener('click', async function() {
+                const url = this.getAttribute('data-url');
                 if (navigator.clipboard && window.isSecureContext) {
-                    try {
-                        await navigator.clipboard.writeText(linkToCopy);
-                        
-                        // Success Feedback
-                        showCopySuccessFeedback(this, originalHTML);
-
-                    } catch (err) {
-                        // 2. Fallback if modern API fails (e.g., due to permission/security error)
-                        console.warn('Clipboard API failed. Falling back to execCommand.', err);
-                        fallbackCopyTextToClipboard(linkToCopy, this, originalHTML);
-                    }
+                    await navigator.clipboard.writeText(url);
+                    showSuccess(this, originalHTML);
                 } else {
-                    // 3. Fallback for HTTP or older browsers
-                    console.warn('Insecure context or old browser. Falling back to execCommand.');
-                    fallbackCopyTextToClipboard(linkToCopy, this, originalHTML);
+                    fallbackCopy(url, this, originalHTML);
                 }
             });
         });
+
+        function showSuccess(btn, oldHtml) {
+            btn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+            btn.classList.replace('btn-outline-secondary', 'btn-success');
+            setTimeout(() => {
+                btn.innerHTML = oldHtml;
+                btn.classList.replace('btn-success', 'btn-outline-secondary');
+            }, 2000);
+        }
+
+        function fallbackCopy(text, btn, oldHtml) {
+            const el = document.createElement('textarea');
+            el.value = text;
+            document.body.appendChild(el);
+            el.select();
+            document.execCommand('copy');
+            document.body.removeChild(el);
+            showSuccess(btn, oldHtml);
+        }
     });
 
-    /** Utility function to show success feedback and reset the button state. */
-    function showCopySuccessFeedback(button, originalHTML) {
-        // Show success message and change color (assuming Bootstrap classes)
-        button.innerHTML = '<i class="fas fa-check"></i> Copied!';
-        button.classList.add('btn-success');
-        button.classList.remove('btn-outline-secondary'); 
-        
-        setTimeout(() => {
-            // Reset button text and color after 2 seconds
-            button.innerHTML = originalHTML;
-            button.classList.remove('btn-success');
-            button.classList.add('btn-outline-secondary'); 
-        }, 2000);
-    }
-
-    /** Fallback function using the document.execCommand method. */
-    function fallbackCopyTextToClipboard(text, button, originalHTML) {
-        const textArea = document.createElement("textarea");
-        textArea.value = text;
-        
-        // Make the text area invisible and off-screen
-        textArea.style.position = "fixed";
-        textArea.style.top = 0;
-        textArea.style.left = 0;
-        textArea.style.opacity = 0; 
-        
-        document.body.appendChild(textArea);
-        textArea.focus();
-        textArea.select();
-        
-        let successful = false;
-        try {
-            successful = document.execCommand('copy');
-        } catch (err) {
-            console.error('Fallback copy failed completely:', err);
-        }
-
-        document.body.removeChild(textArea);
-        
-        if (successful) {
-            showCopySuccessFeedback(button, originalHTML);
-        } else {
-            // Final, lowest level fallback (user must manually copy)
-            alert("Copy failed. Please manually copy the link: " + text);
-        }
-    }
-</script>    
+    // --- 4. Modal Logic (jQuery) ---
+    $('#blogModal').on('show.bs.modal', function (event) {
+        var button = $(event.relatedTarget);
+        var modal = $(this);
+        modal.find('#modal-title').text(button.data('title'));
+        modal.find('#modal-content-body').text(button.data('content'));
+    });
+</script>
     
 </body>
 </html>
