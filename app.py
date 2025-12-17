@@ -1345,6 +1345,64 @@ def view_blog_content(blog_uuid):
 # You will also need to update the delete_news route to remove the item 
 # from the blog_id_tracker if it exists, as done previously.
 
+@app.route('/api/ai-summary', methods=['GET'])
+def ai_summary():
+    # 1. Get the search query from the frontend
+    query = request.args.get('q', '').strip()
+    
+    if not query:
+        return jsonify({"summary": "Please enter a search term for the AI to analyze."}), 400
+
+    # 2. Database Retrieval: Fetch top 5 relevant articles for context
+    # This provides the "Data in Database" part of your request
+    search_results = NewsArticle.query.filter(
+        (NewsArticle.title.ilike(f'%{query}%')) | 
+        (NewsArticle.summary.ilike(f'%{query}%'))
+    ).limit(5).all()
+
+    # Format the DB data into a string for the AI
+    if search_results:
+        db_context = "Recent articles from our database:\n" + "\n".join(
+            [f"- {a.title}: {a.summary[:150]}..." for a in search_results]
+        )
+    else:
+        db_context = "No specific articles found in our local database for this query."
+
+    # 3. Construct the "Instruction" for your existing Gemini logic
+    # We strictly enforce the 70-word limit and character stripping here
+    ai_instruction = f"""
+    You are the 'Smart AI' search assistant for SuperPrompter.
+    
+    CONTEXT FROM OUR DATABASE:
+    {db_context}
+    
+    USER QUERY: 
+    {query}
+    
+    TASK:
+    Based on the database info above and your internal training data, provide a consolidated search summary.
+    
+    STRICT RULES:
+    1. Maximum 70 words.
+    2. DO NOT use ANY special characters like asterisks (*), hashtags (#), or underscores (_).
+    3. Use plain text only. 
+    4. If no database info exists, use your internal data to explain the topic briefly.
+    """
+
+    try:
+        # 4. Use your existing logic function
+        # We set max_output_tokens lower (e.g., 200) because we only need ~70 words
+        summary_text = ask_gemini_for_prompt(ai_instruction, max_output_tokens=250)
+        
+        # 5. Final Regex safety clean (to ensure no '*' remain)
+        clean_summary = re.sub(r'[*#_]', '', summary_text)
+        
+        return jsonify({"summary": clean_summary})
+
+    except Exception as e:
+        app.logger.error(f"AI Summary Route Error: {e}")
+        return jsonify({"summary": "Smart AI is temporarily unavailable. Please use standard search results."}), 500
+
 
 # --- NEW: Change Password Route ---
 @app.route('/change_password', methods=['GET', 'POST'])
