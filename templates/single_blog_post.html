@@ -325,93 +325,166 @@
             
         </div>
     </div> 
+    <div class="container mt-5 mb-5">
+    <div class="row">
+        <div class="col-md-6 mb-4">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-body">
+                    <h5 class="card-title text-primary"><i class="fas fa-brain"></i> AI Post-Analyzer</h5>
+                    <p class="small text-muted">Get a smart summary and key takeaways of this article.</p>
+                    <button id="analyze-btn" class="btn btn-outline-primary btn-sm mb-3">Analyze Post</button>
+                    <div id="analysis-result" class="small" style="white-space: pre-wrap;"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 mb-4">
+            <div class="card shadow-sm border-0 h-100" style="border-top: 4px solid var(--color-primary) !important;">
+                <div class="card-body">
+                    <h5 class="card-title" style="color: var(--color-primary);"><i class="fas fa-vote-yea"></i> AI Interactive Poller</h5>
+                    <p class="small text-muted">Generate a poll and see where you stand vs. the AI's data.</p>
+                    <button id="poll-gen-btn" class="btn btn-sm btn-primary mb-3">Generate AI Poll</button>
+                    
+                    <div id="poll-area" style="display:none;">
+                        <h6 id="poll-question" class="font-weight-bold mb-3"></h6>
+                        <div id="poll-options-container" class="d-flex flex-column gap-2"></div>
+                    </div>
+
+                    <div id="smart-answer-box" class="mt-4 p-3 rounded bg-light" style="display:none; border-left: 4px solid #28a745;">
+                        <strong class="d-block mb-1 text-success">AI Stance Review:</strong>
+                        <p id="smart-answer-text" class="small mb-0 italic"></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
     
     {# *** FIX 1: The misplaced closing tags are fixed here: *** #}
     {# The missing </div> tags for post-container-main, col-md-9, row, and container are now correctly implied to be outside of the main structure #}
     
     <script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
     
-    <script>
-    document.addEventListener('DOMContentLoaded', () => {
-        // *** FIX 2: Target the correct ID, which is 'copy-link-btn' ***
-        const copyButton = document.getElementById('copy-link-btn'); 
-        const originalText = 'Copy Link';
-        
-        // Ensure the button element exists before adding the listener
-        if (!copyButton) {
-            console.error('Copy button with ID "copy-link-btn" not found.');
-            return;
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // --- 1. SHARED UTILITY: Typewriter Effect ---
+    function typeWriter(text, target, i, callback) {
+        if (i < text.length) {
+            target.innerHTML += text.charAt(i);
+            setTimeout(() => typeWriter(text, target, i + 1, callback), 20);
+        } else if (callback) {
+            callback();
         }
+    }
 
+    // --- 2. COPY LINK LOGIC ---
+    const copyButton = document.getElementById('copy-link-btn'); 
+    const originalText = 'Copy Link';
+
+    if (copyButton) {
         copyButton.addEventListener('click', async () => {
-            // Use the data-url attribute which contains the correct share URL
             const linkToCopy = copyButton.getAttribute('data-url'); 
-
-            // --- 1. MODERN CLIPBOARD API (HTTPS Only) ---
             if (navigator.clipboard && window.isSecureContext) {
                 try {
                     await navigator.clipboard.writeText(linkToCopy);
-                    
-                    // Success Feedback
                     showCopySuccessFeedback(copyButton, originalText);
-
                 } catch (err) {
-                    // 2. Fallback if modern API fails (e.g., security error)
-                    console.warn('Clipboard API failed. Falling back to execCommand.', err);
                     fallbackCopyTextToClipboard(linkToCopy, copyButton, originalText);
                 }
             } else {
-                // 3. Fallback for HTTP or older browsers
-                console.warn('Insecure context or old browser. Falling back to execCommand.');
                 fallbackCopyTextToClipboard(linkToCopy, copyButton, originalText);
             }
         });
-    });
+    }
 
-    /** Utility function to show success feedback */
-    function showCopySuccessFeedback(button, originalText) {
+    function showCopySuccessFeedback(button, text) {
         button.innerHTML = '<i class="fas fa-check"></i> Copied!';
-        button.classList.add('btn-success');
-        button.classList.remove('btn-secondary'); 
-        
+        button.classList.replace('btn-secondary', 'btn-success');
         setTimeout(() => {
-            button.innerHTML = '<i class="fas fa-copy"></i> ' + originalText;
-            button.classList.remove('btn-success');
-            button.classList.add('btn-secondary'); 
+            button.innerHTML = '<i class="fas fa-copy"></i> ' + text;
+            button.classList.replace('btn-success', 'btn-secondary');
         }, 2000);
     }
 
-    /** Fallback function using the deprecated but widely supported document.execCommand */
     function fallbackCopyTextToClipboard(text, button, originalText) {
         const textArea = document.createElement("textarea");
         textArea.value = text;
-        
-        // Make the text area invisible and off-screen
-        textArea.style.position = "fixed";
-        textArea.style.top = 0;
-        textArea.style.left = 0;
-        textArea.style.opacity = 0; 
-        
+        textArea.style.position = "fixed"; textArea.style.opacity = 0;
         document.body.appendChild(textArea);
-        textArea.focus();
-        textArea.select();
-        
-        let successful = false;
-        try {
-            successful = document.execCommand('copy');
-        } catch (err) {
-            console.error('Fallback copy failed completely:', err);
-        }
-
+        textArea.focus(); textArea.select();
+        const successful = document.execCommand('copy');
         document.body.removeChild(textArea);
-        
-        if (successful) {
-            showCopySuccessFeedback(button, originalText);
-        } else {
-            // Final, lowest level fallback
-            alert("Copy failed. Please manually copy the link: " + text);
-        }
+        if (successful) showCopySuccessFeedback(button, originalText);
     }
-    </script>
+
+    // --- 3. AI POST-ANALYZER LOGIC ---
+    const analyzeBtn = document.getElementById('analyze-btn');
+    const analysisResult = document.getElementById('analysis-result');
+
+    if (analyzeBtn) {
+        analyzeBtn.addEventListener('click', function() {
+            this.disabled = true;
+            analysisResult.innerHTML = "<em><i class='fas fa-spinner fa-spin'></i> AI is analyzing the text...</em>";
+            
+            fetch(`/api/analyze-post/{{ post.id }}`)
+                .then(res => res.json())
+                .then(data => {
+                    analysisResult.innerHTML = "";
+                    typeWriter(data.summary, analysisResult, 0);
+                })
+                .catch(() => {
+                    analysisResult.innerHTML = "Analysis currently unavailable.";
+                    this.disabled = false;
+                });
+        });
+    }
+
+    // --- 4. AI SMART POLLER LOGIC ---
+    const pollGenBtn = document.getElementById('poll-gen-btn');
+    const pollArea = document.getElementById('poll-area');
+    const pollQuestion = document.getElementById('poll-question');
+    const optionsContainer = document.getElementById('poll-options-container');
+    const smartAnswerBox = document.getElementById('smart-answer-box');
+    const smartAnswerText = document.getElementById('smart-answer-text');
+
+    if (pollGenBtn) {
+        pollGenBtn.addEventListener('click', function() {
+            this.style.display = 'none';
+            pollArea.style.display = 'block';
+            pollQuestion.innerHTML = "<em><i class='fas fa-robot fa-spin'></i> Designing poll...</em>";
+            
+            fetch(`/api/generate-blog-poll/{{ post.id }}`)
+                .then(res => res.json())
+                .then(data => {
+                    pollQuestion.innerHTML = data.question;
+                    optionsContainer.innerHTML = "";
+                    data.options.forEach(opt => {
+                        const btn = document.createElement('button');
+                        btn.className = "btn btn-outline-secondary btn-sm mb-2 text-left shadow-sm";
+                        btn.innerText = opt;
+                        btn.onclick = () => {
+                            // Disable all buttons after vote
+                            optionsContainer.querySelectorAll('button').forEach(b => b.disabled = true);
+                            submitVote(opt, data.question);
+                        };
+                        optionsContainer.appendChild(btn);
+                    });
+                });
+        });
+    }
+
+    function submitVote(choice, question) {
+        smartAnswerBox.style.display = 'block';
+        smartAnswerText.innerHTML = "<em>Consulting global 2025 trends...</em>";
+
+        fetch(`/api/poll-review?choice=${encodeURIComponent(choice)}&question=${encodeURIComponent(question)}`)
+            .then(res => res.json())
+            .then(data => {
+                smartAnswerText.innerHTML = "";
+                typeWriter(data.review, smartAnswerText, 0);
+            });
+    }
+});
+</script>
 </body>
 </html>
