@@ -288,38 +288,38 @@
                         {{ post.description | safe }}
                     </div>
 
-                    <hr class="mt-5 mb-5">
+                    <hr class="my-5">
 
-                    {# --- AI SMART HUB: VERTICAL STACK --- #}
-                <div class="ai-hub-wrapper mb-5">
-                    
-                    <div class="card shadow-sm border-0 mb-4" style="border-left: 5px solid var(--color-secondary) !important;">
-                        <div class="card-body p-4">
-                            <h5 class="card-title text-primary"><i class="fas fa-brain"></i> AI Post-Analyzer</h5>
-                            <p class="small text-muted mb-3">Get a smart summary and key takeaways of this article.</p>
-                            <button id="analyze-btn" class="btn btn-outline-primary btn-sm mb-3">Analyze Post</button>
-                            <div id="analysis-result" class="p-3 bg-light rounded shadow-inner" style="display:none; white-space: pre-wrap; font-size: 0.95rem;"></div>
-                        </div>
-                    </div>
-
-                    <div class="card shadow-sm border-0 mb-4" style="border-left: 5px solid var(--color-primary) !important;">
-                        <div class="card-body p-4">
-                            <h5 class="card-title" style="color: var(--color-primary);"><i class="fas fa-vote-yea"></i> AI Interactive Poller</h5>
-                            <p class="small text-muted mb-3">Generate a poll and see where you stand vs. the global AI consensus.</p>
-                            <button id="poll-gen-btn" class="btn btn-sm btn-primary mb-3">Generate AI Poll</button>
-                            
-                            <div id="poll-area" style="display:none;">
-                                <h6 id="poll-question" class="font-weight-bold mb-3" style="font-size: 1.1rem;"></h6>
-                                <div id="poll-options-container" class="d-flex flex-column gap-2 mb-3"></div>
-                            </div>
-
-                            <div id="smart-answer-box" class="mt-4 p-4 rounded shadow-sm" style="display:none; background-color: #f8fff9; border: 1px solid #d4edda;">
-                                <strong class="d-block mb-2 text-success"><i class="fas fa-robot"></i> AI Stance Review:</strong>
-                                <p id="smart-answer-text" class="mb-0 text-dark" style="font-style: italic;"></p>
+                    <div class="ai-hub-wrapper">
+                        
+                        <div class="card ai-card shadow-sm border-0 mb-4" style="border-left: 5px solid var(--color-secondary) !important;">
+                            <div class="card-body p-4">
+                                <h5 class="card-title text-primary"><i class="fas fa-brain"></i> AI Post-Analyzer</h5>
+                                <p class="small text-muted mb-3">Instant summary and key takeaways.</p>
+                                <button id="analyze-btn" class="btn btn-outline-primary btn-sm mb-3">Analyze Post</button>
+                                <div id="analysis-result" class="p-3 bg-light rounded" style="display:none; white-space: pre-wrap; font-size: 0.95rem;"></div>
                             </div>
                         </div>
+
+                        <div class="card ai-card shadow-sm border-0 mb-5" style="border-left: 5px solid var(--color-primary) !important;">
+                            <div class="card-body p-4">
+                                <h5 class="card-title" style="color: var(--color-primary);"><i class="fas fa-vote-yea"></i> AI Interactive Poller</h5>
+                                <p class="small text-muted mb-3">Where do you stand vs. the AI's 2025 data?</p>
+                                <button id="poll-gen-btn" class="btn btn-sm btn-primary mb-3">Generate AI Poll</button>
+                                
+                                <div id="poll-area" style="display:none;">
+                                    <h6 id="poll-question" class="font-weight-bold mb-3"></h6>
+                                    <div id="poll-options-container" class="d-flex flex-column gap-2 mb-3"></div>
+                                </div>
+
+                                <div id="smart-answer-box" class="mt-4 p-4 rounded shadow-sm" style="display:none; background-color: #f8fff9; border: 1px solid #d4edda;">
+                                    <strong class="d-block mb-2 text-success"><i class="fas fa-robot"></i> AI Stance Review:</strong>
+                                    <p id="smart-answer-text" class="mb-0 text-dark" style="font-style: italic;"></p>
+                                </div>
+                            </div>
+                        </div>
+
                     </div>
-                </div>
                     
                     <section id="comments-section" class="mb-5">
                         <h3 class="text-center mb-4" style="color: var(--color-dark-bg);">Join the Conversation</h3>
@@ -364,11 +364,20 @@
     
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-    // --- 1. SHARED UTILITY: Typewriter Effect ---
+    // --- 1. SHARED UTILITIES ---
+
+    // Removes *, # but keeps emojis
+    function cleanText(text) {
+        if (!text) return "";
+        return text.replace(/[*#]/g, '').trim();
+    }
+
+    // Single Shared Typewriter Effect
     function typeWriter(text, target, i, callback) {
-        if (i < text.length) {
-            target.innerHTML += text.charAt(i);
-            setTimeout(() => typeWriter(text, target, i + 1, callback), 20);
+        const cleanStr = cleanText(text); 
+        if (i < cleanStr.length) {
+            target.innerHTML += cleanStr.charAt(i);
+            setTimeout(() => typeWriter(cleanStr, target, i + 1, callback), 15);
         } else if (callback) {
             callback();
         }
@@ -414,36 +423,25 @@ document.addEventListener('DOMContentLoaded', () => {
         if (successful) showCopySuccessFeedback(button, originalText);
     }
 
-    // --- CLEANING UTILITY: Removes *, # but keeps emojis ---
-    function cleanText(text) {
-        return text.replace(/[*#]/g, '').trim();
-    }
-
-    // --- SHARED TYPEWRITER ---
-    function typeWriter(text, target, i, callback) {
-        const cleanStr = cleanText(text); // Clean every time
-        if (i < cleanStr.length) {
-            target.innerHTML += cleanStr.charAt(i);
-            setTimeout(() => typeWriter(cleanStr, target, i + 1, callback), 15);
-        } else if (callback) {
-            callback();
-        }
-    }
-
-    // --- 3. AI POST-ANALYZER LOGIC ---
+    // --- 3. AI POST-ANALYZER LOGIC (Fixed) ---
     const analyzeBtn = document.getElementById('analyze-btn');
     const analysisResult = document.getElementById('analysis-result');
 
     if (analyzeBtn) {
         analyzeBtn.addEventListener('click', function() {
+            // FIX: Ensure the div is visible
+            analysisResult.style.display = 'block'; 
+            
             this.disabled = true;
             analysisResult.innerHTML = "<em><i class='fas fa-spinner fa-spin'></i> AI is analyzing the text...</em>";
             
             fetch(`/api/analyze-post/{{ post.id }}`)
                 .then(res => res.json())
                 .then(data => {
-                    analysisResult.innerHTML = "";
-                    typeWriter(data.summary, analysisResult, 0);
+                    analysisResult.innerHTML = ""; // Clear the spinner
+                    typeWriter(data.summary, analysisResult, 0, () => {
+                        analyzeBtn.disabled = false; // Re-enable after typing
+                    });
                 })
                 .catch(() => {
                     analysisResult.innerHTML = "Analysis currently unavailable.";
@@ -469,14 +467,13 @@ document.addEventListener('DOMContentLoaded', () => {
             fetch(`/api/generate-blog-poll/{{ post.id }}`)
                 .then(res => res.json())
                 .then(data => {
-                    pollQuestion.innerHTML = data.question;
+                    pollQuestion.innerHTML = cleanText(data.question);
                     optionsContainer.innerHTML = "";
                     data.options.forEach(opt => {
                         const btn = document.createElement('button');
                         btn.className = "btn btn-outline-secondary btn-sm mb-2 text-left shadow-sm";
-                        btn.innerText = opt;
+                        btn.innerText = cleanText(opt);
                         btn.onclick = () => {
-                            // Disable all buttons after vote
                             optionsContainer.querySelectorAll('button').forEach(b => b.disabled = true);
                             submitVote(opt, data.question);
                         };
