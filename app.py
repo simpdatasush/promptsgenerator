@@ -1371,7 +1371,7 @@ def ai_summary():
 
         # 3. AI INSTRUCTION
         ai_instruction = f"""
-        Task: Summary of '{query}' based on: {db_context} and your training data.
+        Task: Summary of '{query}' based on recent: {db_context} and your training data.
         Rules: Max 70 words. Plain text only. NO special characters like * or #.
         """
 
