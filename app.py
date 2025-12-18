@@ -1386,6 +1386,41 @@ def ai_summary():
     except Exception as e:
         app.logger.error(f"AI Summary Error: {e}")
         return jsonify({"summary": "AI is taking a moment to breathe. Please try again."}), 500
+
+# 1. ANALYZER: Summarizes the blog post
+@app.route('/api/analyze-post/<int:post_id>')
+def analyze_post(post_id):
+    post = News.query.get_or_404(post_id)
+    prompt = f"Summarize this article in 3 bullet points of key takeaways: {post.description[:800]}"
+    summary = ask_gemini_for_prompt(prompt)
+    return jsonify({"summary": summary})
+
+# 2. POLL GENERATOR: Creates the question
+@app.route('/api/generate-blog-poll/<int:post_id>')
+def generate_blog_poll(post_id):
+    post = News.query.get_or_404(post_id)
+    prompt = f"Based on '{post.title}', create 1 poll question and 3 options. Format: Question | Opt1 | Opt2 | Opt3"
+    response = ask_gemini_for_prompt(prompt)
+    parts = [p.strip() for p in response.split('|')]
+    return jsonify({"question": parts[0], "options": parts[1:]})
+
+# 3. SMART ANSWER: Reviews the user's choice
+@app.route('/api/poll-review')
+def poll_review():
+    choice = request.args.get('choice')
+    question = request.args.get('question')
+    
+    # Prompting AI to simulate consensus and provide a review
+    prompt = f"""
+    The user was asked: '{question}'
+    The user chose: '{choice}'
+    Task: Provide a 2-sentence review. 
+    Sentence 1: Estimate what % of people agree with this choice based on current AI trends.
+    Sentence 2: Briefly analyze why this choice is logical or controversial.
+    Format: You are on the [Side] side (Approx [X]%). [Analysis].
+    """
+    review = ask_gemini_for_prompt(prompt)
+    return jsonify({"review": review})
     
 
 # --- NEW: Change Password Route ---
