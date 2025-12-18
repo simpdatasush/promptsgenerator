@@ -289,6 +289,37 @@
                     </div>
 
                     <hr class="mt-5 mb-5">
+
+                    {# --- AI SMART HUB: VERTICAL STACK --- #}
+                <div class="ai-hub-wrapper mb-5">
+                    
+                    <div class="card shadow-sm border-0 mb-4" style="border-left: 5px solid var(--color-secondary) !important;">
+                        <div class="card-body p-4">
+                            <h5 class="card-title text-primary"><i class="fas fa-brain"></i> AI Post-Analyzer</h5>
+                            <p class="small text-muted mb-3">Get a smart summary and key takeaways of this article.</p>
+                            <button id="analyze-btn" class="btn btn-outline-primary btn-sm mb-3">Analyze Post</button>
+                            <div id="analysis-result" class="p-3 bg-light rounded shadow-inner" style="display:none; white-space: pre-wrap; font-size: 0.95rem;"></div>
+                        </div>
+                    </div>
+
+                    <div class="card shadow-sm border-0 mb-4" style="border-left: 5px solid var(--color-primary) !important;">
+                        <div class="card-body p-4">
+                            <h5 class="card-title" style="color: var(--color-primary);"><i class="fas fa-vote-yea"></i> AI Interactive Poller</h5>
+                            <p class="small text-muted mb-3">Generate a poll and see where you stand vs. the global AI consensus.</p>
+                            <button id="poll-gen-btn" class="btn btn-sm btn-primary mb-3">Generate AI Poll</button>
+                            
+                            <div id="poll-area" style="display:none;">
+                                <h6 id="poll-question" class="font-weight-bold mb-3" style="font-size: 1.1rem;"></h6>
+                                <div id="poll-options-container" class="d-flex flex-column gap-2 mb-3"></div>
+                            </div>
+
+                            <div id="smart-answer-box" class="mt-4 p-4 rounded shadow-sm" style="display:none; background-color: #f8fff9; border: 1px solid #d4edda;">
+                                <strong class="d-block mb-2 text-success"><i class="fas fa-robot"></i> AI Stance Review:</strong>
+                                <p id="smart-answer-text" class="mb-0 text-dark" style="font-style: italic;"></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
                     
                     <section id="comments-section" class="mb-5">
                         <h3 class="text-center mb-4" style="color: var(--color-dark-bg);">Join the Conversation</h3>
@@ -325,40 +356,6 @@
             
         </div>
     </div> 
-    <div class="container mt-5 mb-5">
-    <div class="row">
-        <div class="col-md-6 mb-4">
-            <div class="card shadow-sm border-0 h-100">
-                <div class="card-body">
-                    <h5 class="card-title text-primary"><i class="fas fa-brain"></i> AI Post-Analyzer</h5>
-                    <p class="small text-muted">Get a smart summary and key takeaways of this article.</p>
-                    <button id="analyze-btn" class="btn btn-outline-primary btn-sm mb-3">Analyze Post</button>
-                    <div id="analysis-result" class="small" style="white-space: pre-wrap;"></div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-md-6 mb-4">
-            <div class="card shadow-sm border-0 h-100" style="border-top: 4px solid var(--color-primary) !important;">
-                <div class="card-body">
-                    <h5 class="card-title" style="color: var(--color-primary);"><i class="fas fa-vote-yea"></i> AI Interactive Poller</h5>
-                    <p class="small text-muted">Generate a poll and see where you stand vs. the AI's data.</p>
-                    <button id="poll-gen-btn" class="btn btn-sm btn-primary mb-3">Generate AI Poll</button>
-                    
-                    <div id="poll-area" style="display:none;">
-                        <h6 id="poll-question" class="font-weight-bold mb-3"></h6>
-                        <div id="poll-options-container" class="d-flex flex-column gap-2"></div>
-                    </div>
-
-                    <div id="smart-answer-box" class="mt-4 p-3 rounded bg-light" style="display:none; border-left: 4px solid #28a745;">
-                        <strong class="d-block mb-1 text-success">AI Stance Review:</strong>
-                        <p id="smart-answer-text" class="small mb-0 italic"></p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
     
     {# *** FIX 1: The misplaced closing tags are fixed here: *** #}
     {# The missing </div> tags for post-container-main, col-md-9, row, and container are now correctly implied to be outside of the main structure #}
@@ -415,6 +412,22 @@ document.addEventListener('DOMContentLoaded', () => {
         const successful = document.execCommand('copy');
         document.body.removeChild(textArea);
         if (successful) showCopySuccessFeedback(button, originalText);
+    }
+
+    // --- CLEANING UTILITY: Removes *, # but keeps emojis ---
+    function cleanText(text) {
+        return text.replace(/[*#]/g, '').trim();
+    }
+
+    // --- SHARED TYPEWRITER ---
+    function typeWriter(text, target, i, callback) {
+        const cleanStr = cleanText(text); // Clean every time
+        if (i < cleanStr.length) {
+            target.innerHTML += cleanStr.charAt(i);
+            setTimeout(() => typeWriter(cleanStr, target, i + 1, callback), 15);
+        } else if (callback) {
+            callback();
+        }
     }
 
     // --- 3. AI POST-ANALYZER LOGIC ---
