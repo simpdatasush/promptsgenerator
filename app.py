@@ -80,31 +80,6 @@ app.logger.addHandler(stream_handler) # Add the configured handler to the app lo
 # --- Temporary In-Memory Storage for Saved Prompts (Unchanged) ---
 saved_prompts_in_memory = []
 
-# Initialize variable
-blog_id_tracker = []
-
-# RUNS ON STARTUP: Rebuilds tracker from the /var/data/site.db file
-with app.app_context():
-    try:
-        db.create_all()
-        # Find all news items that are internal blogs
-        internal_blogs = News.query.filter(News.url.contains('/blog_content/')).all()
-        blog_id_tracker = [b.id for b in internal_blogs]
-    except Exception as e:
-        app.logger.error(f"Startup recovery failed: {e}")
-
-# RUNS ON EVERY REQUEST: Keeps the list fresh if a new blog is added or deleted
-@app.before_request
-def sync_tracker_from_disk():
-    global blog_id_tracker
-    try:
-        blogs = News.query.filter(News.url.contains('/blog_content/')).all()
-        blog_id_tracker = [b.id for b in blogs]
-    except:
-        pass
-
-# ... (rest of the global trackers and configuration) ...
-
 
 # --- NEW: Cooldown configuration (no longer in-memory dict for last_request_time) ---
 COOLDOWN_SECONDS = 60 # 60 seconds cooldown
@@ -241,7 +216,30 @@ class Job(db.Model):
        return f'<Job {self.title} at {self.company}>'
 # --- END UPDATED: Job Model ---
 
+# Initialize variable
+blog_id_tracker = []
 
+# RUNS ON STARTUP: Rebuilds tracker from the /var/data/site.db file
+with app.app_context():
+    try:
+        db.create_all()
+        # Find all news items that are internal blogs
+        internal_blogs = News.query.filter(News.url.contains('/blog_content/')).all()
+        blog_id_tracker = [b.id for b in internal_blogs]
+    except Exception as e:
+        app.logger.error(f"Startup recovery failed: {e}")
+
+# RUNS ON EVERY REQUEST: Keeps the list fresh if a new blog is added or deleted
+@app.before_request
+def sync_tracker_from_disk():
+    global blog_id_tracker
+    try:
+        blogs = News.query.filter(News.url.contains('/blog_content/')).all()
+        blog_id_tracker = [b.id for b in blogs]
+    except:
+        pass
+
+# ... (rest of the global trackers and configuration) ...
 
 
 # --- NEW: Flask-Login User Loader ---
