@@ -220,36 +220,67 @@
     </div>
 </div>
 
-<div class="card">
-    <div class="card-header">
-        <h4>Published Blog Posts (Active in All News)</h4>
-    </div>
-    <div class="card-body">
-        {% if blog_items %}
-            {% for item in blog_items %}
-                {% if item.id in blog_id_tracker %}
-                    <div class="news-item">
-                        <div class="news-item-content">
-                            <i class="fas fa-edit text-info mr-2"></i>
-                            <span class="text-info font-weight-bold">BLOG POST:</span>
-                            <h5>{{ item.title }}</h5>
-                            <p class="timestamp">
-                                Published: {{ item.timestamp.strftime('%Y-%m-%d %H:%M') }}
-                            </p>
-                        </div>
-                        <div class="actions">
-                            <form action="{{ url_for('delete_news', news_id=item.id) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this blog post?');" style="display: inline-block;">
-                                <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+<div class="card-body">
+    {% if blog_items %}
+        {% for item in blog_items %}
+            {% if item.id in blog_id_tracker %}
+                <div class="news-item">
+                    <div class="news-item-content">
+                        <i class="fas fa-edit text-info mr-2"></i>
+                        <span class="text-info font-weight-bold">BLOG POST:</span>
+                        <h5>{{ item.title }}</h5>
+                        <p class="timestamp">
+                            Published: {{ item.timestamp.strftime('%Y-%m-%d %H:%M') }}
+                        </p>
+                    </div>
+                    <div class="actions">
+                        <button type="button" class="btn btn-info btn-sm" data-toggle="modal" data-target="#editModal{{ item.id }}">
+                            Edit
+                        </button>
+
+                        <form action="{{ url_for('delete_news', news_id=item.id) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this blog post?');" style="display: inline-block;">
+                            <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="modal fade" id="editModal{{ item.id }}" tabindex="-1" role="dialog" aria-hidden="true">
+                    <div class="modal-dialog modal-lg" role="document">
+                        <div class="modal-content">
+                            <form action="{{ url_for('edit_blog_post', post_id=item.id) }}" method="POST">
+                                <div class="modal-header">
+                                    <h5 class="modal-title">Edit: {{ item.title }}</h5>
+                                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                        <span aria-hidden="true">&times;</span>
+                                    </button>
+                                </div>
+                                <div class="modal-body">
+                                    <div class="form-group">
+                                        <label>Title:</label>
+                                        <input type="text" class="form-control" name="title" value="{{ item.title }}" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Content:</label>
+                                        <textarea class="form-control edit-editor" name="description" rows="10">{{ item.description }}</textarea>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Published Date:</label>
+                                        <input type="date" class="form-control" name="published_date" value="{{ item.published_date.strftime('%Y-%m-%d') if item.published_date else '' }}">
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                                </div>
                             </form>
                         </div>
                     </div>
-                {% endif %}
-            {% endfor %}
-        {% else %}
-            <p>No blog posts published yet.</p>
-        {% endif %}
-    </div>
-</div>
+                </div>
+            {% endif %}
+        {% endfor %}
+    {% else %}
+        <p>No blog posts published yet.</p>
+    {% endif %}
 </div>
 
 <footer class="footer">
@@ -263,20 +294,28 @@
    
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // Summernote requires jQuery, so we ensure the DOM is ready before calling jQuery
+        // Initialize Summernote for the "New Post" editor
         $('#blog_content_editor').summernote({
             placeholder: 'Start writing your blog content here...',
-            tabsize: 2,
-            height: 500,
+            height: 400,
             toolbar: [
                 ['style', ['style']],
                 ['font', ['bold', 'underline', 'clear']],
-                ['fontname', ['fontname']],
-                ['color', ['color']],
                 ['para', ['ul', 'ol', 'paragraph']],
-                ['table', ['table']],
-                ['insert', ['link', 'picture', 'video', 'hr']], // Note the 'video' and 'picture' buttons!
-                ['view', ['fullscreen', 'codeview', 'help']]
+                ['insert', ['link', 'picture', 'video']],
+                ['view', ['fullscreen', 'codeview']]
+            ]
+        });
+
+        // Initialize Summernote for all "Edit" modals
+        $('.edit-editor').summernote({
+            height: 300,
+            toolbar: [
+                ['style', ['style']],
+                ['font', ['bold', 'underline', 'clear']],
+                ['para', ['ul', 'ol', 'paragraph']],
+                ['insert', ['link', 'picture']],
+                ['view', ['fullscreen', 'codeview']]
             ]
         });
     });
