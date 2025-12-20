@@ -79,7 +79,29 @@ app.logger.addHandler(stream_handler) # Add the configured handler to the app lo
 
 # --- Temporary In-Memory Storage for Saved Prompts (Unchanged) ---
 saved_prompts_in_memory = []
+
+# Initialize variable
 blog_id_tracker = []
+
+# RUNS ON STARTUP: Rebuilds tracker from the /var/data/site.db file
+with app.app_context():
+    try:
+        db.create_all()
+        # Find all news items that are internal blogs
+        internal_blogs = News.query.filter(News.url.contains('/blog_content/')).all()
+        blog_id_tracker = [b.id for b in internal_blogs]
+    except Exception as e:
+        app.logger.error(f"Startup recovery failed: {e}")
+
+# RUNS ON EVERY REQUEST: Keeps the list fresh if a new blog is added or deleted
+@app.before_request
+def sync_tracker_from_disk():
+    global blog_id_tracker
+    try:
+        blogs = News.query.filter(News.url.contains('/blog_content/')).all()
+        blog_id_tracker = [b.id for b in blogs]
+    except:
+        pass
 
 # ... (rest of the global trackers and configuration) ...
 
@@ -1249,14 +1271,14 @@ def admin_blogs():
 @admin_required
 def add_blog_post():
     title = request.form.get('title')
-    description = request.form.get('description') # This is the main blog content
+    description = request.form.get('description')
     published_date_str = request.form.get('published_date')
     
-    # We use a placeholder URL because the content lives *inside* the app, not externally.
+    # Create a unique, permanent link for this content
     blog_url = f"/blog_content/{uuid.uuid4()}" 
     
     if not title or not description:
-        flash('Title and Blog Content are required to add a blog post.', 'danger')
+        flash('Title and Blog Content are required.', 'danger')
         return redirect(url_for('admin_blogs'))
 
     published_date = None
@@ -1264,86 +1286,79 @@ def add_blog_post():
         try:
             published_date = datetime.strptime(published_date_str, '%Y-%m-%d')
         except ValueError:
-            flash('Invalid Published Date format. Please use YYYY-MM-DD.', 'danger')
+            flash('Invalid date format. Use YYYY-MM-DD.', 'danger')
             return redirect(url_for('admin_blogs'))
 
     try:
-        # 1. Create news item using the News model
         new_blog = News(
             title=title, 
-            url=blog_url, # Store placeholder URL
+            url=blog_url, 
             description=description, 
             published_date=published_date, 
             user_id=current_user.id
         ) 
         db.session.add(new_blog)
+        # CRITICAL: Saves to /var/data/site.db permanently
         db.session.commit()
         
-        # 2. Mark this item as a blog post in the in-memory tracker
-        global blog_id_tracker
-        blog_id_tracker.insert(0, new_blog.id) 
-        
-        flash('Blog Post added successfully and is visible in News!', 'success')
+        flash('Blog Post saved permanently to disk!', 'success')
     except Exception as e:
         db.session.rollback()
         flash(f'Error adding blog post: {e}', 'danger')
+        
     return redirect(url_for('admin_blogs'))
 
-# You will need corresponding routes for delete_blog_post and edit_blog_post (similar to news)
+@app.route('/admin/blogs/edit/<int:post_id>', methods=['POST'])
+@login_required
+@admin_required
+def edit_blog_post(post_id):
+    # Fetch the existing blog from the disk
+    blog_to_edit = News.query.get_or_404(post_id)
+    
+    title = request.form.get('title')
+    description = request.form.get('description')
+    published_date_str = request.form.get('published_date')
 
-# In app.py
+    if not title or not description:
+        flash('Title and Content cannot be empty.', 'danger')
+        return redirect(url_for('admin_blogs'))
 
-@app.route('/blog_content/<uuid:blog_uuid>', methods=['GET'])
+    try:
+        # Update the object fields
+        blog_to_edit.title = title
+        blog_to_edit.description = description
+        
+        if published_date_str:
+            blog_to_edit.published_date = datetime.strptime(published_date_str, '%Y-%m-%d')
+
+        # Save the changes permanently
+        db.session.commit()
+        flash('Blog Post updated successfully!', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error updating blog: {e}', 'danger')
+
+    return redirect(url_for('admin_blogs'))
+
+@app.route('/blog_content/<uuid:blog_uuid>')
 def view_blog_content(blog_uuid):
-    """Displays a single blog post by its unique URL identifier and populates the sidebar."""
+    placeholder_url = f"/blog_content/{str(blog_uuid)}"
+    blog_post = News.query.filter_by(url=placeholder_url).first_or_404()
     
-    blog_uuid_str = str(blog_uuid)
-    placeholder_url = f"/blog_content/{blog_uuid_str}"
-    
-    blog_post = News.query.filter_by(url=placeholder_url).first()
-    
-    if not blog_post:
-        return render_template('404.html'), 404
-    
-    global blog_id_tracker
-    if blog_post.id not in blog_id_tracker:
-        return render_template('404.html'), 404
+    # Get 20 latest blogs for sidebar
+    raw_blogs = News.query.filter(News.url.contains('/blog_content/')).order_by(News.timestamp.desc()).limit(20).all()
 
-    # 1. Fetch the raw list of the 20 most recent internal blog posts
-    raw_latest_blogs = News.query.filter(News.id.in_(blog_id_tracker)).\
-                                 order_by(News.timestamp.desc()).\
-                                 limit(20).all()
+    processed_sidebar = []
+    for b in raw_blogs:
+        uuid_part = b.url.split('/')[-1]
+        processed_sidebar.append({
+            'id': b.id,
+            'title': b.title,
+            'url': url_for('view_blog_content', blog_uuid=uuid_part)
+        })
 
-    # 2. Process the list to create the clean data structure needed by the template
-    # This step is critical because it generates the correct UUID-based URL.
-    processed_latest_blogs = []
-    for blog in raw_latest_blogs:
-        # Extract the UUID from the stored URL string
-        # Assuming the URL is always '/blog_content/UUID_STRING'
-        try:
-            # We split the URL '/blog_content/XXXXX' and take the last part (the UUID)
-            uuid_part = blog.url.split('/')[-1]
-            
-            # Generate the link using the URL endpoint name and the UUID part
-            blog_link = url_for('view_blog_content', blog_uuid=uuid_part)
-            
-            processed_latest_blogs.append({
-                'id': blog.id,
-                'title': blog.title,
-                'url': blog_link # The corrected link for the sidebar
-            })
-        except Exception as e:
-            # Simple error handling for articles without a correctly formatted UUID URL
-            print(f"Error processing blog URL for ID {blog.id}: {e}")
-            continue
+    return render_template('single_blog_post.html', post=blog_post, latest_blogs=processed_sidebar)
 
-    # 3. Render the dedicated template, passing the processed list
-    return render_template('single_blog_post.html', 
-                           post=blog_post, 
-                           latest_blogs=processed_latest_blogs) # <-- Pass the PROCESSED list
-
-# You will also need to update the delete_news route to remove the item 
-# from the blog_id_tracker if it exists, as done previously.
 
 @app.route('/api/ai-summary', methods=['GET'])
 def ai_summary():
