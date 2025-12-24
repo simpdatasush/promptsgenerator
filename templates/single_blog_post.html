@@ -235,6 +235,21 @@
 .sparkle {
     animation: sparkle 2s infinite ease-in-out;
 }
+        .ai-keyword-stripline {
+    transition: all 0.3s ease;
+}
+.ai-keyword-stripline span:hover {
+    color: #007bff !important; /* Changes hashtag color on hover */
+    cursor: default;
+}
+        @media (max-width: 768px) {
+    .ai-keyword-stripline {
+        padding-left: 15px;
+        padding-right: 15px;
+        margin-left: -15px; /* Pulls it flush to the edges if desired */
+        margin-right: -15px;
+    }
+}
     </style>
 </head>
 <body>
@@ -276,6 +291,37 @@
             {% endfor %}
         </ul>
     </div>
+</div>
+
+{# --- CENTER COLUMN: MAIN CONTENT --- #}
+<div class="col-md-9">
+    <article class="blog-post">
+        {# 1. Blog Title #}
+        <h1 class="mb-3 font-weight-bold">{{ post.title }}</h1>
+
+        {# 2. AI Topics Stripline (Dynamic) #}
+        <div class="ai-keyword-stripline py-2 mb-4 border-top border-bottom" style="background: #fafafa;">
+            <div class="container-fluid d-flex align-items-center">
+                <span class="text-muted small font-weight-bold text-uppercase mr-3" style="letter-spacing: 1px;">
+                    <i class="fas fa-microchip text-primary"></i> AI Topics:
+                </span>
+                <div class="d-flex flex-wrap">
+                    {% for tag in ai_tags %}
+                        <span class="mr-3 small text-dark" style="font-family: 'Courier New', Courier, monospace;">
+                            <span class="text-primary">#</span>{{ tag }}
+                        </span>
+                    {% else %}
+                        <span class="text-muted small">Analyzing content...</span>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        {# 3. Actual Blog Content #}
+        <div class="blog-content mt-4">
+            {{ post.description | safe }}
+        </div>
+    </article>
 </div>
             
             {# --- RIGHT COLUMN: MAIN BLOG CONTENT --- #}
