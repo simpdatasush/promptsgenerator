@@ -167,6 +167,14 @@
            .news-item .actions {
                flex-direction: column; /* Stack buttons vertically on small screens */
            }
+          .pagination .page-item.active .page-link {
+             background-color: var(--color-primary);
+             border-color: var(--color-primary);
+             color: white;
+         }
+         .pagination .page-link {
+             color: var(--color-dark-bg);
+         }
        }
     </style>
 </head>
@@ -278,6 +286,37 @@
                 </div>
             {% endif %}
         {% endfor %}
+         {# --- PAGINATION CONTROLS --- #}
+        <nav aria-label="Page navigation" class="mt-4">
+            <ul class="pagination justify-content-center">
+                
+                {# PREVIOUS PAGE #}
+                <li class="page-item {{ 'disabled' if not pagination.has_prev }}">
+                    <a class="page-link" href="{{ url_for('admin_blogs', page=pagination.prev_num) if pagination.has_prev else '#' }}" aria-label="Previous">
+                        <span aria-hidden="true">&laquo; Previous</span>
+                    </a>
+                </li>
+
+                {# DYNAMIC PAGE NUMBERS #}
+                {% for page_num in pagination.iter_pages(left_edge=1, right_edge=1, left_current=1, right_current=2) %}
+                    {% if page_num %}
+                        <li class="page-item {{ 'active' if page_num == pagination.page }}">
+                            <a class="page-link" href="{{ url_for('admin_blogs', page=page_num) }}">{{ page_num }}</a>
+                        </li>
+                    {% else %}
+                        <li class="page-item disabled"><span class="page-link">...</span></li>
+                    {% endif %}
+                {% endfor %}
+
+                {# NEXT PAGE #}
+                <li class="page-item {{ 'disabled' if not pagination.has_next }}">
+                    <a class="page-link" href="{{ url_for('admin_blogs', page=pagination.next_num) if pagination.has_next else '#' }}" aria-label="Next">
+                        <span aria-hidden="true">Next &raquo;</span>
+                    </a>
+                </li>
+                
+            </ul>
+        </nav>      
     {% else %}
         <p>No blog posts published yet.</p>
     {% endif %}
