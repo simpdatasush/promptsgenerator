@@ -1352,12 +1352,30 @@ def edit_blog_post(post_id):
 
     return redirect(url_for('admin_blogs'))
 
+
+
 @app.route('/blog_content/<uuid:blog_uuid>')
 def view_blog_content(blog_uuid):
     placeholder_url = f"/blog_content/{str(blog_uuid)}"
     blog_post = News.query.filter_by(url=placeholder_url).first_or_404()
+
+    # --- 1. DYNAMIC AI KEYWORD GENERATOR ---
+    # Combine title and a bit of description to find meaningful topics
+    content_sample = (blog_post.title + " " + (blog_post.description or ""))
+    # Remove non-alphanumeric chars
+    words = ''.join(e for e in content_sample if e.isalnum() or e.isspace()).split()
     
-    # Get 20 latest blogs for sidebar
+    stop_words = {'this', 'that', 'with', 'from', 'their', 'could', 'would', 'about', 'these'}
+    unique_keywords = []
+    for w in words:
+        w_clean = w.capitalize()
+        # Only take long, unique, non-common words
+        if len(w) > 5 and w.lower() not in stop_words and w_clean not in unique_keywords:
+            unique_keywords.append(w_clean)
+            if len(unique_keywords) >= 5: break 
+    # ----------------------------------------
+    
+    # --- 2. EXISTING SIDEBAR LOGIC ---
     raw_blogs = News.query.filter(News.url.contains('/blog_content/')).order_by(News.timestamp.desc()).limit(20).all()
 
     processed_sidebar = []
@@ -1369,9 +1387,14 @@ def view_blog_content(blog_uuid):
             'url': url_for('view_blog_content', blog_uuid=uuid_part)
         })
 
-    return render_template('single_blog_post.html', post=blog_post, latest_blogs=processed_sidebar)
+    # Pass both processed_sidebar AND unique_keywords to the template
+    return render_template('single_blog_post.html', 
+                           post=blog_post, 
+                           latest_blogs=processed_sidebar, 
+                           ai_tags=unique_keywords)
 
-import re
+
+  
 
 @app.route('/api/recommended/<int:post_id>')
 def get_recommended(post_id):
