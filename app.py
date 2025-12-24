@@ -216,6 +216,7 @@ class Job(db.Model):
        return f'<Job {self.title} at {self.company}>'
 # --- END UPDATED: Job Model ---
 
+
 # Initialize variable
 blog_id_tracker = []
 
@@ -223,9 +224,10 @@ blog_id_tracker = []
 with app.app_context():
     try:
         db.create_all()
-        # Find all news items that are internal blogs
-        internal_blogs = News.query.filter(News.url.contains('/blog_content/')).all()
+        # Using .ilike for more flexible matching (handles cases/slashes better)
+        internal_blogs = News.query.filter(News.url.ilike('%blog_content%')).all()
         blog_id_tracker = [b.id for b in internal_blogs]
+        app.logger.info(f"Startup: Loaded {len(blog_id_tracker)} blogs into tracker.")
     except Exception as e:
         app.logger.error(f"Startup recovery failed: {e}")
 
@@ -234,12 +236,12 @@ with app.app_context():
 def sync_tracker_from_disk():
     global blog_id_tracker
     try:
-        blogs = News.query.filter(News.url.contains('/blog_content/')).all()
+        # Match the startup logic exactly
+        blogs = News.query.filter(News.url.ilike('%blog_content%')).all()
         blog_id_tracker = [b.id for b in blogs]
-    except:
+    except Exception as e:
+        # If DB is locked or busy, we just keep the previous list
         pass
-
-# ... (rest of the global trackers and configuration) ...
 
 
 # --- NEW: Flask-Login User Loader ---
