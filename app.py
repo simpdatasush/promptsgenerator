@@ -1371,29 +1371,39 @@ def view_blog_content(blog_uuid):
 
 @app.route('/api/recommended/<int:post_id>')
 def get_recommended(post_id):
-    current_post = News.query.get_or_404(post_id)
-    
-    # Simple AI Logic: Get words longer than 4 letters from the title
-    # e.g., "Generative AI in 2024" -> ["Generative"]
-    query_words = [w.lower() for w in current_post.title.split() if len(w) > 4]
-    
-    if not query_words:
-        # Fallback to newest blogs if title is too short
-        related = News.query.filter(News.id != post_id).limit(5).all()
-    else:
-        # Search for blogs containing any of those keywords
-        # Only pulls 'blog' category to keep it relevant
-        related = News.query.filter(
-            News.id != post_id,
-            News.category == 'blog' 
-        ).filter(
-            db.or_(*[News.title.ilike(f'%{kw}%') for kw in query_words])
-        ).limit(5).all()
+    try:
+        current_post = News.query.get_or_404(post_id)
+        
+        # 1. Extract keywords from title
+        keywords = [w.lower() for w in current_post.title.split() if len(w) > 4]
+        
+        # 2. Start the query
+        # We remove 'News.category' because it doesn't exist in your DB
+        query = News.query.filter(News.id != post_id)
 
-    return jsonify([{
-        "title": p.title,
-        "url": url_for('view_blog', post_id=p.id) # Adjust to your route name
-    } for p in related])
+        if keywords:
+            # Search for keyword matches in the title
+            query = query.filter(
+                db.or_(*[News.title.ilike(f'%{kw}%') for kw in keywords])
+            )
+
+        # 3. Filter by blog_id_tracker (if you want to ensure ONLY blogs show up)
+        # Assuming blog_id_tracker is a list of IDs available in your app scope
+        if 'blog_id_tracker' in globals():
+            query = query.filter(News.id.in_(blog_id_tracker))
+
+        # 4. Get the latest 5 matches
+        related = query.order_by(News.timestamp.desc()).limit(5).all()
+
+        return jsonify([{
+            "title": p.title[:45] + "..." if len(p.title) > 45 else p.title,
+            "url": url_for('view_blog_content', post_id=p.id)
+        } for p in related])
+
+    except Exception as e:
+        # If anything fails, return an empty list so the UI doesn't break
+        print(f"Error in get_recommended: {e}")
+        return jsonify([])
 
 
 @app.route('/api/ai-summary', methods=['GET'])
