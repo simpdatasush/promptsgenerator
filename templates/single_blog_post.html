@@ -267,120 +267,106 @@
     </header>
 
     <div class="container mt-4 post-container">
-        <div class="row">
-            
-            {# --- LEFT COLUMN: SIDEBAR (LATEST BLOGS) --- #}
-            <div class="col-md-3 d-none d-md-block">
-    <div class="sidebar-widget">
-        <h4 class="sidebar-title" id="sidebar-header">Latest Blogs</h4>
+    <div class="row">
         
-        <div id="ai-loader" class="mb-2" style="display:none;">
-            <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
-            <span class="small text-muted ml-1">AI searching...</span>
-        </div>
-
-        <ul class="list-unstyled" id="sidebar-list">
-            {% for item in latest_blogs %}
-                <li>
-                    <a href="{{ item.url }}" class="sidebar-link {% if item.id == post.id %}active-link{% endif %}">
-                        {{ item.title | truncate(45) }}
-                    </a>
-                </li>
-            {% else %}
-                <li><p class="text-muted">No other blogs available.</p></li>
-            {% endfor %}
-        </ul>
-    </div>
-</div>
-
-{# --- CENTER COLUMN: MAIN CONTENT --- #}
-<div class="col-md-9">
-    <article class="blog-post">
-        {# 1. Blog Title #}
-        <h1 class="mb-3 font-weight-bold">{{ post.title }}</h1>
-
-        {# 2. AI Topics Stripline (Dynamic) #}
-        <div class="ai-keyword-stripline py-2 mb-4 border-top border-bottom" style="background: #fafafa;">
-            <div class="container-fluid d-flex align-items-center">
-                <span class="text-muted small font-weight-bold text-uppercase mr-3" style="letter-spacing: 1px;">
-                    <i class="fas fa-microchip text-primary"></i> AI Topics:
-                </span>
-                <div class="d-flex flex-wrap">
-                    {% for tag in ai_tags %}
-                        <span class="mr-3 small text-dark" style="font-family: 'Courier New', Courier, monospace;">
-                            <span class="text-primary">#</span>{{ tag }}
-                        </span>
-                    {% else %}
-                        <span class="text-muted small">Analyzing content...</span>
-                    {% endfor %}
+        {# --- LEFT COLUMN: SIDEBAR (LATEST BLOGS) --- #}
+        <div class="col-md-3 d-none d-md-block">
+            <div class="sidebar-widget">
+                <h4 class="sidebar-title" id="sidebar-header">Latest Blogs</h4>
+                
+                <div id="ai-loader" class="mb-2" style="display:none;">
+                    <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+                    <span class="small text-muted ml-1">AI searching...</span>
                 </div>
+
+                <ul class="list-unstyled" id="sidebar-list">
+                    {% for item in latest_blogs %}
+                        <li>
+                            <a href="{{ item.url }}" class="sidebar-link {% if item.id == post.id %}active-link{% endif %}">
+                                {{ item.title | truncate(45) }}
+                            </a>
+                        </li>
+                    {% else %}
+                        <li><p class="text-muted">No other blogs available.</p></li>
+                    {% endfor %}
+                </ul>
             </div>
         </div>
 
-        {# 3. Actual Blog Content #}
-        <div class="blog-content mt-4">
-            {{ post.description | safe }}
-        </div>
-    </article>
-</div>
-            
-            {# --- RIGHT COLUMN: MAIN BLOG CONTENT --- #}
-            <div class="col-md-9">
-                <div class="post-container-main"> 
-                    
-                    <h1 class="post-title">{{ post.title }}</h1>
-                    
-                    <div class="post-meta-strip">
-                        <div class="post-meta">
-                            Published: {{ post.timestamp.strftime('%B %d, %Y') if post.timestamp else 'N/A' }} 
-                            {% if post.user %} | By: {{ post.user.username }} {% endif %}
+        {# --- RIGHT COLUMN: MAIN BLOG CONTENT --- #}
+        <div class="col-md-9">
+            <div class="post-container-main"> 
+                
+                {# 1. Title #}
+                <h1 class="post-title">{{ post.title }}</h1>
+                
+                {# 2. AI Topics Stripline (Merged here for correct structure) #}
+                <div class="ai-keyword-stripline py-2 mb-4 border-top border-bottom" style="background: #fafafa; margin-left: -40px; margin-right: -40px; padding-left: 40px;">
+                    <div class="d-flex align-items-center">
+                        <span class="text-muted small font-weight-bold text-uppercase mr-3" style="letter-spacing: 1px;">
+                            <i class="fas fa-microchip text-primary"></i> AI Topics:
+                        </span>
+                        <div class="d-flex flex-wrap">
+                            {% for tag in ai_tags %}
+                                <span class="mr-3 small text-dark" style="font-family: 'Courier New', Courier, monospace;">
+                                    <span class="text-primary">#</span>{{ tag }}
+                                </span>
+                            {% else %}
+                                <span class="text-muted small">Analyzing content...</span>
+                            {% endfor %}
                         </div>
-                        
-                        {# *** FIX 2 & 3: Corrected button ID to match JS and added icon *** #}
-                        <button id="copy-link-btn" 
-                                data-url="{{ url_for('view_blog_content', blog_uuid=post.url.split('/')[-1], _external=True) }}"
-                                class="btn btn-sm btn-secondary">
-                                <i class="fas fa-copy"></i> Copy Link
-                        </button>
+                    </div>
+                </div>
+                
+                {# 3. Meta Data & Copy Button #}
+                <div class="post-meta-strip">
+                    <div class="post-meta">
+                        Published: {{ post.timestamp.strftime('%B %d, %Y') if post.timestamp else 'N/A' }} 
+                        {% if post.user %} | By: {{ post.user.username }} {% endif %}
                     </div>
                     
-                    <div class="post-content">
-                        {{ post.description | safe }}
+                    <button id="copy-link-btn" 
+                            data-url="{{ url_for('view_blog_content', blog_uuid=post.url.split('/')[-1], _external=True) }}"
+                            class="btn btn-sm btn-secondary">
+                            <i class="fas fa-copy"></i> Copy Link
+                    </button>
+                </div>
+                
+                {# 4. Actual Blog Content #}
+                <div class="post-content">
+                    {{ post.description | safe }}
+                </div>
+
+                <hr class="my-5">
+
+                {# --- AI HUB (Analyzers and Polls) --- #}
+                <div class="ai-hub-wrapper">
+                    <div class="card ai-card shadow-sm border-0 mb-4" style="border-left: 5px solid var(--color-secondary) !important;">
+                        <div class="card-body p-4">
+                            <h5 class="card-title text-primary"><i class="fas fa-brain"></i> AI Post-Analyzer</h5>
+                            <p class="small text-muted mb-3">Instant summary and key takeaways.</p>
+                            <button id="analyze-btn" class="btn btn-outline-primary btn-sm mb-3">Analyze Post</button>
+                            <div id="analysis-result" class="p-3 bg-light rounded" style="display:none; white-space: pre-wrap; font-size: 0.95rem;"></div>
+                        </div>
                     </div>
 
-                    <hr class="my-5">
-
-                    <div class="ai-hub-wrapper">
-                        
-                        <div class="card ai-card shadow-sm border-0 mb-4" style="border-left: 5px solid var(--color-secondary) !important;">
-                            <div class="card-body p-4">
-                                <h5 class="card-title text-primary"><i class="fas fa-brain"></i> AI Post-Analyzer</h5>
-                                <p class="small text-muted mb-3">Instant summary and key takeaways.</p>
-                                <button id="analyze-btn" class="btn btn-outline-primary btn-sm mb-3">Analyze Post</button>
-                                <div id="analysis-result" class="p-3 bg-light rounded" style="display:none; white-space: pre-wrap; font-size: 0.95rem;"></div>
+                    <div class="card ai-card shadow-sm border-0 mb-5" style="border-left: 5px solid var(--color-primary) !important;">
+                        <div class="card-body p-4">
+                            <h5 class="card-title" style="color: var(--color-primary);"><i class="fas fa-vote-yea"></i> AI Interactive Poller</h5>
+                            <p class="small text-muted mb-3">Where do you stand vs. the AI's 2025 data?</p>
+                            <button id="poll-gen-btn" class="btn btn-sm btn-primary mb-3">Generate AI Poll</button>
+                            <div id="poll-area" style="display:none;">
+                                <h6 id="poll-question" class="font-weight-bold mb-3"></h6>
+                                <div id="poll-options-container" class="d-flex flex-column gap-2 mb-3"></div>
+                            </div>
+                            <div id="smart-answer-box" class="mt-4 p-4 rounded shadow-sm" style="display:none; background-color: #f8fff9; border: 1px solid #d4edda;">
+                                <strong class="d-block mb-2 text-success"><i class="fas fa-robot"></i> AI Stance Review:</strong>
+                                <p id="smart-answer-text" class="mb-0 text-dark" style="font-style: italic;"></p>
                             </div>
                         </div>
-
-                        <div class="card ai-card shadow-sm border-0 mb-5" style="border-left: 5px solid var(--color-primary) !important;">
-                            <div class="card-body p-4">
-                                <h5 class="card-title" style="color: var(--color-primary);"><i class="fas fa-vote-yea"></i> AI Interactive Poller</h5>
-                                <p class="small text-muted mb-3">Where do you stand vs. the AI's 2025 data?</p>
-                                <button id="poll-gen-btn" class="btn btn-sm btn-primary mb-3">Generate AI Poll</button>
-                                
-                                <div id="poll-area" style="display:none;">
-                                    <h6 id="poll-question" class="font-weight-bold mb-3"></h6>
-                                    <div id="poll-options-container" class="d-flex flex-column gap-2 mb-3"></div>
-                                </div>
-
-                                <div id="smart-answer-box" class="mt-4 p-4 rounded shadow-sm" style="display:none; background-color: #f8fff9; border: 1px solid #d4edda;">
-                                    <strong class="d-block mb-2 text-success"><i class="fas fa-robot"></i> AI Stance Review:</strong>
-                                    <p id="smart-answer-text" class="mb-0 text-dark" style="font-style: italic;"></p>
-                                </div>
-                            </div>
-                        </div>
-
                     </div>
-                    
+                </div>
+                
                     <section id="comments-section" class="mb-5">
                         <h3 class="text-center mb-4" style="color: var(--color-dark-bg);">Join the Conversation</h3>
                         
