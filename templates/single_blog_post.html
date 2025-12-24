@@ -227,6 +227,14 @@
                 display: none !important;
             }
         }
+        @keyframes sparkle {
+    0% { opacity: 0.6; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.1); }
+    100% { opacity: 0.6; transform: scale(1); }
+}
+.sparkle {
+    animation: sparkle 2s infinite ease-in-out;
+}
     </style>
 </head>
 <body>
@@ -248,21 +256,27 @@
             
             {# --- LEFT COLUMN: SIDEBAR (LATEST BLOGS) --- #}
             <div class="col-md-3 d-none d-md-block">
-                <div class="sidebar-widget">
-                    <h4 class="sidebar-title">Latest Blogs</h4>
-                    <ul class="list-unstyled">
-                        {% for item in latest_blogs %}
-                            <li>
-                                <a href="{{ item.url }}" class="sidebar-link {% if item.id == post.id %}active-link{% endif %}">
-                                    {{ item.title | truncate(45) }}
-                                </a>
-                            </li>
-                        {% else %}
-                            <li><p class="text-muted">No other blogs available.</p></li>
-                        {% endfor %}
-                    </ul>
-                </div>
-            </div>
+    <div class="sidebar-widget">
+        <h4 class="sidebar-title" id="sidebar-header">Latest Blogs</h4>
+        
+        <div id="ai-loader" class="mb-2" style="display:none;">
+            <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+            <span class="small text-muted ml-1">AI searching...</span>
+        </div>
+
+        <ul class="list-unstyled" id="sidebar-list">
+            {% for item in latest_blogs %}
+                <li>
+                    <a href="{{ item.url }}" class="sidebar-link {% if item.id == post.id %}active-link{% endif %}">
+                        {{ item.title | truncate(45) }}
+                    </a>
+                </li>
+            {% else %}
+                <li><p class="text-muted">No other blogs available.</p></li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
             
             {# --- RIGHT COLUMN: MAIN BLOG CONTENT --- #}
             <div class="col-md-9">
@@ -492,6 +506,54 @@ document.addEventListener('DOMContentLoaded', () => {
             .then(data => {
                 smartAnswerText.innerHTML = "";
                 typeWriter(data.review, smartAnswerText, 0);
+            });
+    }
+    // --- 5. AI SIDEBAR SIDEBAR INTEGRATION ---
+    const sidebarList = document.getElementById('sidebar-list');
+    const sidebarHeader = document.getElementById('sidebar-header');
+    const aiLoader = document.getElementById('ai-loader');
+
+    if (sidebarList && sidebarHeader) {
+        // Show the loader immediately
+        aiLoader.style.display = 'block';
+
+        fetch(`/api/recommended/{{ post.id }}`)
+            .then(res => res.json())
+            .then(data => {
+                aiLoader.style.display = 'none';
+
+                // Only proceed if the AI actually found relevant matches
+                if (data && data.length > 0) {
+                    // Update Header with an AI Sparkle
+                    sidebarHeader.innerHTML = '<i class="fas fa-robot text-primary sparkle"></i> AI Recommended';
+                    
+                    // Clear the existing "Latest Blogs" list
+                    sidebarList.innerHTML = "";
+
+                    data.forEach((item, index) => {
+                        const li = document.createElement('li');
+                        // We use a slight delay for each item to make it feel "calculated"
+                        li.style.opacity = "0";
+                        li.style.transition = "opacity 0.5s ease";
+                        
+                        li.innerHTML = `
+                            <a href="${item.url}" class="sidebar-link">
+                                <i class="fas fa-chevron-right small mr-2 opacity-50"></i>${item.title}
+                            </a>`;
+                        
+                        sidebarList.appendChild(li);
+                        
+                        // Fade in effect
+                        setTimeout(() => {
+                            li.style.opacity = "1";
+                        }, index * 100);
+                    });
+                }
+            })
+            .catch(err => {
+                console.error("AI Sidebar Error:", err);
+                aiLoader.style.display = 'none';
+                // Note: We don't clear the list on error so the "Latest Blogs" remain as a fallback
             });
     }
 });
