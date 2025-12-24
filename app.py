@@ -1255,14 +1255,26 @@ def repost_job(job_id):
 @login_required
 @admin_required
 def admin_blogs():
-    # Fetch all News items, similar to admin_news, so the admin can see their blog list.
-    # We will pass the global tracker list to the template for display logic.
-    blog_items = News.query.order_by(News.timestamp.desc()).all()
+    # 1. Get current page number from the URL query string (default is 1)
+    page = request.args.get('page', 1, type=int)
+    
+    # 2. Use .paginate() instead of .all()
+    # Parameters: page=page number, per_page=number of results per page
+    pagination = News.query.order_by(News.timestamp.desc()).paginate(
+        page=page, 
+        per_page=10, 
+        error_out=False
+    )
+    
+    # 3. Extract the items for the current page
+    blog_items = pagination.items
     
     return render_template('admin_blogs.html', 
                            blog_items=blog_items,
+                           pagination=pagination, # Pass the whole object for UI controls
                            blog_id_tracker=blog_id_tracker,
                            current_user=current_user)
+
 
 @app.route('/admin/blogs/add', methods=['POST'])
 @login_required
