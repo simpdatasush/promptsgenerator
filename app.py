@@ -1397,7 +1397,7 @@ def get_recommended(post_id):
 
         return jsonify([{
             "title": p.title[:45] + "..." if len(p.title) > 45 else p.title,
-            "url": url_for('view_blog_content', post_id=p.id)
+            "url": url_for('view_blog_content', blog_uuid=p.id)
         } for p in related])
 
     except Exception as e:
