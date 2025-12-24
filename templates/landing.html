@@ -114,64 +114,66 @@
             background-color: #007bff;
             border-radius: 5px;
         }
+
         .card {
-            border: none;
-            border-radius: 8px;
-            overflow: hidden;
-            margin-bottom: 20px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
-        }
+            border: none;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
 
-        .card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
-        }
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
+        }
 
-        .card-header {
-            background-color: #e9ecef;
-            font-weight: bold;
-            color: #343a40;
-            padding: 15px;
-            border-bottom: 1px solid #dee2e6;
-        }
+        .card-header {
+            background-color: #e9ecef;
+            font-weight: bold;
+            color: #343a40;
+            padding: 15px;
+            border-bottom: 1px solid #dee2e6;
+        }
 
-        .card-body {
-            padding: 20px;
-            min-height: 150px; /* Adjust this value (e.g., 200px) based on how much space you need for the longest title/meta/description snippet */
-        }
+        .card-body {
+            padding: 20px;
+            min-height: 200px; /* Adjust this value (e.g., 200px) based on how much space you need for the longest title/meta/description snippet */
+        }
 
-        .card-title {
-            font-size: 1.25rem;
-            color: #007bff;
-            margin-bottom: 10px;
-        }
+        .card-title {
+            font-size: 1.25rem;
+            color: #007bff;
+            margin-bottom: 10px;
+        }
 
-        .card-text {
-            font-size: 0.95rem;
-            color: #555;
-            margin-bottom: 15px;
-            height: 70px; /* Calculate this based on your desired number of lines (e.g., 3 lines @ 1.6 line-height) */
-            overflow: hidden; /* Crucial: ensures extra text is hidden */
-        }
+        .card-text {
+            font-size: 0.95rem;
+            color: #555;
+            margin-bottom: 15px;
+            height: 70px; /* Calculate this based on your desired number of lines (e.g., 3 lines @ 1.6 line-height) */
+            overflow: hidden; /* Crucial: ensures extra text is hidden */
+        }
 
-        .card-link {
-            color: #007bff;
-            font-weight: 500;
-            text-decoration: none;
-            transition: color 0.2s ease;
-        }
+        .card-link {
+            color: #007bff;
+            font-weight: 500;
+            text-decoration: none;
+            transition: color 0.2s ease;
+        }
 
-        .card-link:hover {
-            color: #0056b3;
-            text-decoration: underline;
-        }
+        .card-link:hover {
+            color: #0056b3;
+            text-decoration: underline;
+        }
 
-        .meta-info {
-            font-size: 0.85rem;
-            color: #777;
-            margin-top: 10px;
-        }
+        .meta-info {
+            font-size: 0.85rem;
+            color: #777;
+            margin-top: 10px;
+        }
+
         /* Newsletter Section */
         .newsletter-section {
             background-color: #f8f9fa;
@@ -364,6 +366,7 @@
                     <h6 class="card-subtitle mb-2 text-muted">{{ job.company }} - {{ job.location if job.location else 'Remote' }}</h6>
                     <p class="card-text">{{ job.description | truncate(150) }}</p>
                     <a href="{{ job.url }}" target="_blank" class="card-link">Apply Now <i class="fas fa-external-link-alt"></i></a>
+                    <p class="meta-info">Published: {{ job.published_date.strftime('%Y-%m-%d') if job.published_date else 'N/A' }}</p>
                     <p class="meta-info">Added: {{ job.timestamp.strftime('%Y-%m-%d %H:%M') }}</p>
                 </div>
             </div>
