@@ -1369,6 +1369,32 @@ def view_blog_content(blog_uuid):
 
     return render_template('single_blog_post.html', post=blog_post, latest_blogs=processed_sidebar)
 
+@app.route('/api/recommended/<int:post_id>')
+def get_recommended(post_id):
+    current_post = News.query.get_or_404(post_id)
+    
+    # Simple AI Logic: Get words longer than 4 letters from the title
+    # e.g., "Generative AI in 2024" -> ["Generative"]
+    query_words = [w.lower() for w in current_post.title.split() if len(w) > 4]
+    
+    if not query_words:
+        # Fallback to newest blogs if title is too short
+        related = News.query.filter(News.id != post_id).limit(5).all()
+    else:
+        # Search for blogs containing any of those keywords
+        # Only pulls 'blog' category to keep it relevant
+        related = News.query.filter(
+            News.id != post_id,
+            News.category == 'blog' 
+        ).filter(
+            db.or_(*[News.title.ilike(f'%{kw}%') for kw in query_words])
+        ).limit(5).all()
+
+    return jsonify([{
+        "title": p.title,
+        "url": url_for('view_blog', post_id=p.id) # Adjust to your route name
+    } for p in related])
+
 
 @app.route('/api/ai-summary', methods=['GET'])
 def ai_summary():
