@@ -356,30 +356,44 @@
 </section>
 
 <section class="jobs-section mb-5">
-    <h2 class="section-title"><a href="{{ url_for('all_jobs') }}" class="text-decoration-none text-dark">Job Listings</a></h2>
-    <div class="row">
-        {% for job in job_listings %}
-        <div class="col-md-6 col-lg-4">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">{{ job.title }}</h5>
-                    <h6 class="card-subtitle mb-2 text-muted">{{ job.company }} - {{ job.location if job.location else 'Remote' }}</h6>
-                    <p class="card-text">{{ job.description | truncate(150) }}</p>
-                    <a href="{{ job.url }}" target="_blank" class="card-link">Apply Now <i class="fas fa-external-link-alt"></i></a>
-                    <p class="meta-info">Published: {{ job.published_date.strftime('%Y-%m-%d') if job.published_date else 'N/A' }}</p>
-                    <p class="meta-info">Added: {{ job.timestamp.strftime('%Y-%m-%d %H:%M') }}</p>
+    <h2 class="section-title">
+        <a href="{{ url_for('all_jobs') }}" class="text-decoration-none text-dark">Job Listings</a>
+    </h2>
+
+    <div class="jobs-wrapper">
+        {% if not current_user.is_authenticated %}
+            <div class="lock-overlay">
+                <div class="premium-note">
+                    <i class="fas fa-lock"></i>
+                    <h4>Premium & Exclusive Job Offers</h4>
+                    <p>Click here to view high-paying AI roles</p>
+                    <a href="{{ url_for('login') }}" class="btn btn-primary font-weight-bold px-4">Login to Unlock</a>
                 </div>
             </div>
-        </div>
-        {# !!! REMOVED THE {% else %} BLOCK HERE !!! #}
-        {% endfor %}
-        
-        {# OPTIONAL: Handle the rare case where there are truly zero items in the database #}
-        {% if job_listings|length == 0 %}
-            <div class="col-12">
-                <p class="text-center text-muted">No job listings have been added to the database yet.</p>
-            </div>
         {% endif %}
+
+        <div class="row {% if not current_user.is_authenticated %}content-locked{% endif %}">
+            {% for job in job_listings %}
+            <div class="col-md-6 col-lg-4">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">{{ job.title }}</h5>
+                        <h6 class="card-subtitle mb-2 text-muted">{{ job.company }} - {{ job.location if job.location else 'Remote' }}</h6>
+                        <p class="card-text">{{ job.description | truncate(150) }}</p>
+                        <a href="{{ job.url }}" target="_blank" class="card-link">Apply Now <i class="fas fa-external-link-alt"></i></a>
+                        <p class="meta-info">Published: {{ job.published_date.strftime('%Y-%m-%d') if job.published_date else 'N/A' }}</p>
+                        <p class="meta-info">Added: {{ job.timestamp.strftime('%Y-%m-%d %H:%M') }}</p>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+            
+            {% if job_listings|length == 0 %}
+                <div class="col-12">
+                    <p class="text-center text-muted">No job listings have been added to the database yet.</p>
+                </div>
+            {% endif %}
+        </div>
     </div>
 </section>
 
