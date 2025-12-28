@@ -223,34 +223,80 @@
             color: var(--color-primary) !important; /* Highlight current page */
         }
 
-        /* Ensure small screens hide the sidebar to maintain readability */
-        @media (max-width: 767.98px) {
+        /* --- MOBILE OPTIMIZATIONS & SPACING FIXES --- */
+
+        /* 1. Increase gap globally between fixed header and content */
+        body { 
+            padding-top: 100px; /* Increased from 70px to prevent "sticking" to logo bar */
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding-top: 85px; /* Slightly tighter for mobile but still safe */
+            }
+
+            .post-container {
+                margin: 15px auto;
+            }
+
+            .post-container-main {
+                padding: 20px; /* Reduced from 40px to give more room for text */
+                border-radius: 4px;
+            }
+
+            /* Fix Large Header Size and Alignment */
+            .post-title {
+                font-size: 1.6rem; /* Scaled down from 2.2rem */
+                line-height: 1.3;
+                text-align: left;
+                margin-bottom: 15px;
+            }
+
+            /* Standard App Header Adjustments */
+            .app-header {
+                padding: 10px 15px;
+            }
+
+            .app-header .header-title {
+                font-size: 1.2rem; /* Keeps logo text from wrapping */
+            }
+
+            .app-header .app-logo {
+                height: 30px; /* Slightly smaller logo for small screens */
+                margin-right: 10px;
+            }
+
+            /* Meta Strip stacking (Date and Copy Button) */
+            .post-meta-strip {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 12px;
+                padding-bottom: 20px;
+            }
+
+            /* Ensure Sidebar stays hidden on mobile */
             .d-md-block {
                 display: none !important;
             }
+
+            /* Keyword Stripline centering and padding */
+            .ai-keyword-stripline {
+                padding: 10px 15px;
+                font-size: 0.85rem;
+                text-align: left;
+                margin: 0; /* Reset margins to stay within card bounds */
+            }
         }
-        @keyframes sparkle {
-    0% { opacity: 0.6; transform: scale(1); }
-    50% { opacity: 1; transform: scale(1.1); }
-    100% { opacity: 0.6; transform: scale(1); }
-}
-.sparkle {
-    animation: sparkle 2s infinite ease-in-out;
-}
-        .ai-keyword-stripline {
-    transition: all 0.3s ease;
-}
-.ai-keyword-stripline span:hover {
-    color: #007bff !important; /* Changes hashtag color on hover */
-    cursor: default;
-}
-        @media (max-width: 768px) {
-    .ai-keyword-stripline {
-        padding-left: 15px;
-        padding-right: 15px;
-        margin-left: -15px; /* Pulls it flush to the edges if desired */
-        margin-right: -15px;
-    }
+
+        /* 2. Extra small screens (iPhone SE / Fold) */
+        @media (max-width: 380px) {
+            .post-title {
+                font-size: 1.4rem;
+            }
+            .app-header .header-title {
+                font-size: 1rem;
+            }
+        }
 }
     </style>
 </head>
