@@ -10,112 +10,131 @@
     <link rel="apple-touch-icon" href="{{ url_for('static', filename='favicon.png') }}">
     <style>
         :root {
-            --color-primary: #C3497C;
-            --color-secondary: #5CA0DC;
-            --color-dark-bg: #311B92;
-            --color-text-dark: #2c3e50;
-            --color-text-muted: #777;
-        }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            margin: 0;
-            padding-top: 70px;
-            background-color: #f8f9fa;
-            color: var(--color-text-dark);
-            line-height: 1.6;
-        }
-
-        .app-header {
-            background-color: var(--color-dark-bg);
-            color: #ffffff;
-            padding: 15px 30px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-            width: 100%;
-            position: fixed;
-            top: 0;
-            left: 0;
-            z-index: 1000;
-        }
-
-        .logo-section a {
-            color: #fff;
-            text-decoration: none;
-            font-size: 1.5rem;
-            font-weight: 600;
-        }
-
-        .article-card {
-    border: 1px solid #dee2e6;
-    border-left: 5px solid var(--color-primary);
-    margin-bottom: 20px;
-    padding: 20px;
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-    background-color: #fff;
-    transition: transform 0.2s;
-    
-    /* NEW: Setup for the image */
-    position: relative;
-    padding-right: 85px; /* Creates room so text doesn't hit the image */
-}
-
-.article-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-}
-
-.article-title {
-    color: var(--color-dark-bg);
-    font-size: 1.3rem;
-    margin-bottom: 10px;
-    font-weight: 600;
-    padding-right: 5px; /* Small buffer */
-}
-
-/* NEW: The Automated Image Style */
-.article-thumb {
-    position: absolute;
-    top: 20px;
-    right: 15px;
-    width: 65px;
-    height: 65px;
-    object-fit: cover;
-    border-radius: 6px;
-    background-color: #f8f9fa;
-    border: 1px solid #eee;
-}
-
-/* Mobile: Compress the image size and prevent overlap */
-@media (max-width: 480px) {
-    .article-card {
-        padding: 15px;
-        /* Ensure the main container has a strict gutter */
-        padding-right: 70px !important; 
+        --color-primary: #007bff; /* Landing Page Blue */
+        --color-dark-bg: #343a40; /* Landing Page Charcoal */
+        --color-accent: #C3497C;  /* Keeping pink only for highlights/AI */
+        --color-text-dark: #2c3e50;
+        --color-bg-light: #f0f2f5;
     }
 
-    .article-thumb {
-        width: 45px !important;
-        height: 45px !important;
-        top: 15px;
-        right: 10px;
+    body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        margin: 0;
+        padding-top: 100px; /* Increased gap for fixed header */
+        background-color: var(--color-bg-light);
+        color: var(--color-text-dark);
+        line-height: 1.6;
+    }
+
+    /* 2. Unified App Header */
+    .app-header {
+        background-color: var(--color-dark-bg);
+        color: #ffffff;
+        padding: 15px 30px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        width: 100%;
+        position: fixed;
+        top: 0;
+        left: 0;
+        z-index: 1000;
+    }
+
+    .app-header .logo-section a {
+        color: #fff;
+        text-decoration: none;
+        font-size: 1.8rem;
+        font-weight: 600;
+    }
+
+    /* 3. Article Cards - Matching Landing Page Style */
+    .article-card {
+        border: none;
+        border-left: 5px solid var(--color-primary); /* Blue accent line */
+        margin-bottom: 20px;
+        padding: 25px;
+        border-radius: 10px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+        background-color: #fff;
+        transition: transform 0.2s, box-shadow 0.2s;
+        position: relative;
+        padding-right: 100px; /* Space for thumbnail */
+    }
+
+    .article-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
     }
 
     .article-title {
-        font-size: 1.1rem;
-        /* CRITICAL: Force the title to wrap before it touches the image */
-        padding-right: 15px !important; 
+        color: var(--color-dark-bg);
+        font-size: 1.4rem;
+        margin-bottom: 10px;
+        font-weight: 600;
+        text-decoration: none;
         display: block;
     }
-    
-    .article-card p {
-        /* Also ensure the summary text doesn't slide under the image */
-        padding-right: 10px;
+
+    .article-title:hover {
+        color: var(--color-primary);
     }
-}
+
+    .article-thumb {
+        position: absolute;
+        top: 25px;
+        right: 20px;
+        width: 70px;
+        height: 70px;
+        object-fit: cover;
+        border-radius: 8px;
+        border: 1px solid #eee;
+    }
+
+/* --- MOBILE OPTIMIZATIONS --- */
+    @media (max-width: 768px) {
+        body {
+            padding-top: 130px; /* More space for stacked mobile header */
+        }
+
+        .app-header {
+            flex-direction: column;
+            padding: 10px;
+        }
+
+        .article-card {
+            padding: 20px;
+            padding-right: 80px;
+            margin-left: 10px;
+            margin-right: 10px;
+        }
+
+        .article-thumb {
+            width: 55px;
+            height: 55px;
+            top: 20px;
+            right: 15px;
+        }
+
+        .article-title {
+            font-size: 1.2rem;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .article-card {
+            padding-right: 15px; /* Drop image to bottom or hide on tiny screens if preferred */
+        }
+        /* Optional: Move image below title on very small screens */
+        .article-thumb {
+            position: static;
+            display: block;
+            margin-bottom: 15px;
+            width: 60px;
+            height: 60px;
+        }
+    }
 
         /* --- Smart AI Styles --- */
         #ai-summary-wrapper {
@@ -126,11 +145,13 @@
         }
 
         #ai-summary-content {
-            background-color: #ffffff;
-            border-left: 5px solid var(--color-primary);
-            border-radius: 8px;
-            padding: 20px;
-        }
+        background-color: #ffffff;
+        border-left: 5px solid var(--color-accent); /* Keep pink for AI identity */
+        border-radius: 10px;
+        padding: 25px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        margin-bottom: 30px;
+    }
 
         #ai-result-text {
             font-size: 1.1rem;
@@ -143,7 +164,7 @@
             display: inline-block;
             width: 8px;
             height: 1.2em;
-            background-color: var(--color-primary);
+            background-color: var(--color-accent);
             margin-left: 4px;
             vertical-align: middle;
             animation: blink 1s step-end infinite;
