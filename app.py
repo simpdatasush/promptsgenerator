@@ -1359,18 +1359,28 @@ def view_blog_content(blog_uuid):
     placeholder_url = f"/blog_content/{str(blog_uuid)}"
     blog_post = News.query.filter_by(url=placeholder_url).first_or_404()
 
-    # --- 1. DYNAMIC AI KEYWORD GENERATOR ---
-    # Combine title and a bit of description to find meaningful topics
-    content_sample = (blog_post.title + " " + (blog_post.description or ""))
-    # Remove non-alphanumeric chars
-    words = ''.join(e for e in content_sample if e.isalnum() or e.isspace()).split()
+    # --- 1. DYNAMIC AI KEYWORD GENERATOR (FIXED) ---
+    # Combine title and description
+    raw_content = (blog_post.title + " " + (blog_post.description or ""))
     
+    # STEP A: Remove <style> blocks (this is where the #Dirltr gibberish comes from)
+    clean_content = re.sub(r'<style.*?>.*?</style>', '', raw_content, flags=re.DOTALL | re.IGNORECASE)
+    
+    # STEP B: Remove all other HTML tags (like <div>, <p>, <span>)
+    clean_content = re.sub(r'<[^>]+>', '', clean_content)
+    
+    # STEP C: Standard alphanumeric cleaning
+    words = ''.join(e for e in clean_content if e.isalnum() or e.isspace()).split()
+    
+    # STEP D: Filtering logic
     stop_words = {'this', 'that', 'with', 'from', 'their', 'could', 'would', 'about', 'these'}
+    css_junk = {'Margin', 'Padding', 'Height', 'Weight', 'Color', 'Style', 'Textalign'}
+    
     unique_keywords = []
     for w in words:
         w_clean = w.capitalize()
-        # Only take long, unique, non-common words
-        if len(w) > 5 and w.lower() not in stop_words and w_clean not in unique_keywords:
+        # Only take long words that aren't stop words or lingering CSS terms
+        if len(w) > 5 and w.lower() not in stop_words and w_clean not in unique_keywords and w_clean not in css_junk:
             unique_keywords.append(w_clean)
             if len(unique_keywords) >= 5: break 
     # ----------------------------------------
