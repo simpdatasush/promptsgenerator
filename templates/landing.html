@@ -137,24 +137,74 @@
             border-bottom: 1px solid #dee2e6;
         }
 
-        .card-body {
-            padding: 20px;
-            min-height: 200px; /* Adjust this value (e.g., 200px) based on how much space you need for the longest title/meta/description snippet */
-        }
+        /* Update your existing card-body to allow room for the image */
+.card-body {
+    padding: 20px;
+    min-height: 200px;
+    position: relative; /* Required for the image placement */
+    padding-right: 80px; /* Creates a gutter for the 60px image + margin */
+    display: flex;
+    flex-direction: column;
+}
 
-        .card-title {
-            font-size: 1.25rem;
-            color: #007bff;
-            margin-bottom: 10px;
-        }
+/* The Thumbnail Style (Desktop) */
+.card-thumb {
+    position: absolute;
+    top: 20px;
+    right: 15px;
+    width: 60px;
+    height: 60px;
+    object-fit: cover;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    border: 1px solid rgba(0,0,0,0.05);
+}
 
-        .card-text {
-            font-size: 0.95rem;
-            color: #555;
-            margin-bottom: 15px;
-            height: 70px; /* Calculate this based on your desired number of lines (e.g., 3 lines @ 1.6 line-height) */
-            overflow: hidden; /* Crucial: ensures extra text is hidden */
-        }
+/* Ensure title doesn't crash into the image */
+.card-title {
+    font-size: 1.15rem; 
+    color: #007bff;
+    margin-bottom: 10px;
+    padding-right: 5px; 
+    line-height: 1.3;
+    font-weight: 600;
+}
+
+.card-text {
+    font-size: 0.95rem;
+    color: #555;
+    margin-bottom: 15px;
+    height: 70px; 
+    overflow: hidden;
+    /* Use line-clamping for cleaner text breaks */
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+}
+
+/* Mobile Compression logic (Keep this at the bottom of your CSS) */
+@media (max-width: 480px) {
+    .card-body {
+        padding: 15px;
+        padding-right: 60px; /* Smaller gutter for 45px image */
+    }
+
+    .card-thumb {
+        width: 45px;
+        height: 45px;
+        top: 15px;
+        right: 10px;
+    }
+
+    .card-title {
+        font-size: 1.05rem;
+    }
+
+    .card-text {
+        height: 60px; 
+        font-size: 0.85rem;
+    }
+}
 
         .card-link {
             color: #007bff;
@@ -380,15 +430,22 @@
     <div class="row">
         {% for item in news_items %}
         <div class="col-md-6 col-lg-4">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">{{ item.title }}</h5>
-                    <p class="card-text">{{ item.summary_snippet | striptags | truncate(150) }}</p>
-                    <a href="{{ item.url }}" target="_blank" class="card-link">Read More <i class="fas fa-external-link-alt"></i></a>
-                    <p class="meta-info">Added: {{ item.timestamp.strftime('%Y-%m-%d %H:%M') }}</p>
-                </div>
+    <div class="card h-100">
+        <div class="card-body">
+            <img src="https://images.unsplash.com/photo-1620712943543-bcc4628c9757?auto=format&fit=crop&q=80&w=100&h=100&sig={{ loop.index }}" 
+                 class="card-thumb" 
+                 alt="Thumbnail">
+
+            <h5 class="card-title">{{ item.title }}</h5>
+            <p class="card-text">{{ item.summary_snippet | striptags | truncate(100) }}</p>
+            
+            <div class="mt-auto">
+                <a href="{{ item.url }}" target="_blank" class="card-link">Read More <i class="fas fa-external-link-alt"></i></a>
+                <p class="meta-info mb-0">Added: {{ item.timestamp.strftime('%Y-%m-%d') }}</p>
             </div>
         </div>
+    </div>
+</div>
         {# !!! REMOVED THE {% else %} BLOCK HERE !!! #}
         {% endfor %}
         
