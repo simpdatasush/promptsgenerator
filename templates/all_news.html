@@ -6,6 +6,8 @@
     <title>Latest AI News - SuperPrompter AI</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='favicon.png') }}">
     <style>
         :root {
             --color-primary: #C3497C;
@@ -47,27 +49,64 @@
         }
 
         .article-card {
-            border: 1px solid #dee2e6;
-            border-left: 5px solid var(--color-primary);
-            margin-bottom: 20px;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-            background-color: #fff;
-            transition: transform 0.2s;
-        }
+    border: 1px solid #dee2e6;
+    border-left: 5px solid var(--color-primary);
+    margin-bottom: 20px;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    background-color: #fff;
+    transition: transform 0.2s;
+    
+    /* NEW: Setup for the image */
+    position: relative;
+    padding-right: 85px; /* Creates room so text doesn't hit the image */
+}
 
-        .article-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-        }
+.article-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
 
-        .article-title {
-            color: var(--color-dark-bg);
-            font-size: 1.3rem;
-            margin-bottom: 10px;
-            font-weight: 600;
-        }
+.article-title {
+    color: var(--color-dark-bg);
+    font-size: 1.3rem;
+    margin-bottom: 10px;
+    font-weight: 600;
+    padding-right: 5px; /* Small buffer */
+}
+
+/* NEW: The Automated Image Style */
+.article-thumb {
+    position: absolute;
+    top: 20px;
+    right: 15px;
+    width: 65px;
+    height: 65px;
+    object-fit: cover;
+    border-radius: 6px;
+    background-color: #f8f9fa;
+    border: 1px solid #eee;
+}
+
+/* Mobile: Compress the image size */
+@media (max-width: 480px) {
+    .article-card {
+        padding-right: 65px; /* Smaller gutter for mobile */
+        padding: 15px;
+    }
+
+    .article-thumb {
+        width: 45px;
+        height: 45px;
+        top: 15px;
+        right: 10px;
+    }
+
+    .article-title {
+        font-size: 1.1rem;
+    }
+}
 
         /* --- Smart AI Styles --- */
         #ai-summary-wrapper {
@@ -153,6 +192,11 @@
     {% if articles %}
         {% for article in articles %}
             <div class="article-card">
+                <img src="https://loremflickr.com/100/100/ai,technology?lock={{ loop.index }}" 
+                 class="article-thumb" 
+                 alt="" 
+                 onerror="this.style.display='none'">
+                
                 <h3 class="article-title">
                     {% if article.id in blog_id_tracker %}
                         <a href="#" data-toggle="modal" data-target="#blogModal" 
