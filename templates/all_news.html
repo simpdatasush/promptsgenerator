@@ -89,22 +89,31 @@
     border: 1px solid #eee;
 }
 
-/* Mobile: Compress the image size */
+/* Mobile: Compress the image size and prevent overlap */
 @media (max-width: 480px) {
     .article-card {
-        padding-right: 65px; /* Smaller gutter for mobile */
         padding: 15px;
+        /* Ensure the main container has a strict gutter */
+        padding-right: 70px !important; 
     }
 
     .article-thumb {
-        width: 45px;
-        height: 45px;
+        width: 45px !important;
+        height: 45px !important;
         top: 15px;
         right: 10px;
     }
 
     .article-title {
         font-size: 1.1rem;
+        /* CRITICAL: Force the title to wrap before it touches the image */
+        padding-right: 15px !important; 
+        display: block;
+    }
+    
+    .article-card p {
+        /* Also ensure the summary text doesn't slide under the image */
+        padding-right: 10px;
     }
 }
 
