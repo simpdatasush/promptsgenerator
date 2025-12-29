@@ -94,6 +94,16 @@ body {
     border-radius: 8px;
     flex-shrink: 0; /* Prevents the image from being squished */
 }
+.article-body-content {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.article-title a:hover {
+    color: var(--color-secondary) !important;
+    text-decoration: underline !important;
+}
 
 /* --- Fix for "Invisible" Text in AI Summary --- */
 #ai-summary-content {
