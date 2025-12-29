@@ -68,15 +68,18 @@ body {
 /* =========================================
    3. UNIQUE STRENGTHS: ALL NEWS (AI & CARDS)
    ========================================= */
+/* --- Fix for Article Cards --- */
 .article-card {
     background: #fff;
     border-radius: var(--radius-standard);
     padding: 20px;
     margin-bottom: 20px;
-    position: relative;
-    padding-right: 90px;
+    display: flex; /* Use flex instead of absolute positioning */
+    align-items: flex-start;
+    gap: 20px;
     box-shadow: 0 2px 10px rgba(0,0,0,0.05);
     transition: transform 0.2s ease, box-shadow 0.2s ease;
+    border-left: 5px solid var(--color-primary); /* Adds the blue accent stripe */
 }
 
 .article-card:hover {
@@ -85,39 +88,40 @@ body {
 }
 
 .article-thumb {
-    position: absolute;
-    top: 20px;
-    right: 15px;
-    width: 65px;
-    height: 65px;
+    width: 80px;  /* Slightly larger for visibility */
+    height: 80px;
     object-fit: cover;
     border-radius: 8px;
+    flex-shrink: 0; /* Prevents the image from being squished */
 }
 
-/* AI Summary Animation Logic */
-#ai-summary-wrapper {
-    max-height: 0;
-    overflow: hidden;
-    transition: max-height 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
+/* --- Fix for "Invisible" Text in AI Summary --- */
 #ai-summary-content {
     background-color: #ffffff;
-    border-left: 5px solid var(--color-accent);
+    border-left: 5px solid var(--color-primary); /* Changed to primary Blue */
     border-radius: var(--radius-standard);
-    padding: 20px;
+    padding: 25px;
     box-shadow: var(--shadow-standard);
-    margin-bottom: 20px;
+    margin-bottom: 30px;
+    color: #333333; /* FORCE DARK TEXT COLOR */
 }
 
+#ai-result-text {
+    color: #2c3e50; /* Deep charcoal for readability */
+    font-size: 1.1rem;
+    line-height: 1.6;
+    display: inline;
+}
+
+/* Ensure the cursor is visible */
 .cursor {
     display: inline-block;
-    width: 8px;
+    width: 10px;
     height: 1.2em;
-    background-color: var(--color-accent);
-    animation: blink 1s step-end infinite;
+    background-color: var(--color-primary); 
+    margin-left: 5px;
+    vertical-align: middle;
 }
-@keyframes blink { from, to { opacity: 1; } 50% { opacity: 0; } }
 
 /* =========================================
    4. UNIQUE STRENGTHS: SINGLE BLOG (VIDEO/IMAGE)
