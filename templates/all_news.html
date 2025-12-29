@@ -11,21 +11,28 @@
 
     <style>
         :root {
-            --color-primary: #C3497C;
-            --color-secondary: #5CA0DC;
-            --color-dark-bg: #311B92;
-            --color-text-dark: #2c3e50;
-            --color-text-muted: #777;
-        }
+    --color-primary: #007bff;     /* Landing Page Blue */
+    --color-dark-bg: #343a40;     /* Landing Page Charcoal */
+    --color-accent: #C3497C;      /* Keeping Pink ONLY for AI Summary */
+    --color-bg-light: #f0f2f5;
+    --color-text-dark: #2c3e50;
+    --shadow-standard: 0 4px 15px rgba(0, 0, 0, 0.1);
+    --radius-standard: 10px;
+}
 
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            margin: 0;
-            padding-top: 70px;
-            background-color: #f8f9fa;
-            color: var(--color-text-dark);
-            line-height: 1.6;
-        }
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    margin: 0;
+    padding-top: 100px; /* Unified gap for fixed header */
+    background-color: var(--color-bg-light);
+    color: var(--color-text-dark);
+    line-height: 1.6;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
 
         .app-header {
             background-color: var(--color-dark-bg);
