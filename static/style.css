@@ -176,6 +176,31 @@ body {
     box-shadow: var(--shadow-standard);
 }
 
+/* =========================================
+   6. SEARCH & AI SUMMARY FIXES
+   ========================================= */
+
+/* The Search Input Field */
+#news-search-input {
+    border: 2px solid #e0e0e0;
+    color: #2c3e50 !important; /* This ensures you can see the text you type */
+    height: 50px;
+    border-radius: 8px 0 0 8px; /* Rounds the left side to match the button */
+    background-color: #ffffff !important;
+}
+
+/* The Placeholder text (Search news...) */
+#news-search-input::placeholder {
+    color: #999;
+    opacity: 1; /* Ensures the color shows correctly in Firefox */
+}
+
+/* Fix for the AI Result text visibility */
+#ai-result-text {
+    color: #2c3e50; /* Deep charcoal so it's readable on white */
+    font-weight: 500;
+}
+
 /* Mobile Responsiveness (Unified) */
 @media (max-width: 768px) {
     body { padding-top: 140px; }
