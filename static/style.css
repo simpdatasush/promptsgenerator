@@ -214,18 +214,33 @@ body {
 /* =========================================
    7. toy_builder
    ========================================= */
+
 /* Lego Brick Styles */
 .brick {
-    padding: 15px 25px;
+    padding: 12px 20px;
     background: #fff;
     border: 2px solid #e0e0e0;
     border-radius: 12px;
     cursor: pointer;
     font-weight: 600;
     transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    display: inline-block;
+    text-align: center;
+    min-width: 110px;
+    user-select: none;
 }
-.brick:hover { transform: translateY(-3px); box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
-.brick.active { border-color: var(--color-primary); background: #f0f7ff; transform: scale(1.05); }
+
+.brick:hover { 
+    transform: translateY(-3px); 
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1); 
+}
+
+.brick.active { 
+    border-color: var(--color-primary); 
+    background: #f0f7ff; 
+    transform: scale(1.05); 
+    box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+}
 
 /* Flying Animation */
 .brick-fly {
@@ -235,6 +250,8 @@ body {
     background: var(--color-primary) !important;
     color: white !important;
     border-radius: 50px !important;
+    padding: 10px 20px;
+    pointer-events: none;
 }
 
 /* Minimal Chat Interface */
@@ -242,15 +259,33 @@ body {
     background: #ffffff;
     border: 1px solid #e0e0e0;
     border-radius: 50px;
-    padding: 10px 25px;
+    padding: 8px 20px;
     display: flex;
     align-items: center;
     max-width: 700px;
+    width: 100%; /* Ensures it fills container on small screens */
     margin: 0 auto;
     box-shadow: 0 10px 30px rgba(0,0,0,0.05);
 }
-.minimal-search-box input { border: none; outline: none; width: 100%; font-size: 1.2rem; }
-.minimal-search-box button { background: #000; color: #fff; border: none; border-radius: 50%; width: 45px; height: 45px; cursor: pointer; }
+
+.minimal-search-box input { 
+    border: none; 
+    outline: none; 
+    width: 100%; 
+    font-size: 1.1rem; 
+    padding: 10px;
+}
+
+.minimal-search-box button { 
+    background: #000; 
+    color: #fff; 
+    border: none; 
+    border-radius: 50%; 
+    width: 40px; 
+    height: 40px; 
+    flex-shrink: 0; /* Prevents button from squishing */
+    cursor: pointer; 
+}
 
 /* =========================================
    8. response_area
@@ -258,17 +293,40 @@ body {
 
 #response-area {
     color: #2c3e50;
-    line-height: 1.8; /* Increased slightly for better readability */
+    line-height: 1.6;
     font-family: 'Inter', sans-serif;
     white-space: pre-wrap; 
     padding: 20px;
     background: #ffffff;
     border-radius: 12px;
-    border-left: 4px solid var(--color-primary); /* Adds a subtle brand accent */
+    border-left: 4px solid var(--color-primary);
     margin-top: 20px;
     min-height: 50px;
+    text-align: left;
 }
 
+/* =========================================
+   9. Mobile Responsiveness
+   ========================================= */
+
+@media (max-width: 768px) {
+    .lego-container .d-flex {
+        gap: 10px !important; /* Forces spacing even if Bootstrap 4 is used */
+        flex-wrap: wrap !important;
+        justify-content: center !important;
+    }
+
+    .brick {
+        flex: 1 1 40%; /* Allows bricks to grow and take up half the row */
+        max-width: 48%;
+        font-size: 0.9rem;
+        padding: 10px;
+    }
+
+    .header-title {
+        font-size: 1.75rem;
+    }
+}
 /* Mobile Responsiveness (Unified) */
 @media (max-width: 768px) {
     body { padding-top: 140px; }
