@@ -133,7 +133,7 @@ def configure_gemini_api():
 
 configure_gemini_api()
 
-gemma_client = gemma_genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
+gemma_client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 GEMMA_MODEL = 'gemma-3-4b-it'
 
 
@@ -1551,13 +1551,13 @@ def chat_toy():
     toy_identity = session.get('toy_identity', "A friendly toy.")
 
     # Gemma 3 specific configuration
-    config = gemma_types.GenerateContentConfig(
+    config = types.GenerateContentConfig(
         max_output_tokens=400,
         temperature=0.85 # High temperature for more 'personality'
     )
 
     try:
-        response = gemma_client.models.generate_content(
+        response = client.models.generate_content(
             model=GEMMA_MODEL,
             contents=f"Instruction: {toy_personality}\nUser: {user_input}",
             config=config
