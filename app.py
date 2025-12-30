@@ -15,9 +15,8 @@ import base64 # Import base64 for image processing
 import uuid # For generating unique reset tokens
 import random # NEW: For generating random username suggestions
 import string # NEW: For string manipulation in username generation
-from google import genai as gemma_genai
-from google.genai import types as gemma_types
-
+from google import genai
+from google.genai import types  # Required for GenerateContentConfig
 
 # --- NEW IMPORTS FOR AUTHENTICATION ---
 from flask_sqlalchemy import SQLAlchemy
@@ -132,10 +131,6 @@ def configure_gemini_api():
 
 
 configure_gemini_api()
-
-gemma_client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
-GEMMA_MODEL = 'gemma-3-4b-it'
-
 
 # --- UPDATED: User Model for SQLAlchemy and Flask-Login ---
 class User(db.Model, UserMixin):
@@ -1521,6 +1516,9 @@ def poll_review():
     review = ask_gemini_for_prompt(prompt)
     return jsonify({"review": review})
 
+gemma_client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
+GEMMA_MODEL = 'gemma-3-4b-it'
+
 # 2. Page Route
 @app.route('/toy-builder')
 @login_required
@@ -1557,7 +1555,7 @@ def chat_toy():
     )
 
     try:
-        response = client.models.generate_content(
+        response = gemma_client.models.generate_content(
             model=GEMMA_MODEL,
             contents=f"Instruction: {toy_personality}\nUser: {user_input}",
             config=config
