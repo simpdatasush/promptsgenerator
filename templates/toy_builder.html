@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-5">
+    <div id="builder-phase" class="text-center transition-fade">
+        <h1 class="header-title mb-2">SuperPrompter Toy Box</h1>
+        <p class="text-muted mb-5">Select your bricks to build a custom AI toy.</p>
+        
+        <div class="lego-container">
+            <h5 class="mb-3">Choose a Brain</h5>
+            <div class="d-flex justify-content-center gap-3 mb-4">
+                <div class="brick" onclick="selectBrick(this, 'brain', 'Space Pirate')">🏴‍☠️ Pirate</div>
+                <div class="brick" onclick="selectBrick(this, 'brain', 'Mad Scientist')">🧪 Scientist</div>
+                <div class="brick" onclick="selectBrick(this, 'brain', 'Zen Master')">🧘 Zen</div>
+            </div>
+
+            <h5 class="mb-3">Choose a Vibe</h5>
+            <div class="d-flex justify-content-center gap-3">
+                <div class="brick" onclick="selectBrick(this, 'vibe', 'Sarcastic')">😏 Sarcastic</div>
+                <div class="brick" onclick="selectBrick(this, 'vibe', 'Hyper Excited')">🤩 Excited</div>
+                <div class="brick" onclick="selectBrick(this, 'vibe', 'Grumpy')">😠 Grumpy</div>
+            </div>
+        </div>
+
+        <button id="ignite-btn" class="btn btn-primary btn-lg mt-5" onclick="ignite()">Ignite Toy</button>
+    </div>
+
+    <div id="chat-phase" style="display:none;" class="text-center transition-fade">
+        <div class="d-flex justify-content-between align-items-center mb-5 mx-auto" style="max-width:700px;">
+            <h2 class="m-0">Where should we begin?</h2>
+            <button class="btn btn-outline-secondary btn-sm" onclick="disassemble()">
+                <i class="fas fa-undo"></i> Reset Bricks
+            </button>
+        </div>
+
+        <div class="minimal-search-box">
+            <input type="text" id="chat-input" placeholder="Type your message...">
+            <button onclick="sendToGemma()"><i class="fas fa-arrow-up"></i></button>
+        </div>
+        <div id="response-area" class="mt-4 text-left mx-auto" style="max-width:700px; font-size: 1.1rem;"></div>
+    </div>
+</div>
+
+<script>
+let assembly = { brain: '', vibe: '' };
+
+function selectBrick(el, type, val) {
+    // Remove active from siblings
+    el.parentElement.querySelectorAll('.brick').forEach(b => b.classList.remove('active'));
+    el.classList.add('active');
+    assembly[type] = val;
+}
+
+function ignite() {
+    if(!assembly.brain || !assembly.vibe) return alert("Select a Brain and Vibe first!");
+
+    const activeBricks = document.querySelectorAll('.brick.active');
+    const target = document.querySelector('.minimal-search-box');
+    const targetRect = target.getBoundingClientRect();
+
+    activeBricks.forEach(brick => {
+        const rect = brick.getBoundingClientRect();
+        const flyer = brick.cloneNode(true);
+        flyer.classList.add('brick-fly');
+        flyer.style.top = rect.top + 'px';
+        flyer.style.left = rect.left + 'px';
+        document.body.appendChild(flyer);
+
+        setTimeout(() => {
+            flyer.style.top = targetRect.top + 'px';
+            flyer.style.left = targetRect.left + (targetRect.width/2) + 'px';
+            flyer.style.opacity = '0';
+            flyer.style.transform = 'scale(0.2)';
+        }, 50);
+        setTimeout(() => flyer.remove(), 800);
+    });
+
+    fetch('/ignite_toy', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(assembly)
+    }).then(() => {
+        setTimeout(() => {
+            document.getElementById('builder-phase').style.display = 'none';
+            document.getElementById('chat-phase').style.display = 'block';
+        }, 600);
+    });
+}
+
+function disassemble() {
+    fetch('/reset_toy', {method: 'POST'}).then(() => {
+        location.reload(); // Simplest way to disassemble
+    });
+}
+
+function sendToGemma() {
+    const input = document.getElementById('chat-input');
+    const output = document.getElementById('response-area');
+    const msg = input.value;
+    output.innerHTML = "<em>Toy is thinking...</em>";
+    
+    fetch('/chat_toy', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({message: msg})
+    }).then(res => res.json()).then(data => {
+        output.innerText = data.reply;
+        input.value = '';
+    });
+}
+</script>
+{% endblock %}
