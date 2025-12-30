@@ -15,8 +15,8 @@ import base64 # Import base64 for image processing
 import uuid # For generating unique reset tokens
 import random # NEW: For generating random username suggestions
 import string # NEW: For string manipulation in username generation
-from google import genai
-from google.genai import types  # Required for GenerateContentConfig
+from google import genai as gemma_genai
+from google.genai import types as gemma_types   # Required for GenerateContentConfig
 
 # --- NEW IMPORTS FOR AUTHENTICATION ---
 from flask_sqlalchemy import SQLAlchemy
@@ -1516,7 +1516,7 @@ def poll_review():
     review = ask_gemini_for_prompt(prompt)
     return jsonify({"review": review})
 
-gemma_client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
+gemma_client = gemma_genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 GEMMA_MODEL = 'gemma-3-4b-it'
 
 # 2. Page Route
@@ -1549,7 +1549,7 @@ def chat_toy():
     toy_identity = session.get('toy_identity', "A friendly toy.")
 
     # Gemma 3 specific configuration
-    config = types.GenerateContentConfig(
+    config = gemma_types.GenerateContentConfig(
         max_output_tokens=400,
         temperature=0.85 # High temperature for more 'personality'
     )
