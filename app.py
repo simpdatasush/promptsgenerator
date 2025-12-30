@@ -1520,13 +1520,11 @@ def poll_review():
 
 # 2. Page Route
 @app.route('/toy-builder')
-@login_required
 def toy_builder():
     return render_template('toy_builder.html')
 
 # 3. Assembly Route
 @app.route('/ignite_toy', methods=['POST'])
-@login_required
 def ignite_toy():
     data = request.json
     brain = data.get('brain')
@@ -1541,7 +1539,6 @@ def ignite_toy():
     return jsonify({"status": "ignited"})
 
 @app.route('/chat_toy', methods=['POST'])
-@login_required
 def chat_toy():
     user_input = request.json.get('message')
     toy_identity = session.get('toy_identity', "A friendly toy.")
@@ -1574,7 +1571,6 @@ def chat_toy():
 
 # 5. Reset Route
 @app.route('/reset_toy', methods=['POST'])
-@login_required
 def reset_toy():
     session.pop('toy_identity', None)
     return jsonify({"status": "disassembled"})
