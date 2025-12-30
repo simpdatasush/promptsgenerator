@@ -1,8 +1,36 @@
-{% extends "base.html" %}
-{% block content %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Toy Builder | SuperPrompter</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    
+    <style>
+        /* Essential styles included here in case style.css is cached */
+        body { background-color: #f0f2f5; font-family: 'Segoe UI', sans-serif; }
+        .brick { 
+            padding: 15px 25px; background: #fff; border: 2px solid #e0e0e0; 
+            border-radius: 12px; cursor: pointer; font-weight: 600; transition: all 0.3s;
+        }
+        .brick.active { border-color: #007bff; background: #f0f7ff; transform: scale(1.05); }
+        .brick-fly { position: fixed; z-index: 9999; background: #007bff !important; color: white !important; border-radius: 50px !important; pointer-events: none; }
+        .minimal-search-box { 
+            background: #fff; border: 1px solid #e0e0e0; border-radius: 50px; 
+            padding: 10px 25px; display: flex; align-items: center; max-width: 700px; margin: 0 auto; box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+        }
+        .minimal-search-box input { border: none; outline: none; width: 100%; font-size: 1.2rem; }
+        .minimal-search-box button { background: #000; color: #fff; border: none; border-radius: 50%; width: 45px; height: 45px; }
+        #response-area { white-space: pre-wrap; line-height: 1.6; color: #2c3e50; }
+    </style>
+</head>
+<body>
+
 <div class="container mt-5">
-    <div id="builder-phase" class="text-center transition-fade">
-        <h1 class="header-title mb-2">SuperPrompter Toy Box</h1>
+    <div id="builder-phase" class="text-center">
+        <h1 class="header-title mb-2" style="font-weight:700; letter-spacing:-1px;">SuperPrompter Toy Box</h1>
         <p class="text-muted mb-5">Select your bricks to build a custom AI toy.</p>
         
         <div class="lego-container">
@@ -21,13 +49,13 @@
             </div>
         </div>
 
-        <button id="ignite-btn" class="btn btn-primary btn-lg mt-5" onclick="ignite()">Ignite Toy</button>
+        <button id="ignite-btn" class="btn btn-primary btn-lg mt-5" onclick="ignite()" style="border-radius:30px; padding: 12px 40px;">Ignite Toy</button>
     </div>
 
-    <div id="chat-phase" style="display:none;" class="text-center transition-fade">
+    <div id="chat-phase" style="display:none;" class="text-center">
         <div class="d-flex justify-content-between align-items-center mb-5 mx-auto" style="max-width:700px;">
-            <h2 class="m-0">Where should we begin?</h2>
-            <button class="btn btn-outline-secondary btn-sm" onclick="disassemble()">
+            <h2 class="m-0" style="font-weight:700;">Where should we begin?</h2>
+            <button class="btn btn-outline-secondary btn-sm" onclick="disassemble()" style="border-radius:20px;">
                 <i class="fas fa-undo"></i> Reset Bricks
             </button>
         </div>
@@ -36,7 +64,7 @@
             <input type="text" id="chat-input" placeholder="Type your message...">
             <button onclick="sendToGemma()"><i class="fas fa-arrow-up"></i></button>
         </div>
-        <div id="response-area" class="mt-4 text-left mx-auto" style="max-width:700px; font-size: 1.1rem;"></div>
+        <div id="response-area" class="mt-4 text-left mx-auto p-4" style="max-width:700px; background: white; border-radius: 15px;"></div>
     </div>
 </div>
 
@@ -44,7 +72,6 @@
 let assembly = { brain: '', vibe: '' };
 
 function selectBrick(el, type, val) {
-    // Remove active from siblings
     el.parentElement.querySelectorAll('.brick').forEach(b => b.classList.remove('active'));
     el.classList.add('active');
     assembly[type] = val;
@@ -54,8 +81,15 @@ function ignite() {
     if(!assembly.brain || !assembly.vibe) return alert("Select a Brain and Vibe first!");
 
     const activeBricks = document.querySelectorAll('.brick.active');
+    
+    // Temporarily show chat phase to get the position for animation
+    const chatPhase = document.getElementById('chat-phase');
+    chatPhase.style.display = 'block';
+    chatPhase.style.visibility = 'hidden';
     const target = document.querySelector('.minimal-search-box');
     const targetRect = target.getBoundingClientRect();
+    chatPhase.style.display = 'none';
+    chatPhase.style.visibility = 'visible';
 
     activeBricks.forEach(brick => {
         const rect = brick.getBoundingClientRect();
@@ -63,11 +97,13 @@ function ignite() {
         flyer.classList.add('brick-fly');
         flyer.style.top = rect.top + 'px';
         flyer.style.left = rect.left + 'px';
+        flyer.style.width = rect.width + 'px';
         document.body.appendChild(flyer);
 
         setTimeout(() => {
+            flyer.style.transition = "all 0.8s cubic-bezier(0.7, 0, 0.3, 1)";
             flyer.style.top = targetRect.top + 'px';
-            flyer.style.left = targetRect.left + (targetRect.width/2) + 'px';
+            flyer.style.left = (targetRect.left + (targetRect.width / 2) - (rect.width / 2)) + 'px';
             flyer.style.opacity = '0';
             flyer.style.transform = 'scale(0.2)';
         }, 50);
@@ -88,7 +124,7 @@ function ignite() {
 
 function disassemble() {
     fetch('/reset_toy', {method: 'POST'}).then(() => {
-        location.reload(); // Simplest way to disassemble
+        location.reload();
     });
 }
 
@@ -96,10 +132,9 @@ function sendToGemma() {
     const input = document.getElementById('chat-input');
     const output = document.getElementById('response-area');
     const msg = input.value;
+    if (!msg) return;
 
-    if (!msg) return; // Don't send empty messages
-
-    output.innerHTML = "<em>Toy is thinking...</em>";
+    output.innerHTML = "<em class='text-muted'>Toy is thinking...</em>";
     
     fetch('/chat_toy', {
         method: 'POST',
@@ -108,31 +143,23 @@ function sendToGemma() {
     })
     .then(res => res.json())
     .then(data => {
-        // Clear the "thinking" text
         output.innerHTML = "";
-        // Start the typewriter effect with the clean response
         typeWriter(data.reply, 0);
-        // Clear the input field
         input.value = '';
     })
     .catch(err => {
         output.innerText = "Error: My gears are jammed!";
-        console.error(err);
     });
 }
 
-// Keep this function outside sendToGemma
 function typeWriter(text, i) {
     const output = document.getElementById("response-area");
     if (i < text.length) {
-        // Using substring to build the text character by character
         output.innerText = text.substring(0, i + 1);
-        
-        setTimeout(function() {
-            typeWriter(text, i + 1);
-        }, 15); // 15ms per character is a good, snappy speed
+        setTimeout(() => typeWriter(text, i + 1), 15);
     }
-}    
-
+}
 </script>
-{% endblock %}
+
+</body>
+</html>
