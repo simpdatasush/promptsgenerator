@@ -106,31 +106,31 @@ LANGUAGE_MAP = {
 # --- Gemini API Key and Configuration ---
 GEMINI_API_CONFIGURED = False
 GEMINI_API_KEY = None
+gemma_client = None  # Start as None
 
+def configure_ai_apis():
+    global GEMINI_API_CONFIGURED, gemma_client
+    api_key = os.getenv("GEMINI_API_KEY")
 
-def configure_gemini_api():
-  global GEMINI_API_KEY, GEMINI_API_CONFIGURED
-  GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+    if api_key:
+        try:
+            # 1. Configure the Gemini (Legacy) SDK
+            genai.configure(api_key=api_key)
+            
+            # 2. Configure the Gemma (New) SDK Client
+            # Use the verified api_key variable here
+            gemma_client = gemma_genai.Client(api_key=api_key)
+            
+            GEMINI_API_CONFIGURED = True
+            app.logger.info("Both Gemini and Gemma APIs configured successfully.")
+        except Exception as e:
+            app.logger.error(f"ERROR: AI Configuration failed: {e}")
+            GEMINI_API_CONFIGURED = False
+    else:
+        app.logger.warning("GEMINI_API_KEY not found. AI features disabled.")
 
-
-  if GEMINI_API_KEY:
-      try:
-          genai.configure(api_key=GEMINI_API_KEY)
-          GEMINI_API_CONFIGURED = True
-          app.logger.info("Gemini API configured successfully.")
-      except Exception as e:
-          app.logger.error(f"ERROR: Failed to configure Gemini API: {e}")
-          app.logger.error("Please ensure your API key environment variable (GEMINI_API_KEY) is correct and valid.")
-          GEMINI_API_CONFIGURED = False
-  else:
-      app.logger.warning("\n" + "="*80)
-      app.logger.warning("WARNING: GEMINI_API_KEY environment variable not set. Prompt generation features will be disabled.")
-      app.logger.warning("Please set the GEMINI_API_KEY environment variable on Render or your deployment environment.")
-      app.logger.warning("="*80 + "\n")
-      GEMINI_API_CONFIGURED = False
-
-
-configure_gemini_api()
+# Call the consolidated function
+configure_ai_apis()
 
 # --- UPDATED: User Model for SQLAlchemy and Flask-Login ---
 class User(db.Model, UserMixin):
@@ -1516,8 +1516,7 @@ def poll_review():
     review = ask_gemini_for_prompt(prompt)
     return jsonify({"review": review})
 
-gemma_client = gemma_genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
-GEMMA_MODEL = 'gemma-3-4b-it'
+
 
 # 2. Page Route
 @app.route('/toy-builder')
@@ -1544,29 +1543,34 @@ def ignite_toy():
 @app.route('/chat_toy', methods=['POST'])
 @login_required
 def chat_toy():
-    """Communicates with Gemma 3 using the assembled personality."""
     user_input = request.json.get('message')
     toy_identity = session.get('toy_identity', "A friendly toy.")
-
-    # Gemma 3 specific configuration
-    config = gemma_types.GenerateContentConfig(
-        max_output_tokens=400,
-        temperature=0.85 # High temperature for more 'personality'
-    )
-
+    
     try:
+        # 1. Log the attempt to see if it reaches here
+        app.logger.info(f"Sending to Gemma: {user_input} with identity: {toy_identity}")
+
         response = gemma_client.models.generate_content(
-            model=GEMMA_MODEL,
-            contents=f"Instruction: {toy_personality}\nUser: {user_input}",
-            config=config
+            model='gemma-3-4b-it',
+            contents=f"Instruction: {toy_identity}\nUser: {user_input}",
+            config=gemma_types.GenerateContentConfig(
+                max_output_tokens=400,
+                temperature=0.85 
+            )
         )
-        
-        # CLEANING LAYER: Remove all asterisks before sending to UI
+
+        if not response.text:
+            app.logger.warning("Gemma returned an empty response.")
+            return jsonify({"reply": "I'm thinking, but no words came out!"})
+
+        # Remove asterisks as requested
         clean_reply = response.text.replace('*', '')
-        
         return jsonify({"reply": clean_reply.strip()})
+
     except Exception as e:
-        return jsonify({"reply": "My gears got stuck!"}), 500
+        # 2. This will now show you the REAL error in your logs
+        app.logger.error(f"GEMMA ERROR: {str(e)}")
+        return jsonify({"reply": "My gears got stuck! check server logs."}), 500
 
 # 5. Reset Route
 @app.route('/reset_toy', methods=['POST'])
