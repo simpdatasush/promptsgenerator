@@ -12,6 +12,7 @@ Authlib==1.2.1 # Or use a newer version if available and desired
 requests # NEW: Added for Imagen API calls
 nest-asyncio
 Flask-Mail
+google-genai
 
 ##Flask==2.3.2
 ##google-generativeai==0.7.0
