@@ -15,6 +15,8 @@ import base64 # Import base64 for image processing
 import uuid # For generating unique reset tokens
 import random # NEW: For generating random username suggestions
 import string # NEW: For string manipulation in username generation
+from google import genai as gemma_genai
+from google.genai import types as gemma_types
 
 
 # --- NEW IMPORTS FOR AUTHENTICATION ---
@@ -130,6 +132,9 @@ def configure_gemini_api():
 
 
 configure_gemini_api()
+
+gemma_client = gemma_genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
+GEMMA_MODEL = 'gemma-3-4b-it'
 
 
 # --- UPDATED: User Model for SQLAlchemy and Flask-Login ---
@@ -1515,6 +1520,62 @@ def poll_review():
     """
     review = ask_gemini_for_prompt(prompt)
     return jsonify({"review": review})
+
+# 2. Page Route
+@app.route('/toy-builder')
+@login_required
+def toy_builder():
+    return render_template('toy_builder.html')
+
+# 3. Assembly Route
+@app.route('/ignite_toy', methods=['POST'])
+@login_required
+def ignite_toy():
+    data = request.json
+    brain = data.get('brain')
+    vibe = data.get('vibe')
+    
+    # Adding a strict formatting constraint to the system instruction
+    session['toy_identity'] = (
+        f"Role: {brain}. Tone: {vibe}. "
+        "Constraint: Do NOT use asterisks, bolding, or markdown. "
+        "Use only plain text for emphasis."
+    )
+    return jsonify({"status": "ignited"})
+
+@app.route('/chat_toy', methods=['POST'])
+@login_required
+def chat_toy():
+    """Communicates with Gemma 3 using the assembled personality."""
+    user_input = request.json.get('message')
+    toy_identity = session.get('toy_identity', "A friendly toy.")
+
+    # Gemma 3 specific configuration
+    config = gemma_types.GenerateContentConfig(
+        max_output_tokens=400,
+        temperature=0.85 # High temperature for more 'personality'
+    )
+
+    try:
+        response = gemma_client.models.generate_content(
+            model=GEMMA_MODEL,
+            contents=f"Instruction: {toy_personality}\nUser: {user_input}",
+            config=config
+        )
+        
+        # CLEANING LAYER: Remove all asterisks before sending to UI
+        clean_reply = response.text.replace('*', '')
+        
+        return jsonify({"reply": clean_reply.strip()})
+    except Exception as e:
+        return jsonify({"reply": "My gears got stuck!"}), 500
+
+# 5. Reset Route
+@app.route('/reset_toy', methods=['POST'])
+@login_required
+def reset_toy():
+    session.pop('toy_identity', None)
+    return jsonify({"status": "disassembled"})
     
 
 # --- NEW: Change Password Route ---
