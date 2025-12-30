@@ -96,16 +96,43 @@ function sendToGemma() {
     const input = document.getElementById('chat-input');
     const output = document.getElementById('response-area');
     const msg = input.value;
+
+    if (!msg) return; // Don't send empty messages
+
     output.innerHTML = "<em>Toy is thinking...</em>";
     
     fetch('/chat_toy', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({message: msg})
-    }).then(res => res.json()).then(data => {
-        output.innerText = data.reply;
+    })
+    .then(res => res.json())
+    .then(data => {
+        // Clear the "thinking" text
+        output.innerHTML = "";
+        // Start the typewriter effect with the clean response
+        typeWriter(data.reply, 0);
+        // Clear the input field
         input.value = '';
+    })
+    .catch(err => {
+        output.innerText = "Error: My gears are jammed!";
+        console.error(err);
     });
 }
+
+// Keep this function outside sendToGemma
+function typeWriter(text, i) {
+    const output = document.getElementById("response-area");
+    if (i < text.length) {
+        // Using substring to build the text character by character
+        output.innerText = text.substring(0, i + 1);
+        
+        setTimeout(function() {
+            typeWriter(text, i + 1);
+        }, 15); // 15ms per character is a good, snappy speed
+    }
+}    
+
 </script>
 {% endblock %}
