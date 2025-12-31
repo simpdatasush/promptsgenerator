@@ -1561,7 +1561,7 @@ def chat_toy():
     )
 
     try:
-        response = gemma_client.models.generate_content(model='gemma-3-4b-it', contents=prompt)
+        response = response = gemma_client.models.generate_content(model='gemma-3-4b-it', contents=prompt, config=gemma_types.GenerateContentConfig(max_output_tokens=400, temperature=0.85))
         reply_text, follow_up_qs = process_toy_response(response.text)
         return jsonify({
             "reply": reply_text,
