@@ -314,55 +314,67 @@ function ignite() {
 
 function askToy(question) {
     const output = document.getElementById('response-area');
-    
+    if (!output) return;
+
+    // 1. Force dark text and clean layout for mobile
     output.innerHTML = `
-        <div class="user-msg mb-3"><strong>You:</strong> ${question}</div>
+        <div class="user-msg mb-3" style="color: #007bff; font-weight: bold;"><strong>You:</strong> ${question}</div>
         <hr>
-        <div id="toy-response-container">
+        <div id="toy-response-container" style="color: #2c3e50; min-height: 50px;">
             <div class='spinner-border spinner-border-sm text-primary'></div> 
             <em class='text-muted'>Toy is thinking...</em>
         </div>
     `;
 
-    // Added window.location.origin to force absolute paths on mobile
-    const url = window.location.origin + '/chat_toy';
+    // Ensure the URL pattern is exactly what mobile expects
+    const baseUrl = window.location.origin.replace(/\/$/, "");
+    const url = baseUrl + '/chat_toy';
 
     fetch(url, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'Accept': 'application/json'
+            'Accept': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest' // Helps mobile firewalls recognize the request
         },
-        body: JSON.stringify({message: question})
+        body: JSON.stringify({message: question.trim()})
     })
     .then(res => {
-        if (!res.ok) {
-            throw new Error(`Server status: ${res.status}`);
-        }
-        return res.json();
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.text(); // Get as text first to prevent "pattern" errors during auto-parse
     })
-    .then(data => {
-        const responseContainer = document.getElementById('toy-response-container');
-        if (!responseContainer) return;
-        
-        responseContainer.innerHTML = ""; 
-        
-        if (data.reply) {
-            if (window.innerWidth < 768) {
-                responseContainer.innerText = data.reply;
-            } else {
-                typeWriterInto(data.reply, responseContainer);
+    .then(text => {
+        try {
+            // Clean the string of any invisible AI characters before parsing
+            const cleanText = text.replace(/[\x00-\x1F\x7F-\x9F]/g, ""); 
+            const data = JSON.parse(cleanText);
+            
+            const responseContainer = document.getElementById('toy-response-container');
+            if (!responseContainer) return;
+            
+            responseContainer.innerHTML = ""; 
+            
+            if (data.reply) {
+                // Remove any asterisks or backticks that trigger mobile display patterns
+                const finalReply = data.reply.replace(/[*`#]/g, '');
+                
+                if (window.innerWidth < 768) {
+                    responseContainer.innerText = finalReply;
+                    // Force a scroll to the new answer on mobile
+                    window.scrollTo({ top: output.offsetTop - 20, behavior: 'smooth' });
+                } else {
+                    typeWriterInto(finalReply, responseContainer);
+                }
             }
-        } else {
-            throw new Error("Empty reply from server");
+        } catch (parseError) {
+            throw new Error("Invalid response pattern");
         }
     })
     .catch(err => {
-        console.error("Fetch error:", err);
+        console.error("Mobile Fetch Error:", err);
         const container = document.getElementById('toy-response-container');
         if (container) {
-            // This will show the ACTUAL error (e.g., TypeError: Failed to fetch)
-            container.innerHTML = `<span class='text-danger'>⚠️ Error: ${err.message}</span>`;
+            container.innerHTML = `<span class='text-danger'>⚠️ Connection lost. Please try again.</span>`;
         }
     });
 }
