@@ -1530,14 +1530,16 @@ def toy_builder():
     return render_template('toy_builder.html')
 
 @app.route('/ignite_toy', methods=['POST'])
-@login_required
 def ignite_toy():
-    data = request.get_json()
-    brain = data.get('brain')
-    vibe = data.get('vibe')
+    # Use silent=True to prevent 400 errors if JSON is malformed
+    data = request.get_json(silent=True) or {}
     
-    session['toy_identity'] = f"Role: {brain}. Vibe: {vibe}."
-    session.modified = True # CRITICAL: Forces mobile browsers to save the cookie immediately
+    brain = data.get('brain', 'Space Pirate') # Added default
+    vibe = data.get('vibe', 'Happy') # Added default
+    
+    # Force a clean string for the session
+    session['toy_identity'] = f"Role: {str(brain)}. Vibe: {str(vibe)}."
+    session.modified = True 
     
     question_sets = {
         "Space Pirate": ["Where's the gold?", "Your ship stinks!", "Tell me about space krakens.", "Give me a star-map.", "Can I join your crew?", "Show me your hook!", "What's the best drink?", "Seen a black hole?", "Who's your rival?", "Is your parrot real?"],
@@ -1548,10 +1550,14 @@ def ignite_toy():
     }
     
     initial_qs = question_sets.get(brain, ["Who are you?", "What next?"])
-    return jsonify({"status": "ignited", "initial_questions": initial_qs})
+    
+    # Return a very explicit success signal
+    return jsonify({
+        "status": "ignited", 
+        "initial_questions": initial_qs
+    })
 
 @app.route('/chat_toy', methods=['POST'])
-@login_required
 def chat_toy():
     data = request.get_json()
     user_input = data.get('message')
