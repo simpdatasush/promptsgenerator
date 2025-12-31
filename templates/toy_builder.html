@@ -60,6 +60,9 @@
         transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         max-width: 250px;
         word-wrap: break-word; /* Prevents long questions from breaking layout */
+        flex-shrink: 0; /* Prevents bubbles from disappearing on narrow screens */
+        position: relative;
+        z-index: 5;
     }
 
     .question-bubble:hover {
@@ -80,6 +83,10 @@
         line-height: 1.6;
         margin-bottom: 20px;
     }
+
+    #question-cloud {
+    overflow: visible !important; /* Allows bubbles to float upward freely */
+}
 
     /* --- MOBILE RESPONSIVE SECTION --- */
     @media (max-width: 768px) {
@@ -143,21 +150,21 @@
         <button id="ignite-btn" class="btn btn-primary btn-lg mt-5" onclick="ignite()" style="border-radius:30px; padding: 12px 45px;">Ignite Toy</button>
     </div>
 
-    <div id="chat-phase" style="display:none;" class="text-center">
-        <div class="d-flex justify-content-between align-items-center mb-5 mx-auto" style="max-width:800px;">
-            <h2 id="toy-name" style="font-weight:700;">Activated</h2>
-            <button class="btn btn-outline-secondary btn-sm" onclick="location.reload()" style="border-radius:20px;">
-                <i class="fas fa-redo"></i> Reset
-            </button>
-        </div>
-
-        <div id="response-area" class="text-left mx-auto mb-5" style="max-width:800px;">
-            <p class="text-muted">Tap a floating thought to begin...</p>
-        </div>
-
-        <div id="question-cloud" class="d-flex flex-wrap justify-content-center mx-auto" style="max-width:900px;">
-            </div>
+    <div id="chat-phase" style="display:none;" class="text-center px-3">
+    <div class="d-flex justify-content-between align-items-center mb-4 mx-auto" style="max-width:800px;">
+        <h2 id="toy-name" style="font-weight:700; font-size: 1.5rem;">Activated</h2>
+        <button class="btn btn-outline-secondary btn-sm" onclick="location.reload()" style="border-radius:20px;">
+            <i class="fas fa-redo"></i> Reset
+        </button>
     </div>
+
+    <div id="response-area" class="text-left mx-auto mb-4 p-4 shadow-sm" style="max-width:800px; min-height: 100px; background: white; border-radius: 20px;">
+        <p class="text-muted">Tap a floating thought to begin...</p>
+    </div>
+
+    <div id="question-cloud" class="d-flex flex-wrap justify-content-center mx-auto w-100" style="max-width:900px; min-height: 250px; position: relative;">
+        </div>
+</div>
 </div>
 
 <script>
@@ -171,29 +178,26 @@ function selectBrick(el, type, val) {
 
 function renderQuestions(questions) {
     const cloud = document.getElementById('question-cloud');
-    cloud.innerHTML = ''; 
-    
-    // Ensure cloud is visible
-    cloud.style.display = 'flex';
-    cloud.style.opacity = '1';
+    if (!cloud) return;
 
-    questions.forEach((q) => {
+    cloud.innerHTML = '';
+    
+    // Fallback if AI fails to return questions
+    const list = (questions && questions.length > 0) ? questions : ["Who are you?", "Tell me more!", "What next?"];
+
+    list.forEach((q) => {
         const btn = document.createElement('div');
         btn.className = 'question-bubble';
         btn.innerText = q;
         
-        // Randomize floating animation
+        // Randomize floating animation speed for a natural look
         btn.style.animationDelay = `${Math.random() * -4}s`;
         
-        // Mobile tap support: use 'touchstart' logic if needed, 
-        // but standard onclick usually works fine.
+        // Standard click for desktop + touchstart for fast mobile response
         btn.onclick = () => askToy(q);
         
         cloud.appendChild(btn);
     });
-    
-    // Force a layout "repaint" for mobile Safari
-    void cloud.offsetHeight; 
 }
 
 function ignite() {
@@ -255,20 +259,21 @@ function ignite() {
     })
     .then(res => res.json())
     .then(data => {
-        // Safety: Always switch phases after 700ms regardless of animation state
-        setTimeout(() => {
-            builderPhase.style.display = 'none';
-            chatPhase.style.display = 'block';
-            document.getElementById('toy-name').innerText = `${assembly.vibe} ${assembly.brain}`;
-            renderQuestions(data.initial_questions);
-            window.scrollTo(0, 0); // Scroll to top for mobile users
-        }, 700);
-    })
-    .catch(err => {
-        // Fallback for network issues
-        builderPhase.style.display = 'none';
+        // Step 1: Hide builder, show chat phase
+        document.getElementById('builder-phase').style.display = 'none';
+        const chatPhase = document.getElementById('chat-phase');
         chatPhase.style.display = 'block';
-    });
+        document.getElementById('toy-name').innerText = `${assembly.vibe} ${assembly.brain}`;
+
+        // Step 2: Critical Mobile Delay
+        // We wait 150ms to ensure the display:block has finished layout calculations
+        setTimeout(() => {
+            renderQuestions(data.initial_questions);
+            // Ensure the user is at the top of the new view
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }, 150);
+    })
+    .catch(err => alert("Connection error. Try again!"));
 }
 
 function askToy(question) {
