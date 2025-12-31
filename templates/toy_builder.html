@@ -11,41 +11,15 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     
     <style>
-        html, body {
-    height: 100%;
-    margin: 0;
-}
-
-body {
-    background-color: #f0f2f5;
-    font-family: 'Segoe UI', sans-serif;
-    overflow-x: hidden;
-    /* Centering Magic */
-    display: flex;
-    align-items: center;      /* Vertical center */
-    justify-content: center;   /* Horizontal center */
-}
-
-/* Ensure the container doesn't stick to the very top */
-.container {
-    width: 100%;
-    max-width: 800px;
-    padding: 20px;
-    /* Optional: helps with mobile scrolling if content is tall */
-    margin: auto; 
-}}
         
-        /* --- BUILDER PHASE STYLES --- */
+        body { background-color: #f0f2f5; font-family: 'Segoe UI', sans-serif; }
         .brick { 
             padding: 15px 25px; background: #fff; border: 2px solid #e0e0e0; 
             border-radius: 12px; cursor: pointer; font-weight: 600; transition: all 0.3s;
-            display: inline-block; margin: 5px;
         }
         .brick.active { border-color: #007bff; background: #f0f7ff; transform: scale(1.05); }
-        .brick-fly { 
-            position: fixed; z-index: 9999; background: #007bff !important; 
-            color: white !important; border-radius: 50px !important; pointer-events: none; 
-        }
+        .brick-fly { position: fixed; z-index: 9999; background: #007bff !important; color: white !important; border-radius: 50px !important; pointer-events: none; }
+
 
         /* --- CHAT PHASE STYLES --- */
         #response-area {
