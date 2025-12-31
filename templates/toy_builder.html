@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SuperPrompter - AI Toy Box</title>
+    <title>SuperPrompter - AI Playground</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
@@ -11,7 +11,29 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     
     <style>
-        body { background-color: #f0f2f5; font-family: 'Segoe UI', sans-serif; overflow-x: hidden; }
+        html, body {
+    height: 100%;
+    margin: 0;
+}
+
+body {
+    background-color: #f0f2f5;
+    font-family: 'Segoe UI', sans-serif;
+    overflow-x: hidden;
+    /* Centering Magic */
+    display: flex;
+    align-items: center;      /* Vertical center */
+    justify-content: center;   /* Horizontal center */
+}
+
+/* Ensure the container doesn't stick to the very top */
+.container {
+    width: 100%;
+    max-width: 800px;
+    padding: 20px;
+    /* Optional: helps with mobile scrolling if content is tall */
+    margin: auto; 
+}}
         
         /* --- BUILDER PHASE STYLES --- */
         .brick { 
@@ -81,7 +103,7 @@
 
 <div class="container mt-4">
     <div id="builder-phase" class="text-center">
-        <h1 class="header-title mb-2" style="font-weight:800;">SuperPrompter Toy Box</h1>
+        <h1 class="header-title mb-2" style="font-weight:800;">SuperPrompter AI Playground</h1>
         <p class="text-muted mb-4">Choose your bricks to ignite the AI.</p>
         
         <div class="lego-container">
@@ -109,7 +131,7 @@
 
     <div id="chat-phase" style="display:none;" class="text-center">
         <div class="d-flex justify-content-between align-items-center mb-4 mx-auto px-2" style="max-width:700px;">
-            <h4 id="toy-status" class="m-0" style="font-weight:700;">Toy Active</h4>
+            <h4 id="toy-status" class="m-0" style="font-weight:700;">Activated</h4>
             <button class="btn btn-outline-secondary btn-sm" onclick="location.reload()" style="border-radius:20px;">Reset</button>
         </div>
 
