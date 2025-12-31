@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SuperPrompter - AI Toy Box</title>
+    <title>SuperPrompter - AI Toy Builder</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
@@ -11,158 +11,29 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     
     <style>
-    /* Essential styles included here in case style.css is cached */
-    body { background-color: #f0f2f5; font-family: 'Segoe UI', sans-serif; }
-    
-    .brick { 
-        padding: 15px 25px; background: #fff; border: 2px solid #e0e0e0; 
-        border-radius: 12px; cursor: pointer; font-weight: 600; transition: all 0.3s;
-        display: inline-block; /* Ensures consistent sizing */
-    }
-    
-    .brick.active { border-color: #007bff; background: #f0f7ff; transform: scale(1.05); }
-    
-    .brick-fly { 
-        position: fixed; z-index: 9999; background: #007bff !important; 
-        color: white !important; border-radius: 50px !important; pointer-events: none; 
-    }
-    
-    /* Floating Animation for Popups */
-    @keyframes float {
-        0% { transform: translateY(0px); }
-        50% { transform: translateY(-12px); }
-        100% { transform: translateY(0px); }
-    }
-
-    #question-cloud {
-        display: flex;
-        flex-wrap: wrap;
-        justify-content: center;
-        align-items: center;
-        gap: 10px;
-        min-height: 150px; /* Crucial: Prevents container from collapsing on mobile */
-        padding: 20px 10px;
-        width: 100%;
-        overflow: visible !important; /* Allows bubbles to float upward without clipping */
-    }
-
-    .question-bubble {
-        background: #ffffff;
-        border: 2px solid #e0e0e0;
-        padding: 12px 22px;
-        border-radius: 30px;
-        cursor: pointer;
-        display: inline-block;
-        margin: 10px;
-        font-weight: 600;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.05);
-        animation: float 4s ease-in-out infinite;
-        transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        max-width: 250px;
-        word-wrap: break-word; /* Prevents long questions from breaking layout */
-        flex-shrink: 0; /* Prevents bubbles from disappearing on narrow screens */
-        position: relative;
-        z-index: 5;
-    }
-
-    .question-bubble:hover {
-        transform: scale(1.1);
-        background: #f0f7ff;
-        border-color: #007bff;
-        animation-play-state: paused;
-    }
-
-    #response-area {
-        background: white;
-        border-radius: 20px;
-        padding: 30px;
-        min-height: 100px;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.05);
-        border-left: 6px solid #007bff;
-        font-size: 1.1rem;
-        line-height: 1.6;
-        margin-bottom: 20px;
-    }
-
-    #question-cloud {
-    overflow: visible !important; /* Allows bubbles to float upward freely */
-}
-        /* Desktop: Hide the Search Box by default */
-.minimal-search-box { 
-    display: none; 
-    background: #fff; border: 1px solid #e0e0e0; border-radius: 50px; 
-    padding: 8px 20px; align-items: center; max-width: 700px; margin: 20px auto; 
-    box-shadow: 0 10px 30px rgba(0,0,0,0.05);
-}
-.minimal-search-box input { border: none; outline: none; width: 100%; font-size: 1.1rem; }
-.minimal-search-box button { background: #000; color: #fff; border: none; border-radius: 50%; width: 40px; height: 40px; flex-shrink: 0; }
-
-/* --- MOBILE RESPONSIVE SECTION (Consolidated) --- */
-@media (max-width: 768px) {
-    /* Phase visibility swap */
-    #question-cloud { 
-        display: none !important; 
-    }
-    .minimal-search-box { 
-        display: flex !important; 
-        width: 95%;
-        padding: 8px 15px;
-        margin: 10px auto;
-    }
-
-    /* Typography & Layout */
-    .header-title { font-size: 1.8rem; }
-    #chat-phase { padding-top: 20px; }
-    
-    .brick {
-        padding: 10px 15px;
-        font-size: 0.9rem;
-        min-width: 90px;
-    }
-
-    #response-area {
-        padding: 20px;
-        font-size: 1rem;
-        margin: 0 10px 20px 10px;
-        white-space: pre-wrap; /* Ensures AI text wraps on small screens */
-    }
-
-    .minimal-search-box input {
-        font-size: 1rem;
-    }
-}
-
-/* Ensure gap utility works across all screen sizes */
-.gap-3 { gap: 1rem !important; } 
-
-.user-msg {
-    color: #007bff;
-    font-size: 0.9rem;
-    font-weight: bold;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-#toy-response-container {
-    color: #2c3e50;
-    font-size: 1.1rem;
-    white-space: pre-wrap;
-}
-
-hr {
-    border: 0;
-    border-top: 1px solid #eee;
-    margin: 15px 0;
-}
-
-</style>
+        /* Essential styles included here in case style.css is cached */
+        body { background-color: #f0f2f5; font-family: 'Segoe UI', sans-serif; }
+        .brick { 
+            padding: 15px 25px; background: #fff; border: 2px solid #e0e0e0; 
+            border-radius: 12px; cursor: pointer; font-weight: 600; transition: all 0.3s;
+        }
+        .brick.active { border-color: #007bff; background: #f0f7ff; transform: scale(1.05); }
+        .brick-fly { position: fixed; z-index: 9999; background: #007bff !important; color: white !important; border-radius: 50px !important; pointer-events: none; }
+        .minimal-search-box { 
+            background: #fff; border: 1px solid #e0e0e0; border-radius: 50px; 
+            padding: 10px 25px; display: flex; align-items: center; max-width: 700px; margin: 0 auto; box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+        }
+        .minimal-search-box input { border: none; outline: none; width: 100%; font-size: 1.2rem; }
+        .minimal-search-box button { background: #000; color: #fff; border: none; border-radius: 50%; width: 45px; height: 45px; }
+        #response-area { white-space: pre-wrap; line-height: 1.6; color: #2c3e50; }
+    </style>
 </head>
 <body>
 
 <div class="container mt-5">
     <div id="builder-phase" class="text-center">
-        <h1 class="header-title mb-2" style="font-weight:700;">SuperPrompter Toy Box</h1>
-        <p class="text-muted mb-5">Select your bricks to ignite your custom AI toy.</p>
+        <h1 class="header-title mb-2" style="font-weight:700; letter-spacing:-1px;">SuperPrompter Toy Box</h1>
+        <p class="text-muted mb-5">Select your bricks to build a custom AI toy.</p>        
         
         <div class="lego-container">
             <h5 class="mb-3">Choose a Brain</h5>
@@ -179,34 +50,28 @@ hr {
                 <div class="brick" onclick="selectBrick(this, 'vibe', 'Sarcastic')">😏 Sarcastic</div>
                 <div class="brick" onclick="selectBrick(this, 'vibe', 'Hyper Excited')">🤩 Excited</div>
                 <div class="brick" onclick="selectBrick(this, 'vibe', 'Grumpy')">😠 Grumpy</div>
-                <div class="brick" onclick="selectBrick(this, 'vibe', 'Very Poetic')">📜 Poetic</div>
-                <div class="brick" onclick="selectBrick(this, 'vibe', 'Confused')">🤔 Confused</div>
+                <div class="brick" onclick="selectBrick(this, 'vibe', 'Very Shakespearian')">📜 Poetic</div>
+                <div class="brick" onclick="selectBrick(this, 'vibe', 'Extremely Forgetful')">🤔 Confused</div>           
             </div>
         </div>
 
-        <button id="ignite-btn" class="btn btn-primary btn-lg mt-5" onclick="ignite()" style="border-radius:30px; padding: 12px 45px;">Ignite Toy</button>
+        <button id="ignite-btn" class="btn btn-primary btn-lg mt-5" onclick="ignite()" style="border-radius:30px; padding: 12px 40px;">Ignite Toy</button>
     </div>
 
     <div id="chat-phase" style="display:none;" class="text-center">
-    <div class="d-flex justify-content-between align-items-center mb-4 mx-auto px-3" style="max-width:700px;">
-        <h2 id="toy-name" style="font-weight:700; font-size: 1.4rem;">Activated</h2>
-        <button class="btn btn-outline-secondary btn-sm" onclick="location.reload()" style="border-radius:20px;">
-            <i class="fas fa-undo"></i> Reset
-        </button>
-    </div>
-
-    <div id="question-cloud" class="d-flex flex-wrap justify-content-center mx-auto mb-4">
+        <div class="d-flex justify-content-between align-items-center mb-5 mx-auto" style="max-width:700px;">
+            <h2 class="m-0" style="font-weight:700;">Where should we begin?</h2>
+            <button class="btn btn-outline-secondary btn-sm" onclick="disassemble()" style="border-radius:20px;">
+                <i class="fas fa-undo"></i> Reset Bricks
+            </button>
         </div>
 
-    <div class="minimal-search-box">
-        <input type="text" id="chat-input" placeholder="Type your message...">
-        <button onclick="sendManualChat()"><i class="fas fa-arrow-up"></i></button>
+        <div class="minimal-search-box">
+            <input type="text" id="chat-input" placeholder="Type your message...">
+            <button onclick="sendToGemma()"><i class="fas fa-arrow-up"></i></button>
+        </div>
+        <div id="response-area" class="mt-4 text-left mx-auto p-4" style="max-width:700px; background: white; border-radius: 15px;"></div>
     </div>
-
-    <div id="response-area" class="mt-4 text-left mx-auto p-4 shadow-sm" style="max-width:700px; background: white; border-radius: 15px;">
-        <p class="text-muted">Toy is ready!</p>
-    </div>
-</div>
 </div>
 
 <script>
@@ -218,53 +83,20 @@ function selectBrick(el, type, val) {
     assembly[type] = val;
 }
 
-function renderQuestions(questions) {
-    const cloud = document.getElementById('question-cloud');
-    if (!cloud) return;
-
-    cloud.innerHTML = '';
-    
-    // Fallback if AI fails to return questions
-    const list = (questions && questions.length > 0) ? questions : ["Who are you?", "Tell me more!", "What next?"];
-
-    list.forEach((q) => {
-        const btn = document.createElement('div');
-        btn.className = 'question-bubble';
-        btn.innerText = q;
-        
-        // Randomize floating animation speed for a natural look
-        btn.style.animationDelay = `${Math.random() * -4}s`;
-        
-        // Standard click for desktop + touchstart for fast mobile response
-        btn.onclick = () => askToy(q);
-        
-        cloud.appendChild(btn);
-    });
-}
-
 function ignite() {
     if(!assembly.brain || !assembly.vibe) return alert("Select a Brain and Vibe first!");
 
     const activeBricks = document.querySelectorAll('.brick.active');
-    const builderPhase = document.getElementById('builder-phase');
+    
+    // Temporarily show chat phase to get the position for animation
     const chatPhase = document.getElementById('chat-phase');
-
-    // --- MOBILE SAFE POSITIONING ---
-    // We show the phase invisibly to get coordinates
     chatPhase.style.display = 'block';
-    chatPhase.style.opacity = '0';
-    chatPhase.style.position = 'absolute'; 
-    
-    // Target the response area or search box
-    const target = document.querySelector('.minimal-search-box') || document.getElementById('response-area');
+    chatPhase.style.visibility = 'hidden';
+    const target = document.querySelector('.minimal-search-box');
     const targetRect = target.getBoundingClientRect();
-    
-    // Reset state immediately
     chatPhase.style.display = 'none';
-    chatPhase.style.opacity = '1';
-    chatPhase.style.position = 'relative';
+    chatPhase.style.visibility = 'visible';
 
-    // --- ANIMATION ---
     activeBricks.forEach(brick => {
         const rect = brick.getBoundingClientRect();
         const flyer = brick.cloneNode(true);
@@ -276,147 +108,64 @@ function ignite() {
 
         setTimeout(() => {
             flyer.style.transition = "all 0.8s cubic-bezier(0.7, 0, 0.3, 1)";
-            // Fallback to center screen if targetRect failed (common on small mobile)
-            const destTop = targetRect.top > 0 ? targetRect.top : window.innerHeight / 2;
-            const destLeft = targetRect.left > 0 ? (targetRect.left + (targetRect.width / 2) - (rect.width / 2)) : window.innerWidth / 2;
-            
-            flyer.style.top = destTop + 'px';
-            flyer.style.left = destLeft + 'px';
+            flyer.style.top = targetRect.top + 'px';
+            flyer.style.left = (targetRect.left + (targetRect.width / 2) - (rect.width / 2)) + 'px';
             flyer.style.opacity = '0';
             flyer.style.transform = 'scale(0.2)';
         }, 50);
         setTimeout(() => flyer.remove(), 800);
     });
 
-    // --- THE SWITCH ---
     fetch('/ignite_toy', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify(assembly)
-    }).then(res => res.json())
-      .then(data => {
+    }).then(() => {
         setTimeout(() => {
-            builderPhase.style.display = 'none';
-            chatPhase.style.display = 'block';
-            
-            // If you still want to use bubbles on desktop but search on mobile:
-            if(window.innerWidth > 768 && typeof renderQuestions === "function") {
-                renderQuestions(data.initial_questions);
-            }
-            window.scrollTo(0,0);
+            document.getElementById('builder-phase').style.display = 'none';
+            document.getElementById('chat-phase').style.display = 'block';
         }, 600);
-    }).catch(err => {
-        // Emergency switch if backend fails
-        builderPhase.style.display = 'none';
-        chatPhase.style.display = 'block';
     });
 }
 
-function askToy(question) {
+function disassemble() {
+    fetch('/reset_toy', {method: 'POST'}).then(() => {
+        location.reload();
+    });
+}
+
+function sendToGemma() {
+    const input = document.getElementById('chat-input');
     const output = document.getElementById('response-area');
-    if (!output) return;
+    const msg = input.value;
+    if (!msg) return;
 
-    // 1. Force dark text and clean layout for mobile
-    output.innerHTML = `
-        <div class="user-msg mb-3" style="color: #007bff; font-weight: bold;"><strong>You:</strong> ${question}</div>
-        <hr>
-        <div id="toy-response-container" style="color: #2c3e50; min-height: 50px;">
-            <div class='spinner-border spinner-border-sm text-primary'></div> 
-            <em class='text-muted'>Toy is thinking...</em>
-        </div>
-    `;
-
-    // Ensure the URL pattern is exactly what mobile expects
-    const baseUrl = window.location.origin.replace(/\/$/, "");
-    const url = baseUrl + '/chat_toy';
-
-    fetch(url, {
+    output.innerHTML = "<em class='text-muted'>Toy is thinking...</em>";
+    
+    fetch('/chat_toy', {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-            'X-Requested-With': 'XMLHttpRequest' // Helps mobile firewalls recognize the request
-        },
-        body: JSON.stringify({message: question.trim()})
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({message: msg})
     })
-    .then(res => {
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        return res.text(); // Get as text first to prevent "pattern" errors during auto-parse
-    })
-    .then(text => {
-        try {
-            // Clean the string of any invisible AI characters before parsing
-            const cleanText = text.replace(/[\x00-\x1F\x7F-\x9F]/g, ""); 
-            const data = JSON.parse(cleanText);
-            
-            const responseContainer = document.getElementById('toy-response-container');
-            if (!responseContainer) return;
-            
-            responseContainer.innerHTML = ""; 
-            
-            if (data.reply) {
-                // Remove any asterisks or backticks that trigger mobile display patterns
-                const finalReply = data.reply.replace(/[*`#]/g, '');
-                
-                if (window.innerWidth < 768) {
-                    responseContainer.innerText = finalReply;
-                    // Force a scroll to the new answer on mobile
-                    window.scrollTo({ top: output.offsetTop - 20, behavior: 'smooth' });
-                } else {
-                    typeWriterInto(finalReply, responseContainer);
-                }
-            }
-        } catch (parseError) {
-            throw new Error("Invalid response pattern");
-        }
+    .then(res => res.json())
+    .then(data => {
+        output.innerHTML = "";
+        typeWriter(data.reply, 0);
+        input.value = '';
     })
     .catch(err => {
-        console.error("Mobile Fetch Error:", err);
-        const container = document.getElementById('toy-response-container');
-        if (container) {
-            container.innerHTML = `<span class='text-danger'>⚠️ Connection lost. Please try again.</span>`;
-        }
+        output.innerText = "Error: My gears are jammed!";
     });
 }
 
-
-// Optimized typewriter for specific containers
-function typeWriterInto(text, element, i = 0) {
-    if (i < text.length) {
-        element.innerText = text.substring(0, i + 1);
-        setTimeout(() => typeWriterInto(text, element, i + 1), 15);
-    }
-}
-    
-    function sendManualChat() {
-    const input = document.getElementById('chat-input');
-    const message = input.value.trim();
-    if (!message) return;
-
-    // Call your existing askToy function
-    askToy(message);
-    
-    // Clear input and hide keyboard on mobile
-    input.value = '';
-    input.blur(); 
-}
-
-// Support for the "Enter" key on mobile keyboards
-document.getElementById('chat-input')?.addEventListener('keypress', function (e) {
-    if (e.key === 'Enter') {
-        sendManualChat();
-    }
-});
-
-function typeWriter(text, i, callback) {
+function typeWriter(text, i) {
     const output = document.getElementById("response-area");
     if (i < text.length) {
         output.innerText = text.substring(0, i + 1);
-        setTimeout(() => typeWriter(text, i + 1, callback), 20);
-    } else if (callback) {
-        callback();
+        setTimeout(() => typeWriter(text, i + 1), 15);
     }
 }
 </script>
+
 </body>
 </html>
