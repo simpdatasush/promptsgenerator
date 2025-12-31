@@ -153,44 +153,55 @@ function renderQuestions(questions) {
 }
 
 function ignite() {
-    if(!assembly.brain || !assembly.vibe) return alert("Select Brain and Vibe!");
+    if(!assembly.brain || !assembly.vibe) return alert("Select a Brain and Vibe first!");
 
-    // Basic Fly Animation Logic
-    const activeBricks = document.querySelectorAll('.brick.active');
-    const target = document.querySelector('.minimal-search-box') || document.body;
-    const targetRect = target.getBoundingClientRect();
+    const builderPhase = document.getElementById('builder-phase');
+    const chatPhase = document.getElementById('chat-phase');
 
-    activeBricks.forEach(brick => {
-        const rect = brick.getBoundingClientRect();
-        const flyer = brick.cloneNode(true);
-        flyer.classList.add('brick-fly');
-        flyer.style.top = rect.top + 'px';
-        flyer.style.left = rect.left + 'px';
-        document.body.appendChild(flyer);
+    // 1. Visual feedback so you know the button worked
+    const btn = document.getElementById('ignite-btn');
+    const originalText = btn.innerText;
+    btn.innerText = "Igniting...";
+    btn.disabled = true;
 
-        setTimeout(() => {
-            flyer.style.transition = "all 0.8s cubic-bezier(0.7, 0, 0.3, 1)";
-            flyer.style.top = (targetRect.top || 500) + 'px';
-            flyer.style.left = (targetRect.left || 100) + 'px';
-            flyer.style.opacity = '0';
-            flyer.style.transform = 'scale(0.2)';
-        }, 50);
-        setTimeout(() => flyer.remove(), 800);
-    });
+    // 2. Use Absolute URL to prevent mobile path errors
+    const url = window.location.origin + '/ignite_toy';
 
-    fetch('/ignite_toy', {
+    fetch(url, {
         method: 'POST',
-        headers: {'Content-Type': 'application/json'},
+        headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+        },
         body: JSON.stringify(assembly)
     })
-    .then(res => res.json())
+    .then(res => {
+        // If the server redirects to login, this catch will trigger
+        if (res.redirected) {
+            window.location.href = res.url; // Manually take user to login
+            return;
+        }
+        if (!res.ok) throw new Error('Server Error: ' + res.status);
+        return res.json();
+    })
     .then(data => {
-        setTimeout(() => {
-            document.getElementById('builder-phase').style.display = 'none';
-            document.getElementById('chat-phase').style.display = 'block';
-            renderQuestions(data.initial_questions);
+        if (data && data.status === "ignited") {
+            // Success: Switch phases
+            builderPhase.style.display = 'none';
+            chatPhase.style.display = 'block';
+            
+            // Render bubbles (Desktop only logic inside the function)
+            if (typeof renderQuestions === "function") {
+                renderQuestions(data.initial_questions);
+            }
             window.scrollTo(0,0);
-        }, 600);
+        }
+    })
+    .catch(err => {
+        console.error("Ignite Failed:", err);
+        alert("Connection Error. Please check if you are still logged in.");
+        btn.innerText = originalText;
+        btn.disabled = false;
     });
 }
 
