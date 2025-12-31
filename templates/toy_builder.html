@@ -127,6 +127,43 @@ function renderQuestions(questions) {
 function ignite() {
     if(!assembly.brain || !assembly.vibe) return alert("Select Brain and Vibe!");
 
+    const activeBricks = document.querySelectorAll('.brick.active');
+    
+    // 1. Get Target Position (flying toward the response area)
+    const chatPhase = document.getElementById('chat-phase');
+    chatPhase.style.display = 'block';
+    chatPhase.style.visibility = 'hidden';
+    const target = document.getElementById('response-area');
+    const targetRect = target.getBoundingClientRect();
+    chatPhase.style.display = 'none';
+    chatPhase.style.visibility = 'visible';
+
+    // 2. Execute Flight Animation
+    activeBricks.forEach(brick => {
+        const rect = brick.getBoundingClientRect();
+        const flyer = brick.cloneNode(true);
+        
+        flyer.classList.add('brick-fly');
+        flyer.style.position = 'fixed';
+        flyer.style.top = rect.top + 'px';
+        flyer.style.left = rect.left + 'px';
+        flyer.style.width = rect.width + 'px';
+        flyer.style.margin = "0"; // Remove margins for accurate flight
+        document.body.appendChild(flyer);
+
+        setTimeout(() => {
+            flyer.style.transition = "all 0.8s cubic-bezier(0.7, 0, 0.3, 1)";
+            // Fly to the center-top of the response area
+            flyer.style.top = targetRect.top + 'px';
+            flyer.style.left = (targetRect.left + (targetRect.width / 2) - (rect.width / 2)) + 'px';
+            flyer.style.opacity = '0';
+            flyer.style.transform = 'scale(0.2) rotate(20deg)';
+        }, 50);
+
+        setTimeout(() => flyer.remove(), 800);
+    });
+
+    // 3. Fetch Data and Switch Phases
     fetch('/ignite_toy', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
@@ -134,10 +171,13 @@ function ignite() {
     })
     .then(res => res.json())
     .then(data => {
-        document.getElementById('builder-phase').style.display = 'none';
-        document.getElementById('chat-phase').style.display = 'block';
-        document.getElementById('toy-name').innerText = `${assembly.vibe} ${assembly.brain}`;
-        renderQuestions(data.initial_questions);
+        // Wait for the bricks to "land" before showing the chat
+        setTimeout(() => {
+            document.getElementById('builder-phase').style.display = 'none';
+            document.getElementById('chat-phase').style.display = 'block';
+            document.getElementById('toy-name').innerText = `${assembly.vibe} ${assembly.brain}`;
+            renderQuestions(data.initial_questions);
+        }, 700);
     });
 }
 
