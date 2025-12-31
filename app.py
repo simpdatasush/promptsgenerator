@@ -1546,29 +1546,55 @@ def ignite_toy():
     initial_qs = question_sets.get(brain, ["Who are you?", "Tell me a secret.", "What next?"])
     return jsonify({"status": "ignited", "initial_questions": initial_qs})
 
-# 3. Chat Route
 @app.route('/chat_toy', methods=['POST'])
 @login_required
 def chat_toy():
-    user_input = request.json.get('message')
-    toy_identity = session.get('toy_identity', "A friendly toy.")
+    # 1. Ensure the request is valid JSON
+    data = request.get_json()
+    if not data:
+        return jsonify({"reply": "I didn't hear you!", "new_questions": []}), 400
+
+    user_input = data.get('message')
+    
+    # 2. Stronger fallback for identity
+    toy_identity = session.get('toy_identity')
+    if not toy_identity:
+        # If session lost, try to reconstruct from last known state or default
+        toy_identity = "A friendly AI toy"
     
     prompt = (
-        f"Act as: {toy_identity}\nUser clicked: {user_input}\n"
-        "Instructions: Respond in character. At the end, provide exactly 3 "
-        "short follow-up questions for the user to click. "
+        f"Act as: {toy_identity}\n"
+        f"User input: {user_input}\n"
+        "Instructions: Respond in character. Provide 3 short follow-up questions."
         "Format: [Q: Question 1] [Q: Question 2] [Q: Question 3]"
     )
 
     try:
-        response = response = gemma_client.models.generate_content(model='gemma-3-4b-it', contents=prompt, config=gemma_types.GenerateContentConfig(max_output_tokens=400, temperature=0.85))
+        # 3. Add a timeout to the AI call for mobile networks
+        response = gemma_client.models.generate_content(
+            model='gemma-3-4b-it', 
+            contents=prompt, 
+            config=gemma_types.GenerateContentConfig(max_output_tokens=400, temperature=0.85)
+        )
+        
+        if not response or not response.text:
+             raise ValueError("Empty AI response")
+
         reply_text, follow_up_qs = process_toy_response(response.text)
+        
         return jsonify({
             "reply": reply_text,
             "new_questions": follow_up_qs if follow_up_qs else ["Tell me more!", "That's wild!", "What else?"]
         })
     except Exception as e:
-        return jsonify({"reply": "My gears jammed!", "new_questions": ["Try again?"]}), 500
+        # LOG the error so you can see it in your terminal!
+        print(f"ERROR: {str(e)}") 
+        return jsonify({
+            "reply": f"My gears jammed! (Error: {str(e)[:20]})", 
+            "new_questions": ["Try again?"]
+        }), 500
+
+
 
 # 5. Reset Route
 @app.route('/reset_toy', methods=['POST'])
