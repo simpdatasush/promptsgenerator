@@ -133,7 +133,27 @@
 }
 
 /* Ensure gap utility works across all screen sizes */
-.gap-3 { gap: 1rem !important; }        
+.gap-3 { gap: 1rem !important; } 
+
+.user-msg {
+    color: #007bff;
+    font-size: 0.9rem;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+#toy-response-container {
+    color: #2c3e50;
+    font-size: 1.1rem;
+    white-space: pre-wrap;
+}
+
+hr {
+    border: 0;
+    border-top: 1px solid #eee;
+    margin: 15px 0;
+}
 
 </style>
 </head>
@@ -291,34 +311,55 @@ function ignite() {
         chatPhase.style.display = 'block';
     });
 }
+
 function askToy(question) {
     const output = document.getElementById('response-area');
-    // 1. Visual feedback that the click worked
-    output.innerHTML = "<div class='spinner-border spinner-border-sm text-primary'></div> <em class='text-muted'>Toy is thinking...</em>";
+    
+    // 1. Clear previous content and show BOTH the user's message and the loading state
+    output.innerHTML = `
+        <div class="user-msg mb-3">
+            <strong>You:</strong> ${question}
+        </div>
+        <hr>
+        <div id="toy-response-container">
+            <div class='spinner-border spinner-border-sm text-primary'></div> 
+            <em class='text-muted'>Toy is thinking...</em>
+        </div>
+    `;
 
     fetch('/chat_toy', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({message: question})
     })
-    .then(res => {
-        if (!res.ok) throw new Error("Server Error");
-        return res.json();
-    })
+    .then(res => res.json())
     .then(data => {
-        output.innerHTML = ""; // Clear "thinking" message
-        // 2. Use a simpler way to display if typewriter is failing on mobile
+        const responseContainer = document.getElementById('toy-response-container');
+        responseContainer.innerHTML = ""; // Clear the loading spinner
+        
+        // 2. Display the reply
         if (window.innerWidth < 768) {
-            output.innerText = data.reply; // Direct display for speed on mobile
+            responseContainer.innerText = data.reply;
         } else {
-            typeWriter(data.reply, 0); // Animated for desktop
+            // Re-using typewriter but targeting the new container
+            typeWriterInto(data.reply, responseContainer);
         }
     })
     .catch(err => {
-        output.innerHTML = "<span class='text-danger'>⚠️ My gears are jammed! Try again.</span>";
-        console.error(err);
+        document.getElementById('toy-response-container').innerHTML = 
+            "<span class='text-danger'>⚠️ My gears are jammed!</span>";
     });
 }
+
+
+// Optimized typewriter for specific containers
+function typeWriterInto(text, element, i = 0) {
+    if (i < text.length) {
+        element.innerText = text.substring(0, i + 1);
+        setTimeout(() => typeWriterInto(text, element, i + 1), 15);
+    }
+}
+    
     function sendManualChat() {
     const input = document.getElementById('chat-input');
     const message = input.value.trim();
