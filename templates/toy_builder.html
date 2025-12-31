@@ -11,59 +11,107 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     
     <style>
-        <style>
-        /* Essential styles included here in case style.css is cached */
-        body { background-color: #f0f2f5; font-family: 'Segoe UI', sans-serif; }
-        .brick { 
-            padding: 15px 25px; background: #fff; border: 2px solid #e0e0e0; 
-            border-radius: 12px; cursor: pointer; font-weight: 600; transition: all 0.3s;
-        }
-        .brick.active { border-color: #007bff; background: #f0f7ff; transform: scale(1.05); }
-        .brick-fly { position: fixed; z-index: 9999; background: #007bff !important; color: white !important; border-radius: 50px !important; pointer-events: none; }
+    /* Essential styles included here in case style.css is cached */
+    body { background-color: #f0f2f5; font-family: 'Segoe UI', sans-serif; }
+    
+    .brick { 
+        padding: 15px 25px; background: #fff; border: 2px solid #e0e0e0; 
+        border-radius: 12px; cursor: pointer; font-weight: 600; transition: all 0.3s;
+        display: inline-block; /* Ensures consistent sizing */
+    }
+    
+    .brick.active { border-color: #007bff; background: #f0f7ff; transform: scale(1.05); }
+    
+    .brick-fly { 
+        position: fixed; z-index: 9999; background: #007bff !important; 
+        color: white !important; border-radius: 50px !important; pointer-events: none; 
+    }
+    
+    /* Floating Animation for Popups */
+    @keyframes float {
+        0% { transform: translateY(0px); }
+        50% { transform: translateY(-12px); }
+        100% { transform: translateY(0px); }
+    }
+
+    #question-cloud {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        align-items: center;
+        gap: 10px;
+        min-height: 150px; /* Crucial: Prevents container from collapsing on mobile */
+        padding: 20px 10px;
+        width: 100%;
+        overflow: visible !important; /* Allows bubbles to float upward without clipping */
+    }
+
+    .question-bubble {
+        background: #ffffff;
+        border: 2px solid #e0e0e0;
+        padding: 12px 22px;
+        border-radius: 30px;
+        cursor: pointer;
+        display: inline-block;
+        margin: 10px;
+        font-weight: 600;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        animation: float 4s ease-in-out infinite;
+        transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        max-width: 250px;
+        word-wrap: break-word; /* Prevents long questions from breaking layout */
+    }
+
+    .question-bubble:hover {
+        transform: scale(1.1);
+        background: #f0f7ff;
+        border-color: #007bff;
+        animation-play-state: paused;
+    }
+
+    #response-area {
+        background: white;
+        border-radius: 20px;
+        padding: 30px;
+        min-height: 100px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+        border-left: 6px solid #007bff;
+        font-size: 1.1rem;
+        line-height: 1.6;
+        margin-bottom: 20px;
+    }
+
+    /* --- MOBILE RESPONSIVE SECTION --- */
+    @media (max-width: 768px) {
+        .header-title { font-size: 1.8rem; }
         
-        /* Floating Animation for Popups */
-        @keyframes float {
-            0% { transform: translateY(0px); }
-            50% { transform: translateY(-12px); }
-            100% { transform: translateY(0px); }
-        }
-
-        .question-bubble {
-            background: #ffffff;
-            border: 2px solid #e0e0e0;
-            padding: 12px 22px;
-            border-radius: 30px;
-            cursor: pointer;
-            display: inline-block;
-            margin: 10px;
-            font-weight: 600;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
-            animation: float 4s ease-in-out infinite;
-            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            max-width: 250px;
-        }
-
-        .question-bubble:hover {
-            transform: scale(1.1);
-            background: #f0f7ff;
-            border-color: #007bff;
-            animation-play-state: paused;
+        .brick {
+            padding: 10px 15px;
+            font-size: 0.9rem;
+            min-width: 90px;
         }
 
         #response-area {
-            background: white;
-            border-radius: 20px;
-            padding: 30px;
-            min-height: 100px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
-            border-left: 6px solid #007bff;
-            font-size: 1.1rem;
-            line-height: 1.6;
+            padding: 20px;
+            font-size: 1rem;
+            margin: 0 10px 20px 10px; /* Adds side margins on mobile */
         }
 
-        /* Mobile specific grid-gap for bricks */
-        .gap-3 { gap: 1rem !important; }
-    </style>
+        .question-bubble {
+            padding: 8px 16px;
+            margin: 5px;
+            font-size: 0.9rem;
+            max-width: 90%; /* Ensures bubble doesn't exceed screen width */
+            animation: float 3s ease-in-out infinite; /* Slightly faster float for small screens */
+        }
+
+        #question-cloud {
+            min-height: 250px; /* Extra height for stacked bubbles */
+        }
+    }
+
+    .gap-3 { gap: 1rem !important; }
+</style>
 </head>
 <body>
 
@@ -123,15 +171,29 @@ function selectBrick(el, type, val) {
 
 function renderQuestions(questions) {
     const cloud = document.getElementById('question-cloud');
-    cloud.innerHTML = '';
+    cloud.innerHTML = ''; 
+    
+    // Ensure cloud is visible
+    cloud.style.display = 'flex';
+    cloud.style.opacity = '1';
+
     questions.forEach((q) => {
         const btn = document.createElement('div');
         btn.className = 'question-bubble';
         btn.innerText = q;
+        
+        // Randomize floating animation
         btn.style.animationDelay = `${Math.random() * -4}s`;
+        
+        // Mobile tap support: use 'touchstart' logic if needed, 
+        // but standard onclick usually works fine.
         btn.onclick = () => askToy(q);
+        
         cloud.appendChild(btn);
     });
+    
+    // Force a layout "repaint" for mobile Safari
+    void cloud.offsetHeight; 
 }
 
 function ignite() {
