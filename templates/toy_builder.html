@@ -11,6 +11,16 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     
     <style>
+        <style>
+        /* Essential styles included here in case style.css is cached */
+        body { background-color: #f0f2f5; font-family: 'Segoe UI', sans-serif; }
+        .brick { 
+            padding: 15px 25px; background: #fff; border: 2px solid #e0e0e0; 
+            border-radius: 12px; cursor: pointer; font-weight: 600; transition: all 0.3s;
+        }
+        .brick.active { border-color: #007bff; background: #f0f7ff; transform: scale(1.05); }
+        .brick-fly { position: fixed; z-index: 9999; background: #007bff !important; color: white !important; border-radius: 50px !important; pointer-events: none; }
+        
         /* Floating Animation for Popups */
         @keyframes float {
             0% { transform: translateY(0px); }
