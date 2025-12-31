@@ -315,11 +315,8 @@ function ignite() {
 function askToy(question) {
     const output = document.getElementById('response-area');
     
-    // 1. Clear previous content and show BOTH the user's message and the loading state
     output.innerHTML = `
-        <div class="user-msg mb-3">
-            <strong>You:</strong> ${question}
-        </div>
+        <div class="user-msg mb-3"><strong>You:</strong> ${question}</div>
         <hr>
         <div id="toy-response-container">
             <div class='spinner-border spinner-border-sm text-primary'></div> 
@@ -327,27 +324,46 @@ function askToy(question) {
         </div>
     `;
 
-    fetch('/chat_toy', {
+    // Added window.location.origin to force absolute paths on mobile
+    const url = window.location.origin + '/chat_toy';
+
+    fetch(url, {
         method: 'POST',
-        headers: {'Content-Type': 'application/json'},
+        headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+        },
         body: JSON.stringify({message: question})
     })
-    .then(res => res.json())
+    .then(res => {
+        if (!res.ok) {
+            throw new Error(`Server status: ${res.status}`);
+        }
+        return res.json();
+    })
     .then(data => {
         const responseContainer = document.getElementById('toy-response-container');
-        responseContainer.innerHTML = ""; // Clear the loading spinner
+        if (!responseContainer) return;
         
-        // 2. Display the reply
-        if (window.innerWidth < 768) {
-            responseContainer.innerText = data.reply;
+        responseContainer.innerHTML = ""; 
+        
+        if (data.reply) {
+            if (window.innerWidth < 768) {
+                responseContainer.innerText = data.reply;
+            } else {
+                typeWriterInto(data.reply, responseContainer);
+            }
         } else {
-            // Re-using typewriter but targeting the new container
-            typeWriterInto(data.reply, responseContainer);
+            throw new Error("Empty reply from server");
         }
     })
     .catch(err => {
-        document.getElementById('toy-response-container').innerHTML = 
-            "<span class='text-danger'>⚠️ My gears are jammed!</span>";
+        console.error("Fetch error:", err);
+        const container = document.getElementById('toy-response-container');
+        if (container) {
+            // This will show the ACTUAL error (e.g., TypeError: Failed to fetch)
+            container.innerHTML = `<span class='text-danger'>⚠️ Error: ${err.message}</span>`;
+        }
     });
 }
 
