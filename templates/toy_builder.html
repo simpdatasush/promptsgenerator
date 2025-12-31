@@ -204,54 +204,40 @@ function ignite() {
     if(!assembly.brain || !assembly.vibe) return alert("Select Brain and Vibe!");
 
     const activeBricks = document.querySelectorAll('.brick.active');
-    
-    // 1. Mobile-Safe Target Calculation
-    // We show the phase but keep it invisible to calculate coordinates
-    const chatPhase = document.getElementById('chat-phase');
     const builderPhase = document.getElementById('builder-phase');
-    
-    chatPhase.style.display = 'block';
-    chatPhase.style.opacity = '0'; // Use opacity instead of visibility for better mobile support
-    chatPhase.style.position = 'absolute'; // Prevent it from pushing page content down during calc
-    
-    const target = document.getElementById('response-area');
-    const targetRect = target.getBoundingClientRect();
-    
-    // Reset chat phase state for the actual transition later
-    chatPhase.style.display = 'none';
-    chatPhase.style.opacity = '1';
-    chatPhase.style.position = 'relative';
+    const chatPhase = document.getElementById('chat-phase');
 
-    // 2. Execute Flight Animation
+    // 1. Prepare the chat phase invisibly for mobile math
+    chatPhase.style.opacity = '0';
+    chatPhase.style.display = 'block';
+    chatPhase.style.position = 'absolute';
+    const targetRect = document.getElementById('response-area').getBoundingClientRect();
+    chatPhase.style.display = 'none';
+    chatPhase.style.position = 'relative';
+    chatPhase.style.opacity = '1';
+
+    // 2. Flying Animation (Visual only)
     activeBricks.forEach(brick => {
         const rect = brick.getBoundingClientRect();
         const flyer = brick.cloneNode(true);
-        
         flyer.classList.add('brick-fly');
-        flyer.style.position = 'fixed';
         flyer.style.top = rect.top + 'px';
         flyer.style.left = rect.left + 'px';
         flyer.style.width = rect.width + 'px';
-        flyer.style.margin = "0";
-        flyer.style.zIndex = "10000"; // Ensure it stays above everything on mobile
         document.body.appendChild(flyer);
 
-        setTimeout(() => {
-            flyer.style.transition = "all 0.8s cubic-bezier(0.7, 0, 0.3, 1)";
-            // On mobile, targetRect.top might be 0 if hidden, so we fallback to a center-screen "zoom"
-            const finalTop = targetRect.top > 0 ? targetRect.top : window.innerHeight / 2;
-            const finalLeft = targetRect.left > 0 ? (targetRect.left + (targetRect.width / 2) - (rect.width / 2)) : window.innerWidth / 2;
-
-            flyer.style.top = finalTop + 'px';
-            flyer.style.left = finalLeft + 'px';
-            flyer.style.opacity = '0';
-            flyer.style.transform = 'scale(0.2) rotate(20deg)';
-        }, 50);
-
-        setTimeout(() => flyer.remove(), 850);
+        requestAnimationFrame(() => {
+            setTimeout(() => {
+                flyer.style.top = (targetRect.top || window.innerHeight/2) + 'px';
+                flyer.style.left = (targetRect.left + (targetRect.width / 2) - (rect.width / 2)) + 'px';
+                flyer.style.opacity = '0';
+                flyer.style.transform = 'scale(0.2)';
+            }, 50);
+        });
+        setTimeout(() => flyer.remove(), 800);
     });
 
-    // 3. Fetch Data & Transition
+    // 3. The Fetch & Phase Switch
     fetch('/ignite_toy', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
@@ -259,23 +245,18 @@ function ignite() {
     })
     .then(res => res.json())
     .then(data => {
-        // Step 1: Hide builder, show chat phase
-        document.getElementById('builder-phase').style.display = 'none';
-        const chatPhase = document.getElementById('chat-phase');
-        chatPhase.style.display = 'block';
-        document.getElementById('toy-name').innerText = `${assembly.vibe} ${assembly.brain}`;
-
-        // Step 2: Critical Mobile Delay
-        // We wait 150ms to ensure the display:block has finished layout calculations
+        // Force the switch after a small delay to let animation finish
         setTimeout(() => {
+            builderPhase.style.display = 'none';
+            chatPhase.style.display = 'block';
+            document.getElementById('toy-name').innerText = `${assembly.vibe} ${assembly.brain}`;
+            
+            // Double-trigger for Mobile Rendering
             renderQuestions(data.initial_questions);
-            // Ensure the user is at the top of the new view
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        }, 150);
-    })
-    .catch(err => alert("Connection error. Try again!"));
+            window.scrollTo(0, 0);
+        }, 600);
+    });
 }
-
 function askToy(question) {
     const output = document.getElementById('response-area');
     const cloud = document.getElementById('question-cloud');
