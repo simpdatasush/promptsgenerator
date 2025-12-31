@@ -87,6 +87,25 @@
     #question-cloud {
     overflow: visible !important; /* Allows bubbles to float upward freely */
 }
+        /* Desktop: Hide the Search Box by default */
+.minimal-search-box { 
+    display: none; 
+    background: #fff; border: 1px solid #e0e0e0; border-radius: 50px; 
+    padding: 8px 20px; align-items: center; max-width: 700px; margin: 20px auto; 
+    box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+}
+.minimal-search-box input { border: none; outline: none; width: 100%; font-size: 1.1rem; }
+.minimal-search-box button { background: #000; color: #fff; border: none; border-radius: 50%; width: 40px; height: 40px; flex-shrink: 0; }
+
+/* Mobile: Swap the Question Cloud for the Search Box */
+@media (max-width: 768px) {
+    #question-cloud { 
+        display: none !important; /* Hide bubbles on mobile */
+    }
+    .minimal-search-box { 
+        display: flex; /* Show search box on mobile */
+    }
+}
 
     /* --- MOBILE RESPONSIVE SECTION --- */
     @media (max-width: 768px) {
@@ -151,19 +170,23 @@
     </div>
 
     <div id="chat-phase" style="display:none;" class="text-center px-3">
-    <div class="d-flex justify-content-between align-items-center mb-4 mx-auto" style="max-width:800px;">
-        <h2 id="toy-name" style="font-weight:700; font-size: 1.5rem;">Activated</h2>
+    <div class="d-flex justify-content-between align-items-center mb-4 mx-auto" style="max-width:700px;">
+        <h2 id="toy-name" style="font-weight:700;">Activated</h2>
         <button class="btn btn-outline-secondary btn-sm" onclick="location.reload()" style="border-radius:20px;">
             <i class="fas fa-redo"></i> Reset
         </button>
     </div>
 
-    <div id="response-area" class="text-left mx-auto mb-4 p-4 shadow-sm" style="max-width:800px; min-height: 100px; background: white; border-radius: 20px;">
-        <p class="text-muted">Tap a floating thought to begin...</p>
+    <div id="response-area" class="text-left mx-auto mb-4 p-4" style="max-width:700px; background: white; border-radius: 15px; min-height: 100px;">
+        <p class="text-muted">Waiting for ignition...</p>
     </div>
 
-    <div id="question-cloud" class="d-flex flex-wrap justify-content-center mx-auto w-100" style="max-width:900px; min-height: 250px; position: relative;">
-        </div>
+    <div id="question-cloud" class="d-flex flex-wrap justify-content-center mx-auto mb-4"></div>
+
+    <div class="minimal-search-box">
+        <input type="text" id="chat-input" placeholder="Ask your toy anything...">
+        <button onclick="sendManualChat()"><i class="fas fa-arrow-up"></i></button>
+    </div>
 </div>
 </div>
 
@@ -280,6 +303,20 @@ function askToy(question) {
         });
     });
 }
+    function sendManualChat() {
+    const input = document.getElementById('chat-input');
+    const message = input.value.trim();
+    if (!message) return;
+
+    // Use your existing askToy function logic
+    askToy(message); 
+    input.value = ''; // Clear input after sending
+}
+
+// Allow "Enter" key to send message
+document.getElementById('chat-input')?.addEventListener('keypress', function (e) {
+    if (e.key === 'Enter') sendManualChat();
+});
 
 function typeWriter(text, i, callback) {
     const output = document.getElementById("response-area");
