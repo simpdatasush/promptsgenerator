@@ -293,25 +293,30 @@ function ignite() {
 }
 function askToy(question) {
     const output = document.getElementById('response-area');
-    const cloud = document.getElementById('question-cloud');
-    
-    cloud.style.opacity = '0.3';
-    cloud.style.pointerEvents = 'none';
-    output.innerHTML = "<em>Toy is thinking...</em>";
-    
+    // 1. Visual feedback that the click worked
+    output.innerHTML = "<div class='spinner-border spinner-border-sm text-primary'></div> <em class='text-muted'>Toy is thinking...</em>";
+
     fetch('/chat_toy', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({message: question})
     })
-    .then(res => res.json())
+    .then(res => {
+        if (!res.ok) throw new Error("Server Error");
+        return res.json();
+    })
     .then(data => {
-        output.innerHTML = "";
-        typeWriter(data.reply, 0, () => {
-            renderQuestions(data.new_questions);
-            cloud.style.opacity = '1';
-            cloud.style.pointerEvents = 'auto';
-        });
+        output.innerHTML = ""; // Clear "thinking" message
+        // 2. Use a simpler way to display if typewriter is failing on mobile
+        if (window.innerWidth < 768) {
+            output.innerText = data.reply; // Direct display for speed on mobile
+        } else {
+            typeWriter(data.reply, 0); // Animated for desktop
+        }
+    })
+    .catch(err => {
+        output.innerHTML = "<span class='text-danger'>⚠️ My gears are jammed! Try again.</span>";
+        console.error(err);
     });
 }
     function sendManualChat() {
