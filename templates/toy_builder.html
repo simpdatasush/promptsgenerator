@@ -97,46 +97,44 @@
 .minimal-search-box input { border: none; outline: none; width: 100%; font-size: 1.1rem; }
 .minimal-search-box button { background: #000; color: #fff; border: none; border-radius: 50%; width: 40px; height: 40px; flex-shrink: 0; }
 
-/* Mobile: Swap the Question Cloud for the Search Box */
+/* --- MOBILE RESPONSIVE SECTION (Consolidated) --- */
 @media (max-width: 768px) {
+    /* Phase visibility swap */
     #question-cloud { 
-        display: none !important; /* Hide bubbles on mobile */
+        display: none !important; 
     }
     .minimal-search-box { 
-        display: flex; /* Show search box on mobile */
+        display: flex !important; 
+        width: 95%;
+        padding: 8px 15px;
+        margin: 10px auto;
+    }
+
+    /* Typography & Layout */
+    .header-title { font-size: 1.8rem; }
+    #chat-phase { padding-top: 20px; }
+    
+    .brick {
+        padding: 10px 15px;
+        font-size: 0.9rem;
+        min-width: 90px;
+    }
+
+    #response-area {
+        padding: 20px;
+        font-size: 1rem;
+        margin: 0 10px 20px 10px;
+        white-space: pre-wrap; /* Ensures AI text wraps on small screens */
+    }
+
+    .minimal-search-box input {
+        font-size: 1rem;
     }
 }
 
-    /* --- MOBILE RESPONSIVE SECTION --- */
-    @media (max-width: 768px) {
-        .header-title { font-size: 1.8rem; }
-        
-        .brick {
-            padding: 10px 15px;
-            font-size: 0.9rem;
-            min-width: 90px;
-        }
+/* Ensure gap utility works across all screen sizes */
+.gap-3 { gap: 1rem !important; }        
 
-        #response-area {
-            padding: 20px;
-            font-size: 1rem;
-            margin: 0 10px 20px 10px; /* Adds side margins on mobile */
-        }
-
-        .question-bubble {
-            padding: 8px 16px;
-            margin: 5px;
-            font-size: 0.9rem;
-            max-width: 90%; /* Ensures bubble doesn't exceed screen width */
-            animation: float 3s ease-in-out infinite; /* Slightly faster float for small screens */
-        }
-
-        #question-cloud {
-            min-height: 250px; /* Extra height for stacked bubbles */
-        }
-    }
-
-    .gap-3 { gap: 1rem !important; }
 </style>
 </head>
 <body>
@@ -169,23 +167,24 @@
         <button id="ignite-btn" class="btn btn-primary btn-lg mt-5" onclick="ignite()" style="border-radius:30px; padding: 12px 45px;">Ignite Toy</button>
     </div>
 
-    <div id="chat-phase" style="display:none;" class="text-center px-3">
-    <div class="d-flex justify-content-between align-items-center mb-4 mx-auto" style="max-width:700px;">
-        <h2 id="toy-name" style="font-weight:700;">Activated</h2>
+    <div id="chat-phase" style="display:none;" class="text-center">
+    <div class="d-flex justify-content-between align-items-center mb-4 mx-auto px-3" style="max-width:700px;">
+        <h2 id="toy-name" style="font-weight:700; font-size: 1.4rem;">Activated</h2>
         <button class="btn btn-outline-secondary btn-sm" onclick="location.reload()" style="border-radius:20px;">
-            <i class="fas fa-redo"></i> Reset
+            <i class="fas fa-undo"></i> Reset
         </button>
     </div>
 
-    <div id="response-area" class="text-left mx-auto mb-4 p-4" style="max-width:700px; background: white; border-radius: 15px; min-height: 100px;">
-        <p class="text-muted">Waiting for ignition...</p>
-    </div>
-
-    <div id="question-cloud" class="d-flex flex-wrap justify-content-center mx-auto mb-4"></div>
+    <div id="question-cloud" class="d-flex flex-wrap justify-content-center mx-auto mb-4">
+        </div>
 
     <div class="minimal-search-box">
-        <input type="text" id="chat-input" placeholder="Ask your toy anything...">
+        <input type="text" id="chat-input" placeholder="Type your message...">
         <button onclick="sendManualChat()"><i class="fas fa-arrow-up"></i></button>
+    </div>
+
+    <div id="response-area" class="mt-4 text-left mx-auto p-4 shadow-sm" style="max-width:700px; background: white; border-radius: 15px;">
+        <p class="text-muted">Toy is ready!</p>
     </div>
 </div>
 </div>
@@ -224,22 +223,28 @@ function renderQuestions(questions) {
 }
 
 function ignite() {
-    if(!assembly.brain || !assembly.vibe) return alert("Select Brain and Vibe!");
+    if(!assembly.brain || !assembly.vibe) return alert("Select a Brain and Vibe first!");
 
     const activeBricks = document.querySelectorAll('.brick.active');
     const builderPhase = document.getElementById('builder-phase');
     const chatPhase = document.getElementById('chat-phase');
 
-    // 1. Prepare the chat phase invisibly for mobile math
-    chatPhase.style.opacity = '0';
+    // --- MOBILE SAFE POSITIONING ---
+    // We show the phase invisibly to get coordinates
     chatPhase.style.display = 'block';
-    chatPhase.style.position = 'absolute';
-    const targetRect = document.getElementById('response-area').getBoundingClientRect();
+    chatPhase.style.opacity = '0';
+    chatPhase.style.position = 'absolute'; 
+    
+    // Target the response area or search box
+    const target = document.querySelector('.minimal-search-box') || document.getElementById('response-area');
+    const targetRect = target.getBoundingClientRect();
+    
+    // Reset state immediately
     chatPhase.style.display = 'none';
-    chatPhase.style.position = 'relative';
     chatPhase.style.opacity = '1';
+    chatPhase.style.position = 'relative';
 
-    // 2. Flying Animation (Visual only)
+    // --- ANIMATION ---
     activeBricks.forEach(brick => {
         const rect = brick.getBoundingClientRect();
         const flyer = brick.cloneNode(true);
@@ -249,35 +254,41 @@ function ignite() {
         flyer.style.width = rect.width + 'px';
         document.body.appendChild(flyer);
 
-        requestAnimationFrame(() => {
-            setTimeout(() => {
-                flyer.style.top = (targetRect.top || window.innerHeight/2) + 'px';
-                flyer.style.left = (targetRect.left + (targetRect.width / 2) - (rect.width / 2)) + 'px';
-                flyer.style.opacity = '0';
-                flyer.style.transform = 'scale(0.2)';
-            }, 50);
-        });
+        setTimeout(() => {
+            flyer.style.transition = "all 0.8s cubic-bezier(0.7, 0, 0.3, 1)";
+            // Fallback to center screen if targetRect failed (common on small mobile)
+            const destTop = targetRect.top > 0 ? targetRect.top : window.innerHeight / 2;
+            const destLeft = targetRect.left > 0 ? (targetRect.left + (targetRect.width / 2) - (rect.width / 2)) : window.innerWidth / 2;
+            
+            flyer.style.top = destTop + 'px';
+            flyer.style.left = destLeft + 'px';
+            flyer.style.opacity = '0';
+            flyer.style.transform = 'scale(0.2)';
+        }, 50);
         setTimeout(() => flyer.remove(), 800);
     });
 
-    // 3. The Fetch & Phase Switch
+    // --- THE SWITCH ---
     fetch('/ignite_toy', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify(assembly)
-    })
-    .then(res => res.json())
-    .then(data => {
-        // Force the switch after a small delay to let animation finish
+    }).then(res => res.json())
+      .then(data => {
         setTimeout(() => {
             builderPhase.style.display = 'none';
             chatPhase.style.display = 'block';
-            document.getElementById('toy-name').innerText = `${assembly.vibe} ${assembly.brain}`;
             
-            // Double-trigger for Mobile Rendering
-            renderQuestions(data.initial_questions);
-            window.scrollTo(0, 0);
+            // If you still want to use bubbles on desktop but search on mobile:
+            if(window.innerWidth > 768 && typeof renderQuestions === "function") {
+                renderQuestions(data.initial_questions);
+            }
+            window.scrollTo(0,0);
         }, 600);
+    }).catch(err => {
+        // Emergency switch if backend fails
+        builderPhase.style.display = 'none';
+        chatPhase.style.display = 'block';
     });
 }
 function askToy(question) {
@@ -308,14 +319,19 @@ function askToy(question) {
     const message = input.value.trim();
     if (!message) return;
 
-    // Use your existing askToy function logic
-    askToy(message); 
-    input.value = ''; // Clear input after sending
+    // Call your existing askToy function
+    askToy(message);
+    
+    // Clear input and hide keyboard on mobile
+    input.value = '';
+    input.blur(); 
 }
 
-// Allow "Enter" key to send message
+// Support for the "Enter" key on mobile keyboards
 document.getElementById('chat-input')?.addEventListener('keypress', function (e) {
-    if (e.key === 'Enter') sendManualChat();
+    if (e.key === 'Enter') {
+        sendManualChat();
+    }
 });
 
 function typeWriter(text, i, callback) {
