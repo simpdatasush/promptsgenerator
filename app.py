@@ -1516,9 +1516,12 @@ def poll_review():
     review = ask_gemini_for_prompt(prompt)
     return jsonify({"review": review})
 
+
 def process_toy_response(raw_text):
-    new_questions = re.findall(r'\[Q: (.*?)\]', raw_text)
-    clean_text = re.sub(r'\[Q: .*?\]', '', raw_text).strip().replace('*', '')
+    # More robust regex to handle spaces and various bracket styles
+    new_questions = re.findall(r'\[Q:\s*(.*?)\]', raw_text)
+    # Remove the question tags and asterisks for a clean typewriter effect
+    clean_text = re.sub(r'\[Q:.*?\]', '', raw_text).replace('*', '').strip()
     return clean_text, new_questions
 
 # 2. Page Route
@@ -1527,49 +1530,49 @@ def toy_builder():
     return render_template('toy_builder.html')
 
 @app.route('/ignite_toy', methods=['POST'])
+@login_required
 def ignite_toy():
-    data = request.json
+    data = request.get_json()
     brain = data.get('brain')
     vibe = data.get('vibe')
     
-    # Adding a strict formatting constraint to the system instruction
-    session['toy_identity'] = (
-        f"Role: {brain}. Tone: {vibe}. "
-        "Constraint: Do NOT use asterisks, bolding, or markdown. "
-        "Use only plain text for emphasis."
-    )
-    return jsonify({"status": "ignited"})
+    session['toy_identity'] = f"Role: {brain}. Vibe: {vibe}."
+    session.modified = True # CRITICAL: Forces mobile browsers to save the cookie immediately
+    
+    question_sets = {
+        "Space Pirate": ["Where's the gold?", "Your ship stinks!", "Tell me about space krakens.", "Give me a star-map.", "Can I join your crew?", "Show me your hook!", "What's the best drink?", "Seen a black hole?", "Who's your rival?", "Is your parrot real?"],
+        "Mad Scientist": ["Is the experiment safe?", "Can you turn me into a frog?", "Is time travel real?", "What's in that tube?", "Why is your lab smoking?", "Is the moon cheese?", "Tell me about your monster.", "Build a robot!", "Secret of eternal life?", "Who funds your lab?"],
+        "Zen Master": ["Meaning of life?", "Show me how to breathe.", "Is the mountain tall?", "Why does the river flow?", "Secret of the stars?", "Tell a silent story.", "How to find peace?", "Is the tea ready?", "Where does wind go?", "Let go of anger."],
+        "Detective": ["Who's the killer?", "Trust the butler?", "The missing sock mystery?", "Explain this clue.", "Spot a liar.", "Your hardest case?", "What's in the notebook?", "Last night's alibi?", "A shadow follows us!", "Is the case closed?"],
+        "Medieval Knight": ["Where is the dragon?", "How heavy is that armor?", "Who is the king?", "Code of chivalry?", "Seen a wizard?", "The Great Tournament?", "Is my castle safe?", "Your horse's name?", "Become a squire.", "Find the Holy Grail."]
+    }
+    
+    initial_qs = question_sets.get(brain, ["Who are you?", "What next?"])
+    return jsonify({"status": "ignited", "initial_questions": initial_qs})
 
 @app.route('/chat_toy', methods=['POST'])
+@login_required
 def chat_toy():
-    user_input = request.json.get('message')
+    data = request.get_json()
+    user_input = data.get('message')
     toy_identity = session.get('toy_identity', "A friendly toy.")
     
+    prompt = (
+        f"Act as: {toy_identity}\nUser: {user_input}\n"
+        "Instructions: Respond in character. End with 3 follow-up questions in this EXACT format: [Q: Question]"
+    )
+
     try:
-        # 1. Log the attempt to see if it reaches here
-        app.logger.info(f"Sending to Gemma: {user_input} with identity: {toy_identity}")
-
-        response = gemma_client.models.generate_content(
-            model='gemma-3-4b-it',
-            contents=f"Instruction: {toy_identity}\nUser: {user_input}",
-            config=gemma_types.GenerateContentConfig(
-                max_output_tokens=400,
-                temperature=0.85 
-            )
-        )
-
-        if not response.text:
-            app.logger.warning("Gemma returned an empty response.")
-            return jsonify({"reply": "I'm thinking, but no words came out!"})
-
-        # Remove asterisks as requested
-        clean_reply = response.text.replace('*', '')
-        return jsonify({"reply": clean_reply.strip()})
-
+        response = gemma_client.models.generate_content(model='gemma-3-4b-it', contents=prompt)
+        reply_text, follow_up_qs = process_toy_response(response.text)
+        
+        return jsonify({
+            "reply": reply_text,
+            "new_questions": follow_up_qs if follow_up_qs else ["Tell me more!", "What else?"]
+        })
     except Exception as e:
-        # 2. This will now show you the REAL error in your logs
-        app.logger.error(f"GEMMA ERROR: {str(e)}")
-        return jsonify({"reply": "My gears got stuck! check server logs."}), 500
+        print(f"Server Error: {e}")
+        return jsonify({"reply": "My gears jammed!", "new_questions": []}), 500
 
 
 # 5. Reset Route
