@@ -3,9 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "SuperPrompter",
+      "alternateName": ["Super Prompter", "SP AI"],
+      "url": "https://promptsgenerator.ai/"
+    }
+    </script>
+    
+    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
     <title>SuperPrompter - AI Prompt Generator & News </title>
-    <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
+    
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}" sizes="48x48">
     <link rel="apple-touch-icon" href="{{ url_for('static', filename='favicon.png') }}">
+
+    <meta property="og:site_name" content="SuperPrompter">
+    <meta property="og:type" content="website">
+    
     <!-- Bootstrap CSS for modern styling -->
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <!-- Font Awesome for icons -->
@@ -527,5 +544,14 @@
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register("/static/sw.js");
+    });
+  }
+    
+</script>    
 </body>
 </html>
