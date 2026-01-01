@@ -109,10 +109,11 @@
         
         <div class="d-flex gap-2">
             {# --- TTS BUTTON --- #}
-            <button id="tts-btn" class="btn btn-sm btn-primary rounded-pill px-3" onclick="handleTTS()">
-                <i id="tts-icon" class="fas fa-volume-up mr-1"></i>
-                <span id="tts-text">Listen to Post</span>
-            </button>
+            <button id="tts-btn" class="btn btn-primary btn-sm rounded-pill px-4 shadow-sm" 
+        onclick="handleTTS('{{ post.id }}')">
+    <i id="tts-icon" class="fas fa-volume-up mr-2"></i>
+    <span id="tts-text">Listen to Post</span>
+</button>
 
             {# --- EXISTING COPY BUTTON --- #}
             <button id="copy-link-btn" 
@@ -402,19 +403,18 @@ const ttsText = document.getElementById('tts-text');
 const progressContainer = document.getElementById('audio-controls');
 const progressBar = document.getElementById('audio-progress');
 
-function handleTTS() {
-    // --- STEP 1: BROWSER UNLOCK (Critical for Sound) ---
-    // We play and immediately pause a silent moment to "prime" the audio engine
+function handleTTS(postId) {
+    // 1. SOUND UNLOCK: Prime the audio engine immediately (Critical for Mobile)
     if (!audioLoaded) {
         audio.play().then(() => {
             audio.pause();
         }).catch(e => console.log("Priming audio engine..."));
     }
 
-    // --- STEP 2: TOGGLE PLAY/PAUSE ---
+    // 2. TOGGLE PLAY/PAUSE
     if (audioLoaded) {
         if (audio.paused) {
-            audio.play().then(() => updateUI(true)).catch(err => console.error("Playback failed", err));
+            audio.play().then(() => updateUI(true)).catch(err => console.error(err));
         } else {
             audio.pause();
             updateUI(false);
@@ -422,35 +422,31 @@ function handleTTS() {
         return;
     }
 
-    // --- STEP 3: INITIAL FETCH ---
-    const blogBody = document.getElementById('blog-content-area').innerText;
-
-    // UI State: Loading
+    // 3. UI STATE: Loading
     ttsBtn.disabled = true;
     ttsText.innerText = "Generating Audio...";
     ttsIcon.className = "fas fa-spinner fa-spin mr-2";
 
-    fetch('/generate_audio', {
+    // 4. FETCH: Using the specific Post ID route
+    fetch(`/generate_audio/${postId}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: blogBody })
+        headers: { 'Content-Type': 'application/json' }
     })
     .then(response => {
         if (!response.ok) throw new Error("TTS Generation Failed");
         return response.blob();
     })
     .then(blob => {
-        // --- STEP 4: CREATE BLOB WITH EXPLICIT MIME TYPE ---
+        // 5. CREATE BLOB SOURCE
         const wavBlob = new Blob([blob], { type: 'audio/wav' });
         const audioUrl = URL.createObjectURL(wavBlob);
         
         audio.src = audioUrl;
-        audio.load(); // Force the browser to recognize the new source
-        audioLoaded = true;
+        audio.load();
         
-        // --- STEP 5: ATTEMPT PLAYBACK ---
-        // Wait until enough data is loaded to play without stuttering
+        // 6. ATTEMPT PLAYBACK
         audio.oncanplaythrough = () => {
+            audioLoaded = true;
             ttsBtn.disabled = false;
             progressContainer.style.display = 'block';
             
@@ -458,12 +454,9 @@ function handleTTS() {
                 initAudioListeners();
                 updateUI(true);
             }).catch(err => {
-                console.error("Autoplay prevented after fetch:", err);
-                // If it fails, we show "Resume" so the user can click again
-                updateUI(false);
+                console.error("Autoplay prevented:", err);
+                updateUI(false); // Show Resume button
             });
-            
-            // Clean up the event so it doesn't fire again on seeks
             audio.oncanplaythrough = null;
         };
     })
@@ -473,7 +466,7 @@ function handleTTS() {
         resetTTSUI();
     });
 }
-
+    
 // Your existing listener and format functions stay the same
 function initAudioListeners() {
     const currTimeText = document.getElementById('current-time');
