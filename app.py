@@ -5,6 +5,8 @@
 
 import asyncio
 import os
+import io
+import wave
 import google.generativeai as genai
 from flask import Flask, render_template, request, jsonify, make_response, redirect, url_for, flash, session
 import logging
@@ -17,6 +19,7 @@ import random # NEW: For generating random username suggestions
 import string # NEW: For string manipulation in username generation
 from google import genai as gemma_genai
 from google.genai import types as gemma_types   # Required for GenerateContentConfig
+
 
 # --- NEW IMPORTS FOR AUTHENTICATION ---
 from flask_sqlalchemy import SQLAlchemy
@@ -1588,44 +1591,61 @@ def reset_toy():
     return jsonify({"status": "disassembled"})
 
 
-# ... existing Flask setup ...
-
 @app.route('/generate_audio', methods=['POST'])
 def generate_audio():
-    # 1. Get the blog text from the request
     data = request.get_json()
     raw_text = data.get('text', '')
 
     if not raw_text:
         return jsonify({"error": "No content provided"}), 400
 
-    # 2. Clean the text (Remove HTML tags if any and limit length for speed)
+    # Clean text: remove HTML and collapse whitespace
     clean_text = re.sub('<[^<]+?>', '', raw_text)
     clean_text = " ".join(clean_text.split())[:5000] 
 
     try:
-        # 3. Call Gemini 2.5 Flash TTS
-        # Note: Ensure your SDK is updated to support the TTS response_mime_type
+        # 1. Use the specific Preview model and SpeechConfig from your sample
+        model_id = "gemini-2.5-flash-preview-tts"
+        
         response = gemma_client.models.generate_content(
-            model='gemini-2.5-flash-preview-tts',
+            model=model_id,
             contents=clean_text,
-            config=gemma_types.GenerateContentConfig(
-                response_mime_type="audio/mpeg"
+            config=types.GenerateContentConfig(
+                response_modalities=["AUDIO"],
+                speech_config=types.SpeechConfig(
+                    voice_config=types.VoiceConfig(
+                        prebuilt_voice_config=types.PrebuiltVoiceConfig(
+                            voice_name="Puck" # Puck is great for long-form reading
+                        )
+                    )
+                )
             )
         )
 
-        # 4. Stream the audio bytes back to the browser
-        audio_io = io.BytesIO(response.audio_bytes)
+        # 2. Extract PCM data from the specific response path in your sample
+        pcm_data = response.candidates[0].content.parts[0].inline_data.data
+
+        # 3. Wrap PCM in a WAV container so the browser <audio> tag understands it
+        # We do this in-memory using BytesIO so no files are saved on the server
+        wav_io = io.BytesIO()
+        with wave.open(wav_io, 'wb') as wf:
+            wf.setnchannels(1)   # Mono
+            wf.setsampwidth(2)   # 16-bit
+            wf.setframerate(24000) # Match the model's sample rate
+            wf.writeframes(pcm_data)
+        
+        wav_io.seek(0) # Go to start of stream for sending
+
         return send_file(
-            audio_io, 
-            mimetype="audio/mpeg",
+            wav_io, 
+            mimetype="audio/wav",
             as_attachment=False,
-            download_name="blog_audio.mp3"
+            download_name="blog_reading.wav"
         )
 
     except Exception as e:
-        print(f"TTS ERROR: {str(e)}")
-        return jsonify({"error": "Audio generation failed"}), 500
+        app.logger.error(f"TTS ERROR: {str(e)}")
+        return jsonify({"error": "Failed to generate preview audio"}), 500
     
 
 # --- NEW: Change Password Route ---
