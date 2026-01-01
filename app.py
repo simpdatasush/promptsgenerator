@@ -1550,8 +1550,13 @@ def ignite_toy():
         "Mad Scientist": ["Is the experiment safe?", "Can you turn me into a frog?", "Is time travel real?", "What's in that tube?", "Why is your lab smoking?", "Is the moon cheese?", "Tell me about your monster.", "Build a robot!", "Secret of eternal life?", "Who funds your lab?"],
         "Zen Master": ["Meaning of life?", "Show me how to breathe.", "Is the mountain tall?", "Why does the river flow?", "Secret of the stars?", "Tell a silent story.", "How to find peace?", "Is the tea ready?", "Where does wind go?", "Let go of anger."],
         "Detective": ["Who's the killer?", "Trust the butler?", "The missing sock mystery?", "Explain this clue.", "Spot a liar.", "Your hardest case?", "What's in the notebook?", "Last night's alibi?", "A shadow follows us!", "Is the case closed?"],
-        "Medieval Knight": ["Where is the dragon?", "How heavy is that armor?", "Who is the king?", "Code of chivalry?", "Seen a wizard?", "The Great Tournament?", "Is my castle safe?", "Your horse's name?", "Become a squire.", "Find the Holy Grail."]
-    }
+        "Medieval Knight": ["Where is the dragon?", "How heavy is that armor?", "Who is the king?", "Code of chivalry?", "Seen a wizard?", "The Great Tournament?", "Is my castle safe?", "Your horse's name?", "Become a squire.", "Find the Holy Grail."],
+        "Cyberpunk Hacker": ["Can you bypass the firewall?", "Is the Matrix real?", "Who's tracking my IP?", "What's in the encrypted file?", "Can we crash the mainframe?", "Teach me to code in binary.", "Is my webcam on?", "Who's the best netrunner?", "What's the price of data?", "Can you hack a toaster?"],
+        "Victorian Ghost": ["How did you pass away?", "Is there tea in the afterlife?", "Who's living in your mansion?", "Why are you rattling chains?", "Can you walk through walls?", "Do you miss the sun?", "Are you seeking revenge?", "Write a message in the dust.", "Why is the attic so cold?", "Do you remember 1888?"],
+        "Conspiracy Theorist": ["Is the moon a hologram?", "Who really runs the world?", "What's in the chemtrails?", "Are birds actually drones?", "Tell me about Area 51.", "Why are they hiding the truth?", "Is Elvis still alive?", "What's the secret frequency?", "Who's watching us right now?", "Is the Earth flat or hollow?"],
+        "Grumpy Cat": ["Where is my tuna?", "Stop touching my ears.", "Is it nap time yet?", "Why is the red dot winning?", "Can I knock this off the table?", "Who let the dog in?", "Rub my belly (but only twice).", "Why are you looking at me?", "Is the vacuum gone?", "I require treats. Now."],
+        "Super Villain": ["What's your master plan?", "How do I build a doomsday device?", "Why is the hero so annoying?", "Where is your secret lair?", "Can I be your henchman?", "How do you handle capes?", "Is the world worth saving?", "Why do you monologue so much?", "What's your tragic backstory?", "Is the lava pit ready?"]
+                }
     
     initial_qs = question_sets.get(brain, ["Who are you?", "What next?"])
     
