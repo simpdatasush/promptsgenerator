@@ -1608,7 +1608,7 @@ def generate_audio(post_id):
         response = gemma_client.models.generate_content(
             model=model_id,
             contents=clean_text,
-            config=gemma_types.GenerateContentConfig(
+            config=types.GenerateContentConfig(
                 response_modalities=["AUDIO"],
                 speech_config=types.SpeechConfig(
                     voice_config=types.VoiceConfig(
