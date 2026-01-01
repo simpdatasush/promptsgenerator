@@ -1600,53 +1600,52 @@ def generate_audio():
     if not raw_text:
         return jsonify({"error": "No content provided"}), 400
 
-    # Clean text: remove HTML and collapse whitespace
     clean_text = re.sub('<[^<]+?>', '', raw_text)
     clean_text = " ".join(clean_text.split())[:5000] 
 
     try:
-        # 1. Use the specific Preview model and SpeechConfig from your sample
         model_id = "gemini-2.5-flash-preview-tts"
         
         response = gemma_client.models.generate_content(
             model=model_id,
             contents=clean_text,
-            config=types.GenerateContentConfig(
+            config=gemma_types.GenerateContentConfig(
                 response_modalities=["AUDIO"],
                 speech_config=types.SpeechConfig(
                     voice_config=types.VoiceConfig(
                         prebuilt_voice_config=types.PrebuiltVoiceConfig(
-                            voice_name="Puck" # Puck is great for long-form reading
+                            voice_name="Puck" 
                         )
                     )
                 )
             )
         )
 
-        # 2. Extract PCM data from the specific response path in your sample
+        # Extracting the raw binary data
         pcm_data = response.candidates[0].content.parts[0].inline_data.data
 
-        # 3. Wrap PCM in a WAV container so the browser <audio> tag understands it
-        # We do this in-memory using BytesIO so no files are saved on the server
+        # Create the WAV file in memory
         wav_io = io.BytesIO()
         with wave.open(wav_io, 'wb') as wf:
-            wf.setnchannels(1)   # Mono
-            wf.setsampwidth(2)   # 16-bit
-            wf.setframerate(24000) # Match the model's sample rate
+            wf.setnchannels(1)     # Mono
+            wf.setsampwidth(2)     # 16-bit PCM
+            wf.setframerate(24000) # Gemini 2.5 TTS default sample rate
             wf.writeframes(pcm_data)
         
-        wav_io.seek(0) # Go to start of stream for sending
+        wav_io.seek(0)
 
+        # We set the conditional response headers to prevent browser caching issues
         return send_file(
             wav_io, 
-            mimetype="audio/wav",
+            mimetype="audio/wav", # Crucial for browser decoding
             as_attachment=False,
             download_name="blog_reading.wav"
         )
 
     except Exception as e:
-        app.logger.error(f"TTS ERROR: {str(e)}")
-        return jsonify({"error": "Failed to generate preview audio"}), 500
+        # Log the actual error to your terminal so you can see it
+        print(f"CRITICAL TTS ERROR: {str(e)}")
+        return jsonify({"error": str(e)}), 500
     
 
 # --- NEW: Change Password Route ---
