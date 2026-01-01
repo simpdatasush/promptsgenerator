@@ -9,6 +9,28 @@
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
     <link rel="apple-touch-icon" href="{{ url_for('static', filename='favicon.png') }}">
     <link rel="stylesheet" href="style.css">
+
+<style>
+    /* Styling for the Seeker Bar */
+    #audio-progress {
+        -webkit-appearance: none;
+        height: 6px;
+        background: #dee2e6;
+        border-radius: 10px;
+        outline: none;
+        cursor: pointer;
+    }
+    #audio-progress::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        width: 14px;
+        height: 14px;
+        background: #007bff;
+        border-radius: 50%;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .gap-2 { gap: 0.5rem !important; }
+    .gap-3 { gap: 1rem !important; }
+</style>    
     
 </head>
 <body>
@@ -371,6 +393,110 @@ document.addEventListener('DOMContentLoaded', () => {
             });
     }
 });
+let audioLoaded = false;
+const audio = document.getElementById('blog-audio');
+const ttsBtn = document.getElementById('tts-btn');
+const ttsIcon = document.getElementById('tts-icon');
+const ttsText = document.getElementById('tts-text');
+const progressContainer = document.getElementById('audio-controls');
+const progressBar = document.getElementById('audio-progress');
+
+function handleTTS() {
+    // 1. If already playing/paused, just toggle
+    if (audioLoaded) {
+        if (audio.paused) {
+            audio.play();
+            updateUI(true);
+        } else {
+            audio.pause();
+            updateUI(false);
+        }
+        return;
+    }
+
+    // 2. Initial Fetch: Extract blog content
+    // Ensure your blog content is wrapped in a div with id="blog-content-area"
+    const blogBody = document.getElementById('blog-content-area').innerText;
+
+    // UI State: Loading
+    ttsBtn.disabled = true;
+    ttsText.innerText = "Generating Audio...";
+    ttsIcon.className = "fas fa-spinner fa-spin mr-2";
+
+    fetch('/generate_audio', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: blogBody })
+    })
+    .then(response => {
+        if (!response.ok) throw new Error("TTS Generation Failed");
+        return response.blob();
+    })
+    .then(blob => {
+        const audioUrl = URL.createObjectURL(blob);
+        audio.src = audioUrl;
+        audioLoaded = true;
+        
+        // UI State: Ready/Playing
+        ttsBtn.disabled = false;
+        progressContainer.style.display = 'block';
+        audio.play();
+        initAudioListeners();
+        updateUI(true);
+    })
+    .catch(err => {
+        console.error(err);
+        alert("Sorry, could not generate audio for this post.");
+        resetTTSUI();
+    });
+}
+
+function initAudioListeners() {
+    const currTimeText = document.getElementById('current-time');
+    const durationText = document.getElementById('duration');
+
+    audio.ontimeupdate = () => {
+        const progress = (audio.currentTime / audio.duration) * 100;
+        progressBar.value = progress;
+        currTimeText.innerText = formatTime(audio.currentTime);
+    };
+
+    audio.onloadedmetadata = () => {
+        durationText.innerText = formatTime(audio.duration);
+    };
+
+    progressBar.oninput = () => {
+        const seek = (progressBar.value / 100) * audio.duration;
+        audio.currentTime = seek;
+    };
+}
+
+function updateUI(isPlaying) {
+    if (isPlaying) {
+        ttsIcon.className = "fas fa-pause mr-2";
+        ttsText.innerText = "Pause Audio";
+        ttsBtn.classList.replace('btn-primary', 'btn-secondary');
+    } else {
+        ttsIcon.className = "fas fa-play mr-2";
+        ttsText.innerText = "Resume Audio";
+        ttsBtn.classList.replace('btn-secondary', 'btn-primary');
+    }
+}
+
+function resetTTSUI() {
+    ttsIcon.className = "fas fa-volume-up mr-2";
+    ttsText.innerText = "Listen to Post";
+    ttsBtn.disabled = false;
+    ttsBtn.classList.replace('btn-secondary', 'btn-primary');
+    progressContainer.style.display = 'none';
+    audioLoaded = false;
+}
+
+function formatTime(seconds) {
+    const min = Math.floor(seconds / 60);
+    const sec = Math.floor(seconds % 60);
+    return `${min}:${sec < 10 ? '0' : ''}${sec}`;
+}
 </script>
 </body>
 </html>
