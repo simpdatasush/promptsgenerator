@@ -1599,7 +1599,7 @@ def generate_audio(post_id):
         post = News.query.get_or_404(post_id)
 
         # 2. Prepare text (Title + Description)
-        text_to_read = f"Title: {post.title}. {post.description}"
+        text_to_read = f"Title: {post.title}"
         clean_text = re.sub('<[^<]+?>', '', text_to_read)
         clean_text = " ".join(clean_text.split())[:5000]
 
