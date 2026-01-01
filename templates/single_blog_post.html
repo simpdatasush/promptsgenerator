@@ -393,6 +393,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
     }
 });
+
 let audioLoaded = false;
 const audio = document.getElementById('blog-audio');
 const ttsBtn = document.getElementById('tts-btn');
@@ -402,11 +403,18 @@ const progressContainer = document.getElementById('audio-controls');
 const progressBar = document.getElementById('audio-progress');
 
 function handleTTS() {
-    // 1. If already playing/paused, just toggle
+    // --- STEP 1: BROWSER UNLOCK (Critical for Sound) ---
+    // We play and immediately pause a silent moment to "prime" the audio engine
+    if (!audioLoaded) {
+        audio.play().then(() => {
+            audio.pause();
+        }).catch(e => console.log("Priming audio engine..."));
+    }
+
+    // --- STEP 2: TOGGLE PLAY/PAUSE ---
     if (audioLoaded) {
         if (audio.paused) {
-            audio.play();
-            updateUI(true);
+            audio.play().then(() => updateUI(true)).catch(err => console.error("Playback failed", err));
         } else {
             audio.pause();
             updateUI(false);
@@ -414,8 +422,7 @@ function handleTTS() {
         return;
     }
 
-    // 2. Initial Fetch: Extract blog content
-    // Ensure your blog content is wrapped in a div with id="blog-content-area"
+    // --- STEP 3: INITIAL FETCH ---
     const blogBody = document.getElementById('blog-content-area').innerText;
 
     // UI State: Loading
@@ -433,16 +440,32 @@ function handleTTS() {
         return response.blob();
     })
     .then(blob => {
-        const audioUrl = URL.createObjectURL(blob);
+        // --- STEP 4: CREATE BLOB WITH EXPLICIT MIME TYPE ---
+        const wavBlob = new Blob([blob], { type: 'audio/wav' });
+        const audioUrl = URL.createObjectURL(wavBlob);
+        
         audio.src = audioUrl;
+        audio.load(); // Force the browser to recognize the new source
         audioLoaded = true;
         
-        // UI State: Ready/Playing
-        ttsBtn.disabled = false;
-        progressContainer.style.display = 'block';
-        audio.play();
-        initAudioListeners();
-        updateUI(true);
+        // --- STEP 5: ATTEMPT PLAYBACK ---
+        // Wait until enough data is loaded to play without stuttering
+        audio.oncanplaythrough = () => {
+            ttsBtn.disabled = false;
+            progressContainer.style.display = 'block';
+            
+            audio.play().then(() => {
+                initAudioListeners();
+                updateUI(true);
+            }).catch(err => {
+                console.error("Autoplay prevented after fetch:", err);
+                // If it fails, we show "Resume" so the user can click again
+                updateUI(false);
+            });
+            
+            // Clean up the event so it doesn't fire again on seeks
+            audio.oncanplaythrough = null;
+        };
     })
     .catch(err => {
         console.error(err);
@@ -451,14 +474,17 @@ function handleTTS() {
     });
 }
 
+// Your existing listener and format functions stay the same
 function initAudioListeners() {
     const currTimeText = document.getElementById('current-time');
     const durationText = document.getElementById('duration');
 
     audio.ontimeupdate = () => {
-        const progress = (audio.currentTime / audio.duration) * 100;
-        progressBar.value = progress;
-        currTimeText.innerText = formatTime(audio.currentTime);
+        if (!isNaN(audio.duration)) {
+            const progress = (audio.currentTime / audio.duration) * 100;
+            progressBar.value = progress;
+            currTimeText.innerText = formatTime(audio.currentTime);
+        }
     };
 
     audio.onloadedmetadata = () => {
@@ -466,8 +492,10 @@ function initAudioListeners() {
     };
 
     progressBar.oninput = () => {
-        const seek = (progressBar.value / 100) * audio.duration;
-        audio.currentTime = seek;
+        if (!isNaN(audio.duration)) {
+            const seek = (progressBar.value / 100) * audio.duration;
+            audio.currentTime = seek;
+        }
     };
 }
 
@@ -487,16 +515,19 @@ function resetTTSUI() {
     ttsIcon.className = "fas fa-volume-up mr-2";
     ttsText.innerText = "Listen to Post";
     ttsBtn.disabled = false;
-    ttsBtn.classList.replace('btn-secondary', 'btn-primary');
+    if (ttsBtn.classList.contains('btn-secondary')) {
+        ttsBtn.classList.replace('btn-secondary', 'btn-primary');
+    }
     progressContainer.style.display = 'none';
     audioLoaded = false;
 }
 
 function formatTime(seconds) {
+    if (isNaN(seconds)) return "0:00";
     const min = Math.floor(seconds / 60);
     const sec = Math.floor(seconds % 60);
     return `${min}:${sec < 10 ? '0' : ''}${sec}`;
-}
+}    
 </script>
 </body>
 </html>
