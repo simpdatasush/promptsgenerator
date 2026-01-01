@@ -1586,6 +1586,46 @@ def chat_toy():
 def reset_toy():
     session.pop('toy_identity', None)
     return jsonify({"status": "disassembled"})
+
+
+# ... existing Flask setup ...
+
+@app.route('/generate_audio', methods=['POST'])
+def generate_audio():
+    # 1. Get the blog text from the request
+    data = request.get_json()
+    raw_text = data.get('text', '')
+
+    if not raw_text:
+        return jsonify({"error": "No content provided"}), 400
+
+    # 2. Clean the text (Remove HTML tags if any and limit length for speed)
+    clean_text = re.sub('<[^<]+?>', '', raw_text)
+    clean_text = " ".join(clean_text.split())[:5000] 
+
+    try:
+        # 3. Call Gemini 2.5 Flash TTS
+        # Note: Ensure your SDK is updated to support the TTS response_mime_type
+        response = gemma_client.models.generate_content(
+            model='gemini-2.5-flash-tts',
+            contents=clean_text,
+            config=gemma_types.GenerateContentConfig(
+                response_mime_type="audio/mpeg"
+            )
+        )
+
+        # 4. Stream the audio bytes back to the browser
+        audio_io = io.BytesIO(response.audio_bytes)
+        return send_file(
+            audio_io, 
+            mimetype="audio/mpeg",
+            as_attachment=False,
+            download_name="blog_audio.mp3"
+        )
+
+    except Exception as e:
+        print(f"TTS ERROR: {str(e)}")
+        return jsonify({"error": "Audio generation failed"}), 500
     
 
 # --- NEW: Change Password Route ---
