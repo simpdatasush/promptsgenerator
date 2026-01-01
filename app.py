@@ -1592,20 +1592,19 @@ def reset_toy():
     return jsonify({"status": "disassembled"})
 
 
-@app.route('/generate_audio', methods=['POST'])
-def generate_audio():
-    data = request.get_json()
-    raw_text = data.get('text', '')
-
-    if not raw_text:
-        return jsonify({"error": "No content provided"}), 400
-
-    clean_text = re.sub('<[^<]+?>', '', raw_text)
-    clean_text = " ".join(clean_text.split())[:5000] 
-
+@app.route('/generate_audio/<int:post_id>', methods=['POST'])
+def generate_audio(post_id):
     try:
+        # 1. Fetch by ID (Matching your analyze-post logic)
+        post = News.query.get_or_404(post_id)
+
+        # 2. Prepare text (Title + Description)
+        text_to_read = f"Title: {post.title}. {post.description}"
+        clean_text = re.sub('<[^<]+?>', '', text_to_read)
+        clean_text = " ".join(clean_text.split())[:5000]
+
+        # 3. Gemini 2.5 Flash TTS Call
         model_id = "gemini-2.5-flash-preview-tts"
-        
         response = gemma_client.models.generate_content(
             model=model_id,
             contents=clean_text,
@@ -1621,31 +1620,22 @@ def generate_audio():
             )
         )
 
-        # Extracting the raw binary data
+        # 4. Extract PCM and Wrap as WAV
         pcm_data = response.candidates[0].content.parts[0].inline_data.data
-
-        # Create the WAV file in memory
+        
         wav_io = io.BytesIO()
         with wave.open(wav_io, 'wb') as wf:
-            wf.setnchannels(1)     # Mono
-            wf.setsampwidth(2)     # 16-bit PCM
-            wf.setframerate(24000) # Gemini 2.5 TTS default sample rate
+            wf.setnchannels(1)
+            wf.setsampwidth(2)
+            wf.setframerate(24000)
             wf.writeframes(pcm_data)
         
         wav_io.seek(0)
-
-        # We set the conditional response headers to prevent browser caching issues
-        return send_file(
-            wav_io, 
-            mimetype="audio/wav", # Crucial for browser decoding
-            as_attachment=False,
-            download_name="blog_reading.wav"
-        )
+        return send_file(wav_io, mimetype="audio/wav")
 
     except Exception as e:
-        # Log the actual error to your terminal so you can see it
-        print(f"CRITICAL TTS ERROR: {str(e)}")
-        return jsonify({"error": str(e)}), 500
+        app.logger.error(f"TTS Error for post {post_id}: {e}")
+        return str(e), 500
     
 
 # --- NEW: Change Password Route ---
