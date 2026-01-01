@@ -1607,7 +1607,7 @@ def generate_audio():
         # 3. Call Gemini 2.5 Flash TTS
         # Note: Ensure your SDK is updated to support the TTS response_mime_type
         response = gemma_client.models.generate_content(
-            model='gemini-2.5-flash-tts',
+            model='gemini-2.5-flash-preview-tts',
             contents=clean_text,
             config=gemma_types.GenerateContentConfig(
                 response_mime_type="audio/mpeg"
