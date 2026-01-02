@@ -1600,19 +1600,26 @@ def reset_toy():
 @app.route('/generate_audio/<int:post_id>', methods=['POST'])
 def generate_audio(post_id):
     try:
-        # 1. Fetch by ID (Matching your analyze-post logic)
+        # 1. DATABASE FETCH
         post = News.query.get_or_404(post_id)
 
-        # 2. Prepare text (Title + Description)
-        text_to_read = f"Title: {post.title}"
-        clean_text = re.sub('<[^<]+?>', '', text_to_read)
-        clean_text = " ".join(clean_text.split())[:5000]
+        # 2. AI SUMMARIZATION (The Intermediate Step)
+        # We create a specific instruction for the Audio Summary
+        summary_instruction = (
+            f"You are a professional news reader. Summarize the following blog post into a "
+            f"clear, engaging 3-sentence summary for an audio broadcast. "
+            f"Do not use bullet points or special characters. "
+            f"Post Content: {post.description[:2000]}"
+        )
+        
+        # Call your existing function (Block 2) to get the text summary
+        audio_script = ask_gemini_for_prompt(summary_instruction)
 
-        # 3. Gemini 2.5 Flash TTS Call
+        # 3. TEXT TO SPEECH (Block 1 Logic)
         model_id = "gemini-2.5-flash-preview-tts"
         response = gemma_client.models.generate_content(
             model=model_id,
-            contents=clean_text,
+            contents=audio_script, # We now read the summary, not the full post
             config=gemma_types.GenerateContentConfig(
                 response_modalities=["AUDIO"],
                 speech_config=gemma_types.SpeechConfig(
@@ -1625,7 +1632,7 @@ def generate_audio(post_id):
             )
         )
 
-        # 4. Extract PCM and Wrap as WAV
+        # 4. EXTRACT PCM AND STREAM WAV
         pcm_data = response.candidates[0].content.parts[0].inline_data.data
         
         wav_io = io.BytesIO()
@@ -1639,7 +1646,7 @@ def generate_audio(post_id):
         return send_file(wav_io, mimetype="audio/wav")
 
     except Exception as e:
-        app.logger.error(f"TTS Error for post {post_id}: {e}")
+        app.logger.error(f"Integrated TTS Error for post {post_id}: {e}")
         return str(e), 500
     
 
