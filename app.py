@@ -512,7 +512,7 @@ def landing():
     has_new_jobs = False
 
     # 1. Fetch latest 6 news items
-    raw_news_items = News.query.order_by(News.timestamp.desc()).limit(6).all()
+    raw_news_items = News.query.filter(~News.description.like('[AI_APP]%')).order_by(News.timestamp.desc()).limit(6).all()
     
     # Process news items to clean the description for the summary view
     cleaned_news_items = []
@@ -939,7 +939,7 @@ def all_news():
     search_query = request.args.get('q', '').strip()
     page = request.args.get('page', 1, type=int)
 
-    query = News.query.order_by(News.timestamp.desc())
+    query = News.query.filter(~News.description.like('[AI_APP]%')).order_by(News.timestamp.desc()).all()
 
     if search_query:
         search_term = f"%{search_query}%"
@@ -1648,6 +1648,50 @@ def generate_audio(post_id):
     except Exception as e:
         app.logger.error(f"Integrated TTS Error for post {post_id}: {e}")
         return str(e), 500
+
+@app.route('/ai-apps')
+def all_ai_apps():
+    # Only fetch entries that were tagged as AI Apps via the admin_ai_apps page
+    ai_apps = News.query.filter(News.description.like('[AI_APP]%')).order_by(News.timestamp.desc()).all()
+    return render_template('all_ai_apps.html', ai_apps=ai_apps)
+
+@app.route('/admin/ai-apps')
+@login_required
+@admin_required
+def admin_ai_apps():
+    # Only fetch items that have our special tag in the description
+    ai_apps = News.query.filter(News.description.like('[AI_APP]%')).order_by(News.timestamp.desc()).all()
+    return render_template('admin_ai_apps.html', ai_apps=ai_apps)
+
+@app.route('/admin/ai-apps/add', methods=['POST'])
+@login_required
+@admin_required
+def add_ai_app():
+    title = request.form.get('title')
+    url = request.form.get('url')
+    # Prepend the tag so we can distinguish this from news later
+    description = f"[AI_APP] {request.form.get('description')}"
+    
+    new_app = News(
+        title=title, 
+        url=url, 
+        description=description, 
+        user_id=current_user.id
+    )
+    db.session.add(new_app)
+    db.session.commit()
+    flash('AI App added to directory successfully!', 'success')
+    return redirect(url_for('admin_ai_apps'))
+
+@app.route('/admin/ai-apps/delete/<int:app_id>', methods=['POST'])
+@login_required
+@admin_required
+def delete_ai_app(app_id):
+    app_to_delete = News.query.get_or_404(app_id)
+    db.session.delete(app_to_delete)
+    db.session.commit()
+    flash('App removed from directory.', 'info')
+    return redirect(url_for('admin_ai_apps'))
     
 
 # --- NEW: Change Password Route ---
