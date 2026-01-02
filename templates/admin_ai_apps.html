@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+   <meta charset="UTF-8">
+   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+   <title>Admin AI Apps Directory</title>
+   <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+   <style>
+       body {
+           font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+           background-color: #f0f2f5;
+           color: #333;
+           display: flex;
+           flex-direction: column;
+           min-height: 100vh;
+       }
+       .app-header {
+           background-color: #007bff; /* Different color to distinguish Admin App section */
+           color: #ffffff;
+           padding: 15px 30px;
+           display: flex;
+           justify-content: space-between;
+           align-items: center;
+           box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+       }
+       .header-title { margin: 0; font-size: 1.5rem; color: white; }
+       .container {
+           flex-grow: 1;
+           max-width: 900px;
+           background-color: #fff;
+           padding: 30px;
+           border-radius: 8px;
+           box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+           margin: 30px auto;
+       }
+       .app-item {
+           border: 1px solid #e0e0e0;
+           border-radius: 8px;
+           padding: 15px;
+           margin-bottom: 15px;
+           display: flex;
+           justify-content: space-between;
+           background: #fdfdfd;
+       }
+       .app-badge {
+           background: #e7f3ff;
+           color: #007bff;
+           padding: 2px 8px;
+           border-radius: 4px;
+           font-size: 0.75rem;
+           font-weight: bold;
+       }
+       .footer {
+           padding: 15px;
+           text-align: center;
+           font-size: 0.8rem;
+           background-color: #e9ecef;
+           margin-top: auto;
+       }
+   </style>
+</head>
+<body>
+   <header class="app-header">
+       <div class="logo-section d-flex align-items-center">
+           <h1 class="header-title"><i class="fas fa-th-large mr-2"></i> AI Apps Manager</h1>
+       </div>
+       <div class="auth-section">
+           <a href="{{ url_for('all_ai_apps') }}" class="btn btn-outline-light btn-sm mr-2">View Directory</a>
+           <a href="{{ url_for('app_home') }}" class="btn btn-outline-light btn-sm">Back to Home</a>
+       </div>
+   </header>
+
+   <div class="container">
+       <h2>Manage AI Apps Directory</h2>
+
+       {% with messages = get_flashed_messages(with_categories=true) %}
+           {% if messages %}
+               {% for category, message in messages %}
+                   <div class="alert alert-{{ category }}">{{ message }}</div>
+               {% endfor %}
+           {% endif %}
+       {% endwith %}
+
+       <div class="card mb-4 border-primary">
+           <div class="card-header bg-primary text-white">
+               <h4 class="mb-0">Register New AI Tool</h4>
+           </div>
+           <div class="card-body">
+               <form action="{{ url_for('add_ai_app') }}" method="POST">
+                   <div class="form-group">
+                       <label>App Name / Title:</label>
+                       <input type="text" class="form-control" name="title" placeholder="e.g. ChatGPT, Midjourney" required>
+                   </div>
+                   <div class="form-group">
+                       <label>Official URL:</label>
+                       <input type="url" class="form-control" name="url" placeholder="https://..." required>
+                   </div>
+                   <div class="form-group">
+                       <label>Short Description (The Brick Text):</label>
+                       <textarea class="form-control" name="description" rows="3" placeholder="Explain what this tool does in 2 sentences..." required></textarea>
+                   </div>
+                   <button type="submit" class="btn btn-primary btn-block">Add to Directory</button>
+               </form>
+           </div>
+       </div>
+
+       <div class="card">
+           <div class="card-header">
+               <h4>Current Directory Items</h4>
+           </div>
+           <div class="card-body">
+               {% if ai_apps %}
+                   {% for app in ai_apps %}
+                       <div class="app-item">
+                           <div>
+                               <span class="app-badge">AI TOOL</span>
+                               <h5 class="mt-1"><a href="{{ app.url }}" target="_blank">{{ app.title }}</a></h5>
+                               <p class="text-muted small mb-1">{{ app.description | replace('[AI_APP]', '') | truncate(100) }}</p>
+                               <small class="text-secondary">Added on: {{ app.timestamp.strftime('%Y-%m-%d') }}</small>
+                           </div>
+                           <div class="actions">
+                               <form action="{{ url_for('delete_ai_app', app_id=app.id) }}" method="POST" onsubmit="return confirm('Delete this tool from the directory?');">
+                                   <button type="submit" class="btn btn-outline-danger btn-sm"><i class="fas fa-trash"></i></button>
+                               </form>
+                           </div>
+                       </div>
+                   {% endfor %}
+               {% else %}
+                   <p class="text-center text-muted">No AI apps listed yet.</p>
+               {% endif %}
+           </div>
+       </div>
+   </div>
+
+   <footer class="footer">
+       <div class="footer-content">
+           Directory Management System &nbsp; | &nbsp; <a href="mailto:info@promptsgenerator.ai">Support</a>
+       </div>
+   </footer>
+</body>
+</html>
