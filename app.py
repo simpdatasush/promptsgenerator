@@ -939,7 +939,7 @@ def all_news():
     search_query = request.args.get('q', '').strip()
     page = request.args.get('page', 1, type=int)
 
-    query = News.query.filter(~News.description.like('[AI_APP]%')).order_by(News.timestamp.desc()).all()
+    query = News.query.order_by(News.timestamp.desc()).limit(6).all()
 
     if search_query:
         search_term = f"%{search_query}%"
