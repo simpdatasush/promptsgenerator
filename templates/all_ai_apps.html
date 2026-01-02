@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+   <meta charset="UTF-8">
+   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+   <title>AI Apps Directory</title>
+   <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+   <style>
+       body {
+           font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+           background-color: #f8f9fa;
+           color: #333;
+           display: flex;
+           flex-direction: column;
+           min-height: 100vh;
+       }
+       /* Consistent Header with your Admin Style */
+       .app-header {
+           background-color: #007bff;
+           color: #ffffff;
+           padding: 15px 30px;
+           display: flex;
+           justify-content: space-between;
+           align-items: center;
+           box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+       }
+       .header-title { margin: 0; font-size: 1.5rem; color: white; font-weight: bold; }
+       
+       .container {
+           flex-grow: 1;
+           max-width: 1200px;
+           margin: 40px auto;
+       }
+
+       /* The Brick Grid Styles */
+       .brick-grid {
+           display: grid;
+           grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+           gap: 25px;
+       }
+
+       .brick-card {
+           background: #ffffff;
+           border: 1px solid #e0e0e0;
+           border-radius: 12px;
+           padding: 20px;
+           transition: all 0.3s ease;
+           display: flex;
+           flex-direction: column;
+           height: 200px; /* Fixed height for rectangular 'brick' look */
+           box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+       }
+
+       .brick-card:hover {
+           transform: translateY(-5px);
+           box-shadow: 0 8px 15px rgba(0,0,0,0.1);
+           border-color: #007bff;
+       }
+
+       .brick-title {
+           font-size: 1.25rem;
+           font-weight: 700;
+           color: #2c3e50;
+           margin-bottom: 10px;
+       }
+
+       .brick-desc {
+           font-size: 0.9rem;
+           color: #6c757d;
+           display: -webkit-box;
+           -webkit-line-clamp: 3;
+           -webkit-box-orient: vertical;
+           overflow: hidden;
+           flex-grow: 1;
+       }
+
+       .brick-link {
+           margin-top: 15px;
+           font-weight: 600;
+           text-decoration: none !important;
+           color: #007bff;
+           display: flex;
+           align-items: center;
+       }
+
+       .brick-link i {
+           font-size: 0.8rem;
+           margin-left: 5px;
+       }
+
+       .footer {
+           padding: 20px;
+           text-align: center;
+           font-size: 0.85rem;
+           background-color: #ffffff;
+           border-top: 1px solid #dee2e6;
+           margin-top: auto;
+       }
+   </style>
+</head>
+<body>
+   <header class="app-header">
+       <div class="logo-section">
+           <h1 class="header-title">AI Apps Directory</h1>
+       </div>
+       <div class="nav-section">
+           <a href="{{ url_for('app_home') }}" class="btn btn-outline-light btn-sm mr-2">Home</a>
+           <a href="{{ url_for('all_news') }}" class="btn btn-outline-light btn-sm">Daily News</a>
+       </div>
+   </header>
+
+   <div class="container">
+       <div class="text-center mb-5">
+           <h2 class="font-weight-bold">Curated AI Tools</h2>
+           <p class="text-muted">Hand-picked applications to boost your productivity.</p>
+       </div>
+
+       <div class="brick-grid">
+           {% if ai_apps %}
+               {% for app in ai_apps %}
+               <div class="brick-card">
+                   <div class="brick-title">{{ app.title }}</div>
+                   <div class="brick-desc">
+                       {{ app.description | replace('[AI_APP]', '') }}
+                   </div>
+                   <a href="{{ app.url }}" target="_blank" class="brick-link">
+                       Open App <i class="fas fa-external-link-alt"></i>
+                   </a>
+               </div>
+               {% endfor %}
+           {% else %}
+               <div class="col-12 text-center py-5">
+                   <i class="fas fa-robot fa-3x text-light mb-3"></i>
+                   <p class="text-muted">No apps found in the directory yet.</p>
+               </div>
+           {% endif %}
+       </div>
+   </div>
+
+   <footer class="footer">
+       <div class="footer-content">
+           &copy; 2026 AI Directory Management &nbsp; | &nbsp; 
+           <a href="mailto:info@promptsgenerator.ai">Contact Support</a>
+       </div>
+   </footer>
+</body>
+</html>
