@@ -971,7 +971,14 @@ def all_news():
         else:
              share_link = url_for('view_news_item', item_id=article.id, _external=True)
 
-        summary_snippet = article.description[:SUMMARY_LENGTH] + '...' if article.description and len(article.description) > SUMMARY_LENGTH else (article.description or "")
+        # 1. Get raw description
+        raw_desc = article.description if article.description else ""
+
+        # 2. STRIP TAGS HERE IN PYTHON (using your existing strip_html_tags function)
+        # This ensures no <p> or <span> tags make it into the 'summary' field
+        clean_description = strip_html_tags(raw_desc)
+
+        summary_snippet = clean_description[:SUMMARY_LENGTH] + ('...' if len(clean_description) > SUMMARY_LENGTH else '')
 
         formatted_articles.append({
             "id": article.id,
