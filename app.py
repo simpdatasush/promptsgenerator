@@ -938,29 +938,33 @@ ITEMS_PER_PAGE = 10
 def all_news():
     search_query = request.args.get('q', '').strip()
     page = request.args.get('page', 1, type=int)
+    ITEMS_PER_PAGE = 10 # Ensure this is defined locally if not global
 
-    # 1. START with the base query (Do NOT use .all() or .limit() yet)
-    # We filter out items with the [AI_APP] tag and ensure description isn't NULL
-    query = News.query.filter(
+    # 1. THE BASE QUERY OBJECT (No .all(), No .limit() here!)
+    # We must keep this as a 'BaseQuery' object for pagination to work
+    news_query_object = News.query.filter(
         News.description.isnot(None), 
         ~News.description.like('[AI_APP]%')
-    ).order_by(News.timestamp.desc()).limit(6).all()
+    ).order_by(News.timestamp.desc())
 
-    # 2. Add search filter if query exists
+    # 2. ADD SEARCH FILTERS (If search_query exists)
     if search_query:
         search_term = f"%{search_query}%"
-        query = query.filter(
+        news_query_object = news_query_object.filter(
             (News.title.ilike(search_term)) | (News.description.ilike(search_term))
         )
 
-    # 3. APPLY Pagination to the query object
-    pagination = query.paginate(page=page, per_page=ITEMS_PER_PAGE, error_out=False)
-    articles = pagination.items
+    # 3. PAGINATE THE QUERY OBJECT
+    # This is where the error was happening. 'news_query_object' MUST NOT be a list.
+    pagination = news_query_object.paginate(page=page, per_page=ITEMS_PER_PAGE, error_out=False)
+    
+    # 4. GET THE ACTUAL ITEMS FROM PAGINATION
+    articles_from_db = pagination.items
 
     formatted_articles = []
     SUMMARY_LENGTH = 200
 
-    for article in articles:
+    for article in articles_from_db:
         # Generate the Internal Shareable Link
         if article.id in blog_id_tracker:
              blog_uuid = article.url.split('/')[-1]
@@ -968,13 +972,7 @@ def all_news():
         else:
              share_link = url_for('view_news_item', item_id=article.id, _external=True)
 
-        # Summary generation logic (cleaned to remove [AI_APP] just in case)
-        raw_description = article.description if article.description else ""
-        if article.id in blog_id_tracker:
-            clean_text = strip_html_tags(raw_description)
-            summary_snippet = clean_text[:SUMMARY_LENGTH] + ('...' if len(clean_text) > SUMMARY_LENGTH else '')
-        else:
-            summary_snippet = raw_description[:SUMMARY_LENGTH] + ('...' if len(raw_description) > SUMMARY_LENGTH else '')
+        summary_snippet = article.description[:SUMMARY_LENGTH] + '...' if article.description and len(article.description) > SUMMARY_LENGTH else (article.description or "")
 
         formatted_articles.append({
             "id": article.id,
