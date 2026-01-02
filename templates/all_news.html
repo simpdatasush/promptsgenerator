@@ -224,38 +224,34 @@ body {
         </div>
     </div>
 
-    {% if articles %}
-        {% for article in articles %}
-            <div class="article-card">
-                <img src="https://loremflickr.com/100/100/ai,technology?lock={{ loop.index }}" 
-                 class="article-thumb" 
-                 alt="" 
-                 onerror="this.style.display='none'">
-                
-                <h3 class="article-title">
-                    {% if article.id in blog_id_tracker %}
-                        <a href="#" data-toggle="modal" data-target="#blogModal" 
-                           data-title="{{ article.title }}" data-content="{{ article.description }}" 
-                           style="color: var(--color-secondary); text-decoration: none;">
-                            <i class="fas fa-book-open" style="font-size: 0.9em;"></i> {{ article.title }} <small>(*)</small>
-                        </a>
-                    {% else %}
-                        <a href="{{ article.source_url }}" target="_blank" style="color: inherit; text-decoration: none;">
-                            {{ article.title }} <i class="fas fa-external-link-alt" style="font-size: 0.8em;"></i>
-                        </a>
-                    {% endif %}
-                </h3>
-                <p>{{ article.summary | truncate(200) }}</p>
-                <div class="article-meta">
-                    <span><i class="fas fa-calendar-alt"></i> Published: {{ article.date_published.strftime('%b %d, %Y') }}</span>
-                    {% if article.share_url %}
-                    <button type="button" class="btn btn-sm btn-outline-secondary copy-link-btn" data-url="{{ article.share_url }}">
-                        <i class="fas fa-copy"></i> Copy Link
-                    </button>
-                    {% endif %}
-                </div>
-            </div>
-        {% endfor %}
+    {% for article in articles %}
+    <div class="article-card">
+        <img src="https://loremflickr.com/100/100/ai,technology?lock={{ loop.index }}" class="article-thumb" alt="">
+        
+        <h3 class="article-title">
+            {% if article.id in blog_id_tracker %}
+                <a href="#" data-toggle="modal" data-target="#blogModal" 
+                   data-title="{{ article.title }}" data-content="{{ article.summary }}" 
+                   style="color: var(--color-primary); text-decoration: none;">
+                    <i class="fas fa-book-open"></i> {{ article.title }}
+                </a>
+            {% else %}
+                <a href="{{ article.source_url }}" target="_blank" style="color: inherit; text-decoration: none;">
+                    {{ article.title }} <i class="fas fa-external-link-alt"></i>
+                </a>
+            {% endif %}
+        </h3>
+        <p>{{ article.summary }}</p>
+        <div class="article-meta">
+            <span><i class="fas fa-calendar-alt"></i> Published: {{ article.date_published.strftime('%b %d, %Y') if hasattr(article.date_published, 'strftime') else article.date_published }}</span>
+            {% if article.share_url %}
+            <button type="button" class="btn btn-sm btn-outline-secondary copy-link-btn" data-url="{{ article.share_url }}">
+                <i class="fas fa-copy"></i> Copy Link
+            </button>
+            {% endif %}
+        </div>
+    </div>
+{% endfor %}
 
         <div class="d-flex justify-content-center mt-5">
             <nav>
