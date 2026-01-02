@@ -412,14 +412,16 @@
         </div>
         <div class="auth-section">
             {% if current_user.is_authenticated %}
+                <a href="{{ url_for('all_ai_apps') }}" class="btn btn-outline-light btn-sm mr-2">>AI Apps Directory</a>
+                <a href="{{ url_for('llm_benchmark') }}" class="btn btn-outline-light btn-sm mr-2">LLM Benchmarks</a>
                 <a href="{{ url_for('toy_builder') }}" class="btn btn-outline-light btn-sm mr-2"><i class="fas fa-puzzle-piece"></i> AI Toy Box</a>
                 <a href="{{ url_for('app_home') }}" class="btn btn-outline-light btn-sm mr-2">App Home</a>
-                <a href="{{ url_for('llm_benchmark') }}" class="btn btn-outline-light btn-sm mr-2">LLM Benchmarks</a>
                 <span class="navbar-text mr-2">Logged in as: <strong>{{ current_user.username }}</strong></span>
                 <a href="{{ url_for('logout') }}" class="btn btn-outline-light btn-sm">Logout</a>
             {% else %}
-                <a href="{{ url_for('toy_builder') }}" class="btn btn-outline-light btn-sm mr-2"><i class="fas fa-puzzle-piece"></i> AI Toy Box</a>
+                <a href="{{ url_for('all_ai_apps') }}" class="btn btn-outline-light btn-sm mr-2">>AI Apps Directory</a>
                 <a href="{{ url_for('llm_benchmark') }}" class="btn btn-outline-light btn-sm mr-2">LLM Benchmarks</a>
+                <a href="{{ url_for('toy_builder') }}" class="btn btn-outline-light btn-sm mr-2"><i class="fas fa-puzzle-piece"></i> AI Toy Box</a>
                 <a href="{{ url_for('login') }}" class="btn btn-outline-light btn-sm mr-2">Login</a>
                 <a href="{{ url_for('register') }}" class="btn btn-light btn-sm">Register</a>
             {% endif %}
