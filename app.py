@@ -932,22 +932,28 @@ def view_news_item(item_id):
 
 # In app.py, add a constant near the top:
 ITEMS_PER_PAGE = 10
+##query = News.query.order_by(News.timestamp.desc()).limit(6).all()
 
-# --- UPDATED: All News Public Page Route with Search and Pagination ---
 @app.route('/all_news', methods=['GET'])
 def all_news():
     search_query = request.args.get('q', '').strip()
     page = request.args.get('page', 1, type=int)
 
-    query = News.query.order_by(News.timestamp.desc()).limit(6).all()
+    # 1. START with the base query (Do NOT use .all() or .limit() yet)
+    # We filter out items with the [AI_APP] tag and ensure description isn't NULL
+    query = News.query.filter(
+        News.description.isnot(None), 
+        ~News.description.like('[AI_APP]%')
+    ).order_by(News.timestamp.desc()).limit(6).all()
 
+    # 2. Add search filter if query exists
     if search_query:
         search_term = f"%{search_query}%"
         query = query.filter(
             (News.title.ilike(search_term)) | (News.description.ilike(search_term))
         )
 
-    # Apply pagination
+    # 3. APPLY Pagination to the query object
     pagination = query.paginate(page=page, per_page=ITEMS_PER_PAGE, error_out=False)
     articles = pagination.items
 
@@ -955,39 +961,27 @@ def all_news():
     SUMMARY_LENGTH = 200
 
     for article in articles:
-        
-        # --- NEW CODE: Generate the Internal Shareable Link ---
-        # The link for sharing MUST be the internal URL which triggers the redirect (for news) 
-        # or the modal/viewer (for blogs). We need the ID for this.
-        
-        # We assume the route for blogs is view_blog_content and uses the UUID 
-        # (which is stored in article.url for blogs)
+        # Generate the Internal Shareable Link
         if article.id in blog_id_tracker:
-             # Blog posts use the UUID-based link (assuming 'view_blog_content' exists)
              blog_uuid = article.url.split('/')[-1]
              share_link = url_for('view_blog_content', blog_uuid=blog_uuid, _external=True)
         else:
-             # External news uses the new ID-based redirect link
              share_link = url_for('view_news_item', item_id=article.id, _external=True)
-        # --- END NEW CODE ---
 
-        
-        # Summary generation logic remains the same
+        # Summary generation logic (cleaned to remove [AI_APP] just in case)
+        raw_description = article.description if article.description else ""
         if article.id in blog_id_tracker:
-            clean_text = strip_html_tags(article.description) if article.description else "No content provided."
+            clean_text = strip_html_tags(raw_description)
             summary_snippet = clean_text[:SUMMARY_LENGTH] + ('...' if len(clean_text) > SUMMARY_LENGTH else '')
         else:
-            summary_snippet = article.description if article.description else "No summary provided."
-            if len(summary_snippet) > SUMMARY_LENGTH:
-                summary_snippet = summary_snippet[:SUMMARY_LENGTH] + '...'
-
+            summary_snippet = raw_description[:SUMMARY_LENGTH] + ('...' if len(raw_description) > SUMMARY_LENGTH else '')
 
         formatted_articles.append({
-            "id": article.id,                 # <-- REQUIRED for checking blog_id_tracker in HTML
+            "id": article.id,
             "title": article.title,
             "summary": summary_snippet,
             "source_url": article.url,
-            "share_url": share_link,           # <-- NEW FIELD for Copy Button
+            "share_url": share_link,
             "date_published": article.published_date if article.published_date else article.timestamp
         })
     
