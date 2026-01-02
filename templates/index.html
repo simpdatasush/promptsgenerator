@@ -536,13 +536,14 @@
                 <a href="{{ url_for('change_password') }}" class="btn btn-outline-light btn-sm mr-2">Change Password</a>
                 <a href="{{ url_for('landing') }}" class="btn btn-outline-light btn-sm mr-2">Home</a>
                <a href="{{ url_for('llm_benchmark') }}" class="btn btn-outline-light btn-sm mr-2">Benchmarks</a>
+               <a href="{{ url_for('all_ai_apps') }}" class="btn btn-outline-light btn-sm mr-2">AI Hub</a>
                 <a href="{{ url_for('all_news') }}" class="btn btn-outline-light btn-sm mr-2">AI News</a>
                 <a href="{{ url_for('all_jobs') }}" class="btn btn-outline-light btn-sm mr-2">AI Jobs</a> 
                 <a href="{{ url_for('logout') }}" class="btn btn-outline-light btn-sm">Logout</a>
             {% else %}
                 <a href="{{ url_for('login') }}" class="btn btn-outline-light btn-sm mr-2">Login</a>
                 <a href="{{ url_for('register') }}" class="btn btn-light btn-sm">Register</a>
-                <a href="{{ url_for('landing') }}" class="btn btn-outline-light btn-sm mr-2">Back to Landing Page</a>
+                <a href="{{ url_for('landing') }}" class="btn btn-outline-light btn-sm mr-2">Home</a>
             {% endif %}
         </div>
     </header>
