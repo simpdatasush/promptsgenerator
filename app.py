@@ -938,7 +938,6 @@ ITEMS_PER_PAGE = 10
 def all_news():
     search_query = request.args.get('q', '').strip()
     page = request.args.get('page', 1, type=int)
-    ITEMS_PER_PAGE = 10 # Ensure this is defined locally if not global
 
     # 1. THE BASE QUERY OBJECT (No .all(), No .limit() here!)
     # We must keep this as a 'BaseQuery' object for pagination to work
