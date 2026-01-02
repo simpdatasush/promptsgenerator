@@ -244,7 +244,8 @@ body {
                     </a>
                 {% endif %}
             </h3>
-            <p>{{ article.summary | striptags | truncate(200) }}</p>
+            <p>{{ article.summary | striptags | truncate(250) }}</p>
+            
             <div class="article-meta">
                 <span><i class="fas fa-calendar-alt"></i> Published: {{ article.date_published.strftime('%b %d, %Y') if article.date_published.strftime else article.date_published }}</span>
                 {% if article.share_url %}
