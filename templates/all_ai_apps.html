@@ -72,6 +72,20 @@ body {
 }
 
 .app-header .auth-section a:hover { color: var(--color-primary); }
+
+      * Target the container and the link specifically */
+.nav-section a {
+    color: #ffffff !important; /* Forces the color to white */
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.2s ease;
+}
+
+/* Add a hover effect so users know it is clickable */
+.nav-section a:hover {
+    color: var(--color-primary); /* Changes to your theme blue on hover */
+    text-decoration: none;
+}
        
        .container {
            flex-grow: 1;
