@@ -1,6 +1,32 @@
-{% extends "base.html" %}
-{% block content %}
-<div class="container text-center" style="margin-top: 50px; margin-bottom: 50px;">
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Donate - SuperPrompter AI</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <style>
+        :root { --color-primary: #007bff; --color-dark-bg: #343a40; }
+        body { background-color: #f0f2f5; padding-top: 100px; }
+        .app-header { background-color: var(--color-dark-bg); color: #fff; padding: 15px 30px; position: fixed; top: 0; width: 100%; z-index: 1000; display: flex; justify-content: space-between; align-items: center; }
+        .nav-section a { color: #fff !important; margin-left: 20px; text-decoration: none; }
+    </style>
+</head>
+<body>
+
+<header class="app-header">
+    <div class="logo-section">
+        <h1 style="margin:0; font-size: 1.8rem;">SuperPrompter</h1>
+    </div>
+    <nav class="nav-section">
+        <a href="/">Home</a>
+        <a href="/all_news">News</a>
+        <a href="/all_ai_apps">AI Apps</a>
+    </nav>
+</header>
+
+<div class="container text-center">
     <h2 style="color: var(--color-dark-bg); font-weight: bold;">Support SuperPrompter AI</h2>
     <p class="lead mb-5">Your contributions help keep our AI News and App Directory free for everyone.</p>
 
@@ -14,13 +40,12 @@
                 <strong>SuperPrompter AI</strong><br>
                 Scan using any UPI App (PhonePe, GPay, Paytm)
             </div>
-            
             <p class="text-muted small mt-3">Thank you for your generosity! ❤️</p>
         </div>
     </div>
-    
     <div class="mt-4">
         <a href="/" class="btn btn-link text-secondary">← Back to Home</a>
     </div>
 </div>
-{% endblock %}
+</body>
+</html>
