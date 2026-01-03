@@ -1650,7 +1650,7 @@ def generate_audio(post_id):
 @app.route('/ai-apps')
 def all_ai_apps():
     # Only fetch entries that were tagged as AI Apps via the admin_ai_apps page
-    ai_apps = News.query.filter(News.description.like('[AI_APP]%')).order_by(News.timestamp.desc()).all()
+    ai_apps = News.query.filter(News.description.isnot(None),News.description.like('[AI_APP]%')).order_by(News.title.asc()).all()
     return render_template('all_ai_apps.html', ai_apps=ai_apps)
 
 @app.route('/admin/ai-apps')
