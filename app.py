@@ -1690,6 +1690,10 @@ def delete_ai_app(app_id):
     db.session.commit()
     flash('App removed from directory.', 'info')
     return redirect(url_for('admin_ai_apps'))
+
+@app.route('/donate')
+def donate():
+    return render_template('donate.html')
     
 
 # --- NEW: Change Password Route ---
