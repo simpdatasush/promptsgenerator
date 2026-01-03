@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container text-center" style="margin-top: 50px; margin-bottom: 50px;">
+    <h2 style="color: var(--color-dark-bg); font-weight: bold;">Support SuperPrompter AI</h2>
+    <p class="lead mb-5">Your contributions help keep our AI News and App Directory free for everyone.</p>
+
+    <div class="card shadow-lg p-4 mx-auto" style="max-width: 450px; border-radius: 15px; border: none;">
+        <div class="card-body">
+            <h4 class="mb-3" style="color: #5f259f;">Scan to Pay via PhonePe</h4>
+            <img src="{{ url_for('static', filename='images/donate_qr.jpeg') }}" 
+                 alt="PhonePe QR Code" class="img-fluid mb-4" style="border-radius: 10px; border: 1px solid #eee;">
+            
+            <div class="alert alert-light" style="font-size: 0.9rem; border: 1px dashed #ccc;">
+                <strong>SuperPrompter AI</strong><br>
+                Scan using any UPI App (PhonePe, GPay, Paytm)
+            </div>
+            
+            <p class="text-muted small mt-3">Thank you for your generosity! ❤️</p>
+        </div>
+    </div>
+    
+    <div class="mt-4">
+        <a href="/" class="btn btn-link text-secondary">← Back to Home</a>
+    </div>
+</div>
+{% endblock %}
