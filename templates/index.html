@@ -86,12 +86,12 @@
            margin-bottom: 20px;
        }
 
-       /* Input Section Styling */
        .prompt-input-section.card {
-           border: 1px solid #e0e0e0;
-           box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-           margin-bottom: 30px;
-       }
+    max-width: 1000px; /* Adjust this to your preferred maximum width */
+    margin-left: auto;
+    margin-right: auto;
+    width: 100%;
+}
 
        .prompt-input-section .card-body {
            padding: 25px;
@@ -151,29 +151,31 @@
 
        #app_output {
     margin-top: 20px;
-    max-height: 150px; /* Keeps the form from getting too tall */
-    overflow-y: auto;  /* Scrollbar for many logs */
-    overflow-x: hidden; /* Stops horizontal widening */
-    display: flex;
-    flex-direction: column; 
+    /* Increase the window size */
+    min-height: 100px; 
+    max-height: 250px; 
+    
+    overflow-y: auto;
+    overflow-x: hidden;
     font-family: 'Courier New', monospace;
-    font-size: 0.9rem;
-    background-color: #e9ecef; /* Restores the gray look from your first photo */
-    padding: 12px 15px;
+    font-size: 0.95rem;
+    background-color: #e9ecef;
+    padding: 15px;
     border-radius: 8px;
     border: 1px solid #dee2e6;
     
-    /* FIX: Force alignment and wrapping */
-    width: 100%;             /* Stay within the card */
-    box-sizing: border-box;  /* Include padding in width */
-    word-wrap: break-word;   /* Wrap long messages */
-    overflow-x: hidden; 
+    /* Force internal layout to stay within bounds */
+    width: 100%;
+    box-sizing: border-box; 
+    display: flex;
+    flex-direction: column;
 }
 
 .log-entry {
-    padding: 2px 0;
-    white-space: pre-wrap; /* Allows long messages to drop to the next line */
-    border-left: 4px solid transparent;
+    word-wrap: break-word;
+    white-space: pre-wrap;
+    margin-bottom: 5px;
+    width: 100%;
 }
 
 /* Color coding for logs */
