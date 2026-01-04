@@ -635,7 +635,7 @@ async def generate_prompts_endpoint(): # This remains async
       if user.daily_prompt_count >= 2: # Max 2 generations per day
           app.logger.info(f"User {user.username} exceeded daily prompt limit.")
           return jsonify({
-              "error": "You have reached your daily limit of 10 prompt generations. Please try again tomorrow.",
+              "error": "You have reached your daily limit of 2 prompt generations. Please try again tomorrow.",
               "daily_limit_reached": True
           }), 429 # 429 Too Many Requests
   # --- END NEW: Daily Limit Check ---
@@ -728,10 +728,10 @@ async def reverse_prompt_endpoint():
            db.session.commit() # Commit reset immediately to prevent race conditions on count
 
 
-       if user.daily_prompt_count >= 2: # Max 2 generations per day
+       if user.daily_prompt_count >= 1: # Max 1 generations per day
            app.logger.info(f"User {user.username} exceeded daily reverse prompt limit.")
            return jsonify({
-               "error": "You have reached your daily limit of 2 prompt generations. Please try again tomorrow.",
+               "error": "You have reached your daily limit of 1 prompt generations. Please try again tomorrow.",
                "daily_limit_reached": True
            }), 429 # 429 Too Many Requests
    # --- END NEW: Daily Limit Check ---
@@ -805,10 +805,10 @@ async def process_image_prompt_endpoint():
            db.session.commit()
 
 
-       if user.daily_prompt_count >= 2:
+       if user.daily_prompt_count >= 1:
            app.logger.info(f"User {user.username} exceeded daily image processing limit.")
            return jsonify({
-               "error": "You have reached your daily limit of 2 image processing requests. Please try again tomorrow.",
+               "error": "You have reached your daily limit of 1 image processing requests. Please try again tomorrow.",
                "daily_limit_reached": True
            }), 429
 
