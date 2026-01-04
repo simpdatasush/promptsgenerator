@@ -87,7 +87,7 @@
        }
 
        .prompt-input-section.card {
-    max-width: 1300px; /* Adjust this to your preferred maximum width */
+    max-width: 1250px; /* Adjust this to your preferred maximum width */
     margin-left: auto;
     margin-right: auto;
     width: 100%;
@@ -548,7 +548,7 @@
                <a href="{{ url_for('all_ai_apps') }}" class="btn btn-outline-light btn-sm mr-2">AI Hub</a>
                 <a href="{{ url_for('all_news') }}" class="btn btn-outline-light btn-sm mr-2">AI News</a>
                 <a href="{{ url_for('all_jobs') }}" class="btn btn-outline-light btn-sm mr-2">AI Jobs</a> 
-                <a href="{{ url_for('logout') }}" onclick="sessionStorage.removeItem('app_logs');">Logout</a>
+                <a href="{{ url_for('logout') }}" class="btn btn-outline-light btn-sm mr-2 onclick="sessionStorage.removeItem('app_logs');">Logout</a>
             {% else %}
                 <a href="{{ url_for('login') }}" class="btn btn-outline-light btn-sm mr-2">Login</a>
                 <a href="{{ url_for('register') }}" class="btn btn-light btn-sm">Register</a>
