@@ -87,7 +87,7 @@
        }
 
        .prompt-input-section.card {
-    max-width: 1000px; /* Adjust this to your preferred maximum width */
+    max-width: 1300px; /* Adjust this to your preferred maximum width */
     margin-left: auto;
     margin-right: auto;
     width: 100%;
@@ -167,6 +167,13 @@
     /* Force internal layout to stay within bounds */
     width: 100%;
     box-sizing: border-box; 
+    display: flex;
+    flex-direction: column;
+
+    /* SCROLLING & WRAPPING */
+    overflow-y: auto;        /* Vertical scrollbar if needed */
+    overflow-x: hidden;      /* No horizontal scrollbar */
+    word-wrap: break-word;   /* Wraps long cooldown text to next line */
     display: flex;
     flex-direction: column;
 }
