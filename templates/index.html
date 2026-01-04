@@ -844,8 +844,7 @@
            },
        };
 
-       // KEEP THIS FUNCTION
-function getMessage(key, langCode, replacements = {}) {
+      function getMessage(key, langCode, replacements = {}) {
     const messages = MESSAGES[langCode] || MESSAGES["en-US"];
     let message = messages[key] || MESSAGES["en-US"][key] || key;
     for (const placeholder in replacements) {
@@ -854,71 +853,68 @@ function getMessage(key, langCode, replacements = {}) {
     return message;
 }
 
-document.addEventListener("DOMContentLoaded", function () {
+document.addEventListener("DOMContentLoaded", () => {
     const logBox = document.getElementById("app_output");
     const flashBridge = document.getElementById("flash-bridge");
-    const langSelect = document.getElementById("lang_select");
-    const langCode = langSelect ? langSelect.value : "en-US";
+    const langCode =
+        document.getElementById("lang_select")?.value || "en-US";
 
-    // -----------------------------
-    // 1. Restore history ONCE
-    // -----------------------------
-    const storedLogs = sessionStorage.getItem("app_logs");
-    if (storedLogs && logBox.innerHTML.trim() === "") {
-        logBox.innerHTML = storedLogs;
-    }
+    // ----------------------------------
+    // 1. Load log DATA (array, not HTML)
+    // ----------------------------------
+    let logs = JSON.parse(sessionStorage.getItem("app_logs") || "[]");
 
-    // -----------------------------
-    // 2. Process flash logs (one-time)
-    // -----------------------------
+    // ----------------------------------
+    // 2. Consume flash messages ONCE
+    // ----------------------------------
     const pendingLogs = flashBridge.querySelectorAll(".pending-log");
-    let newEntriesHtml = "";
 
-    pendingLogs.forEach(log => {
-        const category = log.getAttribute("data-category") || "info";
-        const messageKey = log.getAttribute("data-key");
-        const translatedMsg = getMessage(messageKey, langCode);
-
-        const time = new Date().toLocaleTimeString([], {
-            hour: "2-digit",
-            minute: "2-digit",
-            second: "2-digit"
+    pendingLogs.forEach(node => {
+        logs.push({
+            time: new Date().toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit",
+                second: "2-digit"
+            }),
+            category: node.dataset.category || "info",
+            message: getMessage(node.dataset.key, langCode)
         });
-
-        newEntriesHtml +=
-            `<div class="log-entry ${category}">[${time}] ${translatedMsg}</div>`;
     });
 
-    // -----------------------------
-    // 3. Append new logs (true append)
-    // -----------------------------
-    if (newEntriesHtml !== "") {
-        logBox.insertAdjacentHTML("beforeend", newEntriesHtml);
+    // ----------------------------------
+    // 3. Empty-state only if truly empty
+    // ----------------------------------
+    if (logs.length === 0) {
+        logs.push({
+            time: new Date().toLocaleTimeString(),
+            category: "info",
+            message: getMessage("app_ready", langCode)
+        });
     }
 
-    // -----------------------------
-    // 4. Empty-state safeguard (ONLY if still empty)
-    // -----------------------------
-    if (logBox.innerHTML.trim() === "") {
-        const readyText = getMessage("app_ready", langCode);
-        const time = new Date().toLocaleTimeString();
-        logBox.innerHTML =
-            `<div class="log-entry info">[${time}] ${readyText}</div>`;
-    }
+    // ----------------------------------
+    // 4. Persist DATA (single truth)
+    // ----------------------------------
+    sessionStorage.setItem("app_logs", JSON.stringify(logs));
 
-    // -----------------------------
-    // 5. Persist DOM → sessionStorage (single source of truth)
-    // -----------------------------
-    sessionStorage.setItem("app_logs", logBox.innerHTML);
+    // ----------------------------------
+    // 5. Render logs (pure function)
+    // ----------------------------------
+    logBox.innerHTML = logs
+        .map(
+            l =>
+                `<div class="log-entry ${l.category}">[${l.time}] ${l.message}</div>`
+        )
+        .join("");
 
-    // -----------------------------
-    // 6. Consume flash bridge (CRITICAL)
-    // -----------------------------
+    // ----------------------------------
+    // 6. Consume flash bridge
+    // ----------------------------------
     flashBridge.innerHTML = "";
 
-    // -----------------------------
-    // 7. Auto-scroll to latest entry
-    // -----------------------------
+    // ----------------------------------
+    // 7. Scroll
+    // ----------------------------------
     logBox.scrollTop = logBox.scrollHeight;
 });
 
@@ -933,7 +929,7 @@ function addLog(key, category = 'info', replacements = {}) {
     const entry = `<div class="log-entry ${category}">[${timestamp}] ${message}</div>`;
     
     // Add to UI
-    logBox.innerHTML += entry;
+   logBox.insertAdjacentHTML("beforeend", entry);
     
     // Save to session so it stays after refresh/ticker change
     sessionStorage.setItem('app_logs', logBox.innerHTML);
