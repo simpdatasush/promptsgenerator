@@ -220,17 +220,6 @@ class Job(db.Model):
        return f'<Job {self.title} at {self.company}>'
 # --- END UPDATED: Job Model ---
 
-flash({
-    'id': str(uuid.uuid4()), 
-    'key': 'MSG_GEN_SUCCESS'
-}, 'success')
-
-# Example for Cooldown:
-flash({
-    'id': str(uuid.uuid4()), 
-    'key': 'MSG_COOLDOWN_ACTIVE'
-}, 'warning')
-
 # Initialize variable
 blog_id_tracker = []
 
