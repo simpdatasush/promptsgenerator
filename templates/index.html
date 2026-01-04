@@ -150,26 +150,36 @@
        }
 
        #app_output {
-    max-height: 150px; /* Limits the vertical size */
-    overflow-y: auto;  /* Adds a scrollbar when full */
+    margin-top: 20px;
+    max-height: 150px; /* Keeps the form from getting too tall */
+    overflow-y: auto;  /* Scrollbar for many logs */
+    overflow-x: hidden; /* Stops horizontal widening */
     display: flex;
     flex-direction: column; 
-    font-family: 'Courier New', monospace; /* Professional log look */
+    font-family: 'Courier New', monospace;
+    font-size: 0.9rem;
+    background-color: #e9ecef; /* Restores the gray look from your first photo */
+    padding: 12px 15px;
+    border-radius: 8px;
+    border: 1px solid #dee2e6;
+    
+    /* FIX: Force alignment and wrapping */
+    width: 100%;             /* Stay within the card */
+    box-sizing: border-box;  /* Include padding in width */
+    word-wrap: break-word;   /* Wrap long messages */
+    overflow-x: hidden; 
 }
 
-/* Individual entry within the box */
 .log-entry {
-    padding: 5px 10px;
-    margin-bottom: 2px;
-    border-radius: 4px;
-    border-left: 4px solid transparent; /* Visual indicator */
+    padding: 2px 0;
+    white-space: pre-wrap; /* Allows long messages to drop to the next line */
+    border-left: 4px solid transparent;
 }
 
-/* Connects your existing colors to the new entries */
-.log-entry.success { background-color: #d4edda; color: #155724; border-left-color: #28a745; }
-.log-entry.danger  { background-color: #f8d7da; color: #721c24; border-left-color: #dc3545; }
-.log-entry.warning { background-color: #fff3cd; color: #856404; border-left-color: #ffc107; }
-.log-entry.info    { background-color: #e9ecef; color: #555;    border-left-color: #6c757d; }
+/* Color coding for logs */
+.log-entry.success { color: #155724; border-left-color: #28a745; }
+.log-entry.danger  { color: #721c24; border-left-color: #dc3545; }
+.log-entry.info    { color: #555;    border-left-color: #6c757d; }
 
 
        /* Prompt Output Grid */
@@ -548,9 +558,6 @@
     {% endwith %}
 </div>
 
-<div id="app_output" class="info mt-3">
-    </div>
-
         <div class="prompt-input-section card">
             <div class="card-body">
                 <!-- START: Wrapped content in form tag -->
@@ -599,8 +606,9 @@
                 </div>
                 <!-- END Image Preview and Processing -->
 
-                <div id="app_output" class="mt-4 info">Application messages will appear here.</div>
-            </div>
+   <div id="log-container">
+            <div id="app_output" class="info">
+                </div>
         </div>
 
         <div class="prompt-output-grid">
@@ -834,14 +842,53 @@
            },
        };
 
-       function getMessage(key, langCode, replacements = {}) {
-           const messages = MESSAGES[langCode] || MESSAGES["en-US"];
-           let message = messages[key] || MESSAGES["en-US"][key] || key;
-           for (const placeholder in replacements) {
-               message = message.replace(`{${placeholder}}`, replacements[placeholder]);
-           }
-           return message;
-       }
+       // KEEP THIS FUNCTION
+function getMessage(key, langCode, replacements = {}) {
+    const messages = MESSAGES[langCode] || MESSAGES["en-US"];
+    let message = messages[key] || MESSAGES["en-US"][key] || key;
+    for (const placeholder in replacements) {
+        message = message.replace(`{${placeholder}}`, replacements[placeholder]);
+    }
+    return message;
+}
+
+document.addEventListener("DOMContentLoaded", function() {
+    const logBox = document.getElementById('app_output');
+    const langCode = document.getElementById('lang_select').value;
+
+    // 1. Load history from sessionStorage
+    let history = sessionStorage.getItem('app_logs');
+
+    if (history) {
+        logBox.innerHTML = history;
+    } else {
+        // 2. If no history, show translated "Ready" message
+        const readyText = getMessage("app_ready", langCode);
+        logBox.innerHTML = `<div class="log-entry info">[${new Date().toLocaleTimeString()}] ${readyText}</div>`;
+        sessionStorage.setItem('app_logs', logBox.innerHTML);
+    }
+    
+    logBox.scrollTop = logBox.scrollHeight;
+});
+
+function addLog(key, category = 'info', replacements = {}) {
+    const logBox = document.getElementById('app_output');
+    const langCode = document.getElementById('lang_select').value;
+    
+    const message = getMessage(key, langCode, replacements);
+    const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    
+    const entry = `<div class="log-entry ${category}">[${timestamp}] ${message}</div>`;
+    
+    // Add to UI
+    logBox.innerHTML += entry;
+    
+    // Save to session so it stays after refresh/ticker change
+    sessionStorage.setItem('app_logs', logBox.innerHTML);
+    
+    // Auto-scroll
+    logBox.scrollTop = logBox.scrollHeight;
+}
 
 
        // Function to fetch and display saved prompts
