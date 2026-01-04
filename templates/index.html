@@ -151,39 +151,26 @@
 
        #app_output {
     margin-top: 20px;
-    /* Increase the window size */
-    min-height: 100px; 
-    max-height: 250px; 
-    
+    min-height: 150px; /* Increased height for better visibility */
+    max-height: 350px; 
+    width: 100%;       /* Match the card width */
+    box-sizing: border-box; /* IMPORTANT: Prevents horizontal stretching */
     overflow-y: auto;
     overflow-x: hidden;
-    font-family: 'Courier New', monospace;
-    font-size: 0.95rem;
     background-color: #e9ecef;
     padding: 15px;
     border-radius: 8px;
     border: 1px solid #dee2e6;
-    box-sizing: border-box; /* Prevents stretching */
-    
-    /* Force internal layout to stay within bounds */
-    width: 100%;
-    box-sizing: border-box; 
-    display: flex;
-    flex-direction: column;
-
-    /* SCROLLING & WRAPPING */
-    overflow-y: auto;        /* Vertical scrollbar if needed */
-    overflow-x: hidden;      /* No horizontal scrollbar */
-    word-wrap: break-word;   /* Wraps long cooldown text to next line */
+    font-family: 'Courier New', monospace;
+    font-size: 0.9rem;
     display: flex;
     flex-direction: column;
 }
 
 .log-entry {
-    word-wrap: break-word;
-    white-space: pre-wrap;
+    white-space: pre-wrap; /* Wrap long messages from generation */
+    word-break: break-word;
     margin-bottom: 5px;
-    width: 100%;
 }
 
 /* Color coding for logs */
@@ -1601,43 +1588,38 @@ function addLog(key, category = 'info', replacements = {}) {
        document.addEventListener("DOMContentLoaded", function() {
     const logBox = document.getElementById('app_output');
     const flashBridge = document.getElementById('flash-bridge');
-    const langCode = document.getElementById('lang_select')?.value || "en-US";
+    const currentLang = document.getElementById('lang_select')?.value || "en-US";
 
-    // STAGE 1: Recover all previous history from the session storage
-    let existingHistory = sessionStorage.getItem('app_logs') || "";
+    // 1. PULL EXISTING HISTORY: Recover everything logged so far in this session
+    let logHistory = sessionStorage.getItem('app_logs') || "";
     
-    // STAGE 2: Catch new messages from the server (e.g., "Reverse Prompt Successful")
+    // 2. CATCH NEW MESSAGES: See if the server sent new logs (like "Used 6/10 gens")
     const pendingLogs = flashBridge.querySelectorAll('.pending-log');
     let newEntriesHtml = "";
 
     pendingLogs.forEach(log => {
         const category = log.getAttribute('data-category');
         const messageKey = log.getAttribute('data-key');
+        const translatedMsg = getMessage(messageKey, currentLang);
+        const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
         
-        // Translate and timestamp the new message
-        const translatedMessage = getMessage(messageKey, langCode);
-        const timestamp = new Date().toLocaleTimeString([], { 
-            hour: '2-digit', minute: '2-digit', second: '2-digit' 
-        });
-        
-        newEntriesHtml += `<div class="log-entry ${category}">[${timestamp}] ${translatedMessage}</div>`;
+        newEntriesHtml += `<div class="log-entry ${category}">[${time}] ${translatedMsg}</div>`;
     });
 
-    // STAGE 3: Merge and Update
-    // If it's the very first time (no history and no new flash), show 'Ready'
-    if (existingHistory === "" && newEntriesHtml === "") {
-        const readyText = getMessage("app_ready", langCode);
-        existingHistory = `<div class="log-entry info">[${new Date().toLocaleTimeString()}] ${readyText}</div>`;
+    // 3. LOGIC CHECK: If no history exists yet, initialize with "Ready"
+    if (logHistory === "" && newEntriesHtml === "") {
+        const readyText = getMessage("app_ready", currentLang);
+        logHistory = `<div class="log-entry info">[${new Date().toLocaleTimeString()}] ${readyText}</div>`;
     }
 
-    // Combine: Old History + New Messages
-    const updatedHistory = existingHistory + newEntriesHtml;
+    // 4. APPEND: Combine previous history with the new entries
+    const combinedLogs = logHistory + newEntriesHtml;
 
-    // STAGE 4: Final Output to the UI
-    logBox.innerHTML = updatedHistory;
-    sessionStorage.setItem('app_logs', updatedHistory);
+    // 5. SAVE & RENDER: Push back to storage and update the UI
+    logBox.innerHTML = combinedLogs;
+    sessionStorage.setItem('app_logs', combinedLogs);
     
-    // Auto-scroll to the bottom to see the result of the Reverse Prompt
+    // Scroll to the bottom to see the newest generation/reverse result
     logBox.scrollTop = logBox.scrollHeight;
 });
    </script>
