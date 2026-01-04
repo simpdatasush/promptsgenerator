@@ -2079,12 +2079,12 @@ The SuperPrompter Team
                 mail.send(user_msg)
 
             flash("Your request has been sent! Check your email for a confirmation.", "success")
-            return redirect(url_for('index'))
+            return redirect(url_for('app_home'))
 
         except Exception as e:
             app.logger.error(f"Mail failure: {e}")
             flash("Request sent, but we couldn't send a confirmation email.", "warning")
-            return redirect(url_for('index'))
+            return redirect(url_for('app_home'))
 
     return render_template('send_request.html')
 
