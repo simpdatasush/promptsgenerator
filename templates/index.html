@@ -854,63 +854,74 @@ function getMessage(key, langCode, replacements = {}) {
     return message;
 }
 
-document.addEventListener("DOMContentLoaded", function() {
-    const logBox = document.getElementById('app_output');
-    const flashBridge = document.getElementById('flash-bridge');
-    const langSelect = document.getElementById('lang_select');
+document.addEventListener("DOMContentLoaded", function () {
+    const logBox = document.getElementById("app_output");
+    const flashBridge = document.getElementById("flash-bridge");
+    const langSelect = document.getElementById("lang_select");
     const langCode = langSelect ? langSelect.value : "en-US";
 
-    // 1. Pull Existing History from the "Bank" (sessionStorage)
-    let history = sessionStorage.getItem('app_logs') || "";
-    
-    // 2. Capture New Events from the Flash Bridge (Cooldown, Generation Start, etc.)
-    const pendingLogs = flashBridge.querySelectorAll('.pending-log');
+    // -----------------------------
+    // 1. Restore history ONCE
+    // -----------------------------
+    const storedLogs = sessionStorage.getItem("app_logs");
+    if (storedLogs && logBox.innerHTML.trim() === "") {
+        logBox.innerHTML = storedLogs;
+    }
+
+    // -----------------------------
+    // 2. Process flash logs (one-time)
+    // -----------------------------
+    const pendingLogs = flashBridge.querySelectorAll(".pending-log");
     let newEntriesHtml = "";
 
     pendingLogs.forEach(log => {
-        const category = log.getAttribute('data-category');
-        const messageKey = log.getAttribute('data-key');
+        const category = log.getAttribute("data-category") || "info";
+        const messageKey = log.getAttribute("data-key");
         const translatedMsg = getMessage(messageKey, langCode);
-        const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-        
-        newEntriesHtml += `<div class="log-entry ${category}">[${time}] ${translatedMsg}</div>`;
+
+        const time = new Date().toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit"
+        });
+
+        newEntriesHtml +=
+            `<div class="log-entry ${category}">[${time}] ${translatedMsg}</div>`;
     });
 
-    // 3. Prevent Overwriting: Only add "Ready" if history is TRULY empty and NO new events happened
-    if (history === "" && newEntriesHtml === "") {
-        const readyText = getMessage("app_ready", langCode);
-        history = `<div class="log-entry info">[${new Date().toLocaleTimeString()}] ${readyText}</div>`;
+    // -----------------------------
+    // 3. Append new logs (true append)
+    // -----------------------------
+    if (newEntriesHtml !== "") {
+        logBox.insertAdjacentHTML("beforeend", newEntriesHtml);
     }
 
-    // 4. Listing and Showing: Append new entries to the bottom of the history
-    const finalDisplay = history + newEntriesHtml;
-    logBox.innerHTML = finalDisplay;
+    // -----------------------------
+    // 4. Empty-state safeguard (ONLY if still empty)
+    // -----------------------------
+    if (logBox.innerHTML.trim() === "") {
+        const readyText = getMessage("app_ready", langCode);
+        const time = new Date().toLocaleTimeString();
+        logBox.innerHTML =
+            `<div class="log-entry info">[${time}] ${readyText}</div>`;
+    }
 
-    // 5. Save back to memory immediately
-    sessionStorage.setItem('app_logs', finalDisplay);
-    
-    // Auto-scroll so the most recent "fast" function is at the bottom
+    // -----------------------------
+    // 5. Persist DOM → sessionStorage (single source of truth)
+    // -----------------------------
+    sessionStorage.setItem("app_logs", logBox.innerHTML);
+
+    // -----------------------------
+    // 6. Consume flash bridge (CRITICAL)
+    // -----------------------------
+    flashBridge.innerHTML = "";
+
+    // -----------------------------
+    // 7. Auto-scroll to latest entry
+    // -----------------------------
     logBox.scrollTop = logBox.scrollHeight;
 });
 
-document.addEventListener("DOMContentLoaded", function() {
-    const logBox = document.getElementById('app_output');
-    const langCode = document.getElementById('lang_select').value;
-
-    // 1. Load history from sessionStorage
-    let history = sessionStorage.getItem('app_logs');
-
-    if (history) {
-        logBox.innerHTML = history;
-    } else {
-        // 2. If no history, show translated "Ready" message
-        const readyText = getMessage("app_ready", langCode);
-        logBox.innerHTML = `<div class="log-entry info">[${new Date().toLocaleTimeString()}] ${readyText}</div>`;
-        sessionStorage.setItem('app_logs', logBox.innerHTML);
-    }
-    
-    logBox.scrollTop = logBox.scrollHeight;
-});
 
 function addLog(key, category = 'info', replacements = {}) {
     const logBox = document.getElementById('app_output');
