@@ -2034,6 +2034,60 @@ def generate_unique_username_suggestions(base_username, num_suggestions=3):
   
    return suggestions
 
+@app.route('/send_request', methods=['GET', 'POST'])
+@login_required
+async def send_request():
+    if request.method == 'POST':
+        request_type = request.form.get('request_type')
+        company = request.form.get('company_name', 'Not Provided')
+        message_body = request.form.get('message')
+
+        try:
+            # --- EMAIL 1: Notification to You (Admin) ---
+            admin_msg = Message(
+                subject=f"New {request_type} from {current_user.username}",
+                sender=app.config['MAIL_USERNAME'],
+                recipients=['info@promptsgenerator.ai'] # Your inbox
+            )
+            admin_msg.body = f"User {current_user.username} sent a {request_type} request.\n\nMessage:\n{message_body}"
+            mail.send(admin_msg)
+
+            # --- EMAIL 2: Confirmation to the User (Auto-Reply) ---
+            if current_user.email: # Check if user has an email saved
+                user_msg = Message(
+                    subject="We've received your SuperPrompter request!",
+                    sender=app.config['MAIL_USERNAME'],
+                    recipients=[current_user.email] # The user's inbox
+                )
+                user_msg.body = f"""
+Hi {current_user.username},
+
+Thank you for reaching out to SuperPrompter! 
+
+We have received your request regarding "{request_type}". Our team is currently reviewing the details, and we will get back to you as soon as possible.
+
+Your Message Summary:
+-----------------------------------
+Category: {request_type}
+Company: {company}
+Message: {message_body}
+-----------------------------------
+
+Best regards,
+The SuperPrompter Team
+www.promptsgenerator.ai
+"""
+                mail.send(user_msg)
+
+            flash('Your request has been sent! Check your email for a confirmation.', 'success')
+            return redirect(url_for('index'))
+
+        except Exception as e:
+            app.logger.error(f"Mail failure: {e}")
+            flash('Request sent, but we couldn't send a confirmation email.', 'warning')
+            return redirect(url_for('index'))
+
+    return render_template('send_request.html')
 
 
 
@@ -2077,7 +2131,6 @@ def logout():
   flash('You have been logged out.', 'info')
   return redirect(url_for('landing')) # Redirect to landing page after logout
 # --- END UPDATED: Authentication Routes ---
-
 
 
 
