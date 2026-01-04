@@ -151,10 +151,10 @@
 
        #app_output {
     margin-top: 20px;
-    min-height: 150px; /* Increased height for better visibility */
-    max-height: 350px; 
-    width: 100%;       /* Match the card width */
-    box-sizing: border-box; /* IMPORTANT: Prevents horizontal stretching */
+    min-height: 160px; /* Increased taller window */
+    max-height: 400px; 
+    width: 100%;       
+    box-sizing: border-box; /* PREVENTS STRETCHING inside the container */
     overflow-y: auto;
     overflow-x: hidden;
     background-color: #e9ecef;
@@ -162,15 +162,15 @@
     border-radius: 8px;
     border: 1px solid #dee2e6;
     font-family: 'Courier New', monospace;
-    font-size: 0.9rem;
+    font-size: 0.95rem;
     display: flex;
     flex-direction: column;
 }
 
 .log-entry {
-    white-space: pre-wrap; /* Wrap long messages from generation */
+    white-space: pre-wrap; 
     word-break: break-word;
-    margin-bottom: 5px;
+    margin-bottom: 6px;
 }
 
 /* Color coding for logs */
@@ -1590,10 +1590,10 @@ function addLog(key, category = 'info', replacements = {}) {
     const flashBridge = document.getElementById('flash-bridge');
     const currentLang = document.getElementById('lang_select')?.value || "en-US";
 
-    // 1. PULL EXISTING HISTORY: Recover everything logged so far in this session
-    let logHistory = sessionStorage.getItem('app_logs') || "";
+    // 1. Pull EXACTLY what was there before the button click
+    let existingLogs = sessionStorage.getItem('app_logs') || "";
     
-    // 2. CATCH NEW MESSAGES: See if the server sent new logs (like "Used 6/10 gens")
+    // 2. Capture the NEW message from the refresh (Generate/Reverse result)
     const pendingLogs = flashBridge.querySelectorAll('.pending-log');
     let newEntriesHtml = "";
 
@@ -1606,20 +1606,20 @@ function addLog(key, category = 'info', replacements = {}) {
         newEntriesHtml += `<div class="log-entry ${category}">[${time}] ${translatedMsg}</div>`;
     });
 
-    // 3. LOGIC CHECK: If no history exists yet, initialize with "Ready"
-    if (logHistory === "" && newEntriesHtml === "") {
+    // 3. If this is the start of the session (no history AND no flash), add "Ready"
+    if (existingLogs === "" && newEntriesHtml === "") {
         const readyText = getMessage("app_ready", currentLang);
-        logHistory = `<div class="log-entry info">[${new Date().toLocaleTimeString()}] ${readyText}</div>`;
+        existingLogs = `<div class="log-entry info">[${new Date().toLocaleTimeString()}] ${readyText}</div>`;
     }
 
-    // 4. APPEND: Combine previous history with the new entries
-    const combinedLogs = logHistory + newEntriesHtml;
+    // 4. APPEND: Add new messages to the OLD history
+    const finalLogHTML = existingLogs + newEntriesHtml;
 
-    // 5. SAVE & RENDER: Push back to storage and update the UI
-    logBox.innerHTML = combinedLogs;
-    sessionStorage.setItem('app_logs', combinedLogs);
+    // 5. SAVE the combined history so it survives the NEXT click
+    logBox.innerHTML = finalLogHTML;
+    sessionStorage.setItem('app_logs', finalLogHTML);
     
-    // Scroll to the bottom to see the newest generation/reverse result
+    // Auto-scroll to show the newest action result
     logBox.scrollTop = logBox.scrollHeight;
 });
    </script>
