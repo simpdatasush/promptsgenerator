@@ -151,32 +151,30 @@
 
        #app_output {
     margin-top: 20px;
-    /* FIX: Increased Window Size */
-    min-height: 180px; 
+    min-height: 100px; /* Increased height as requested */
     max-height: 400px; 
-
-    /* FIX: Prevents Horizontal Stretching */
-    width: 100%;
+    width: 100%;       /* Match the parent width */
+    
+    /* THE STRETCHING FIX */
     box-sizing: border-box; 
+    
     overflow-y: auto;
-    overflow-x: hidden;
-
-    /* Styling */
-    font-family: 'Courier New', monospace;
-    font-size: 0.95rem;
+    overflow-x: hidden; /* Stop horizontal stretching */
     background-color: #e9ecef;
     padding: 15px;
     border-radius: 8px;
     border: 1px solid #dee2e6;
+    font-family: 'Courier New', monospace;
+    font-size: 0.95rem;
     display: flex;
     flex-direction: column;
 }
 
 .log-entry {
-    word-wrap: break-word;
-    white-space: pre-wrap;
-    margin-bottom: 8px;
-    border-bottom: 1px solid rgba(0,0,0,0.05);
+    white-space: pre-wrap; /* Wrap long URLs or prompts */
+    word-break: break-word;
+    margin-bottom: 6px;
+    border-bottom: 1px solid rgba(0,0,0,0.05); /* Visual separator for fast logs */
     padding-bottom: 4px;
 }
 
@@ -1597,10 +1595,10 @@ function addLog(key, category = 'info', replacements = {}) {
     const flashBridge = document.getElementById('flash-bridge');
     const currentLang = document.getElementById('lang_select')?.value || "en-US";
 
-    // 1. RECOVER: Get all history stored since the session started
-    let logHistory = sessionStorage.getItem('app_logs') || "";
+    // 1. PULL: Get everything that was in the log before this specific action
+    let existingHistory = sessionStorage.getItem('app_logs') || "";
     
-    // 2. CATCH: Get new messages from Python (like Generation Count or Cooldown)
+    // 2. CAPTURE: Check if Python sent new messages (Cooldown, Generation Count, etc.)
     const pendingLogs = flashBridge.querySelectorAll('.pending-log');
     let newEntriesHtml = "";
 
@@ -1613,21 +1611,20 @@ function addLog(key, category = 'info', replacements = {}) {
         newEntriesHtml += `<div class="log-entry ${category}">[${time}] ${translatedMsg}</div>`;
     });
 
-    // 3. MERGE: Add new logs to the END of the old history
-    // If it's the very first time (no history yet), add a "Ready" message
-    if (logHistory === "" && newEntriesHtml === "") {
+    // 3. MERGE: If there is no history AND no new messages, this is the very first load
+    if (existingHistory === "" && newEntriesHtml === "") {
         const readyText = getMessage("app_ready", currentLang);
-        logHistory = `<div class="log-entry info">[${new Date().toLocaleTimeString()}] ${readyText}</div>`;
+        existingHistory = `<div class="log-entry info">[${new Date().toLocaleTimeString()}] ${readyText}</div>`;
     }
 
-    // This is the most important line: History + New
-    const combinedLogs = logHistory + newEntriesHtml;
-
-    // 4. SAVE & SHOW
-    logBox.innerHTML = combinedLogs;
-    sessionStorage.setItem('app_logs', combinedLogs);
+    // 4. THE FIX: Combine Old + New and save immediately
+    // This ensures that "Cooldown" doesn't delete "Generating..."
+    const finalContent = existingHistory + newEntriesHtml;
     
-    // Scroll to the latest update
+    logBox.innerHTML = finalContent;
+    sessionStorage.setItem('app_logs', finalContent);
+    
+    // Auto-scroll to the bottom so the newest fast-captured event is visible
     logBox.scrollTop = logBox.scrollHeight;
 });
    </script>
