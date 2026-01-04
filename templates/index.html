@@ -163,6 +163,7 @@
     padding: 15px;
     border-radius: 8px;
     border: 1px solid #dee2e6;
+    box-sizing: border-box; /* Prevents stretching */
     
     /* Force internal layout to stay within bounds */
     width: 100%;
@@ -1613,17 +1614,15 @@ function addLog(key, category = 'info', replacements = {}) {
            const modalOverlay = document.getElementById('fullContextModalOverlay');
            modalOverlay.classList.remove('show');
        }
-       // --- END Full Context View Modal Functions ---
-
-      document.addEventListener("DOMContentLoaded", function() {
+       document.addEventListener("DOMContentLoaded", function() {
     const logBox = document.getElementById('app_output');
     const flashBridge = document.getElementById('flash-bridge');
     const currentLang = document.getElementById('lang_select')?.value || "en-US";
 
-    // 1. Load History from current browser session
-    let logHistory = sessionStorage.getItem('app_logs');
+    // 1. Always start by pulling whatever is already in the session storage
+    let logHistory = sessionStorage.getItem('app_logs') || "";
     
-    // 2. Catch New Flash Messages (Login, Logout, Send Request, etc.)
+    // 2. Process any NEW messages from the Flash Bridge (Python backend)
     const pendingLogs = flashBridge.querySelectorAll('.pending-log');
     let newEntriesHtml = "";
 
@@ -1631,26 +1630,26 @@ function addLog(key, category = 'info', replacements = {}) {
         const category = log.getAttribute('data-category');
         const messageKey = log.getAttribute('data-key');
         
-        // Use your getMessage function
+        // Translate using your getMessage function
         const translatedMsg = getMessage(messageKey, currentLang);
-        const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
         
         newEntriesHtml += `<div class="log-entry ${category}">[${time}] ${translatedMsg}</div>`;
     });
 
-    // 3. Render and Save
-    if (logHistory) {
-        logBox.innerHTML = logHistory + newEntriesHtml;
-    } else {
-        // Initial entry if log is empty
+    // 3. Combine: Previous History + New Messages
+    // If it's the very first load and history is empty, add a "System Ready" message
+    if (logHistory === "" && newEntriesHtml === "") {
         const readyText = getMessage("app_ready", currentLang);
-        logBox.innerHTML = `<div class="log-entry info">${readyText}</div>` + newEntriesHtml;
+        logHistory = `<div class="log-entry info">[${new Date().toLocaleTimeString()}] ${readyText}</div>`;
     }
 
-    // Save to session memory
-    sessionStorage.setItem('app_logs', logBox.innerHTML);
+    // Update the visual box and the storage
+    const totalLogContent = logHistory + newEntriesHtml;
+    logBox.innerHTML = totalLogContent;
+    sessionStorage.setItem('app_logs', totalLogContent);
     
-    // Auto-scroll to the newest message at the bottom
+    // 4. Always scroll to the bottom so the user sees the latest entry
     logBox.scrollTop = logBox.scrollHeight;
 });
    </script>
