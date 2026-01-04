@@ -1005,12 +1005,12 @@
                } else if (data.daily_limit_reached) {
                    canGenerate = false;
                    messageType = 'danger';
-                   statusMessage = `Daily limit reached: You have used ${data.daily_count}/10 generations today. Please try again tomorrow.`;
+                   statusMessage = `Daily limit reached: You have used ${data.daily_count}/2 generations today. Please try again tomorrow.`;
                    cooldownTimerDisplay.style.display = 'none'; // Ensure timer is hidden
                } else {
                    // If not on cooldown or limit, show daily count for non-admins
                    if (!data.is_admin) {
-                       statusMessage += ` You have used ${data.daily_count}/10 generations today.`;
+                       statusMessage += ` You have used ${data.daily_count}/2 generations today.`;
                    }
                    cooldownTimerDisplay.style.display = 'none'; // Ensure timer is hidden
                }
