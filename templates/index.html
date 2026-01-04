@@ -151,10 +151,10 @@
 
        #app_output {
     margin-top: 20px;
-    min-height: 160px; /* Increased taller window */
+    min-height: 180px; /* Increased height for better window feel */
     max-height: 400px; 
     width: 100%;       
-    box-sizing: border-box; /* PREVENTS STRETCHING inside the container */
+    box-sizing: border-box; /* PREVENTS HORIZONTAL STRETCHING */
     overflow-y: auto;
     overflow-x: hidden;
     background-color: #e9ecef;
@@ -170,7 +170,9 @@
 .log-entry {
     white-space: pre-wrap; 
     word-break: break-word;
-    margin-bottom: 6px;
+    margin-bottom: 8px;
+    border-bottom: 1px solid rgba(0,0,0,0.05); /* Light separator */
+    padding-bottom: 4px;
 }
 
 /* Color coding for logs */
@@ -1590,10 +1592,10 @@ function addLog(key, category = 'info', replacements = {}) {
     const flashBridge = document.getElementById('flash-bridge');
     const currentLang = document.getElementById('lang_select')?.value || "en-US";
 
-    // 1. Pull EXACTLY what was there before the button click
-    let existingLogs = sessionStorage.getItem('app_logs') || "";
+    // 1. PULL: Get everything that was in the box BEFORE the page reloaded
+    let sessionHistory = sessionStorage.getItem('app_logs') || "";
     
-    // 2. Capture the NEW message from the refresh (Generate/Reverse result)
+    // 2. CAPTURE: Look for new messages from the Python backend (Flash Bridge)
     const pendingLogs = flashBridge.querySelectorAll('.pending-log');
     let newEntriesHtml = "";
 
@@ -1606,20 +1608,20 @@ function addLog(key, category = 'info', replacements = {}) {
         newEntriesHtml += `<div class="log-entry ${category}">[${time}] ${translatedMsg}</div>`;
     });
 
-    // 3. If this is the start of the session (no history AND no flash), add "Ready"
-    if (existingLogs === "" && newEntriesHtml === "") {
+    // 3. LOGIC: If first time opening the app, add the Ready message
+    if (sessionHistory === "" && newEntriesHtml === "") {
         const readyText = getMessage("app_ready", currentLang);
-        existingLogs = `<div class="log-entry info">[${new Date().toLocaleTimeString()}] ${readyText}</div>`;
+        sessionHistory = `<div class="log-entry info">[${new Date().toLocaleTimeString()}] ${readyText}</div>`;
     }
 
-    // 4. APPEND: Add new messages to the OLD history
-    const finalLogHTML = existingLogs + newEntriesHtml;
+    // 4. APPEND: Glue new logs to the bottom of the history
+    const finalContent = sessionHistory + newEntriesHtml;
 
-    // 5. SAVE the combined history so it survives the NEXT click
-    logBox.innerHTML = finalLogHTML;
-    sessionStorage.setItem('app_logs', finalLogHTML);
+    // 5. SAVE & SHOW: Update storage and the UI box
+    logBox.innerHTML = finalContent;
+    sessionStorage.setItem('app_logs', finalContent);
     
-    // Auto-scroll to show the newest action result
+    // Auto-scroll to show the latest action
     logBox.scrollTop = logBox.scrollHeight;
 });
    </script>
