@@ -1598,31 +1598,15 @@ function addLog(key, category = 'info', replacements = {}) {
            }
        }
 
-       // --- Full Context View Modal Functions ---
-       function openFullContextView(title, elementId) {
-           const modalOverlay = document.getElementById('fullContextModalOverlay');
-           const modalTitle = document.getElementById('fullContextModalTitle');
-           const modalText = document.getElementById('fullContextModalText');
-           const promptText = document.getElementById(elementId).textContent.trim();
-
-           modalTitle.textContent = title;
-           modalText.textContent = promptText;
-           modalOverlay.classList.add('show');
-       }
-
-       function closeFullContextView() {
-           const modalOverlay = document.getElementById('fullContextModalOverlay');
-           modalOverlay.classList.remove('show');
-       }
        document.addEventListener("DOMContentLoaded", function() {
     const logBox = document.getElementById('app_output');
     const flashBridge = document.getElementById('flash-bridge');
-    const currentLang = document.getElementById('lang_select')?.value || "en-US";
+    const langCode = document.getElementById('lang_select')?.value || "en-US";
 
-    // 1. Always start by pulling whatever is already in the session storage
-    let logHistory = sessionStorage.getItem('app_logs') || "";
+    // STAGE 1: Recover all previous history from the session storage
+    let existingHistory = sessionStorage.getItem('app_logs') || "";
     
-    // 2. Process any NEW messages from the Flash Bridge (Python backend)
+    // STAGE 2: Catch new messages from the server (e.g., "Reverse Prompt Successful")
     const pendingLogs = flashBridge.querySelectorAll('.pending-log');
     let newEntriesHtml = "";
 
@@ -1630,26 +1614,30 @@ function addLog(key, category = 'info', replacements = {}) {
         const category = log.getAttribute('data-category');
         const messageKey = log.getAttribute('data-key');
         
-        // Translate using your getMessage function
-        const translatedMsg = getMessage(messageKey, currentLang);
-        const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        // Translate and timestamp the new message
+        const translatedMessage = getMessage(messageKey, langCode);
+        const timestamp = new Date().toLocaleTimeString([], { 
+            hour: '2-digit', minute: '2-digit', second: '2-digit' 
+        });
         
-        newEntriesHtml += `<div class="log-entry ${category}">[${time}] ${translatedMsg}</div>`;
+        newEntriesHtml += `<div class="log-entry ${category}">[${timestamp}] ${translatedMessage}</div>`;
     });
 
-    // 3. Combine: Previous History + New Messages
-    // If it's the very first load and history is empty, add a "System Ready" message
-    if (logHistory === "" && newEntriesHtml === "") {
-        const readyText = getMessage("app_ready", currentLang);
-        logHistory = `<div class="log-entry info">[${new Date().toLocaleTimeString()}] ${readyText}</div>`;
+    // STAGE 3: Merge and Update
+    // If it's the very first time (no history and no new flash), show 'Ready'
+    if (existingHistory === "" && newEntriesHtml === "") {
+        const readyText = getMessage("app_ready", langCode);
+        existingHistory = `<div class="log-entry info">[${new Date().toLocaleTimeString()}] ${readyText}</div>`;
     }
 
-    // Update the visual box and the storage
-    const totalLogContent = logHistory + newEntriesHtml;
-    logBox.innerHTML = totalLogContent;
-    sessionStorage.setItem('app_logs', totalLogContent);
+    // Combine: Old History + New Messages
+    const updatedHistory = existingHistory + newEntriesHtml;
+
+    // STAGE 4: Final Output to the UI
+    logBox.innerHTML = updatedHistory;
+    sessionStorage.setItem('app_logs', updatedHistory);
     
-    // 4. Always scroll to the bottom so the user sees the latest entry
+    // Auto-scroll to the bottom to see the result of the Reverse Prompt
     logBox.scrollTop = logBox.scrollHeight;
 });
    </script>
