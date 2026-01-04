@@ -856,6 +856,45 @@ function getMessage(key, langCode, replacements = {}) {
 
 document.addEventListener("DOMContentLoaded", function() {
     const logBox = document.getElementById('app_output');
+    const flashBridge = document.getElementById('flash-bridge');
+    const langSelect = document.getElementById('lang_select');
+    const langCode = langSelect ? langSelect.value : "en-US";
+
+    // 1. Pull Existing History from the "Bank" (sessionStorage)
+    let history = sessionStorage.getItem('app_logs') || "";
+    
+    // 2. Capture New Events from the Flash Bridge (Cooldown, Generation Start, etc.)
+    const pendingLogs = flashBridge.querySelectorAll('.pending-log');
+    let newEntriesHtml = "";
+
+    pendingLogs.forEach(log => {
+        const category = log.getAttribute('data-category');
+        const messageKey = log.getAttribute('data-key');
+        const translatedMsg = getMessage(messageKey, langCode);
+        const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        
+        newEntriesHtml += `<div class="log-entry ${category}">[${time}] ${translatedMsg}</div>`;
+    });
+
+    // 3. Prevent Overwriting: Only add "Ready" if history is TRULY empty and NO new events happened
+    if (history === "" && newEntriesHtml === "") {
+        const readyText = getMessage("app_ready", langCode);
+        history = `<div class="log-entry info">[${new Date().toLocaleTimeString()}] ${readyText}</div>`;
+    }
+
+    // 4. Listing and Showing: Append new entries to the bottom of the history
+    const finalDisplay = history + newEntriesHtml;
+    logBox.innerHTML = finalDisplay;
+
+    // 5. Save back to memory immediately
+    sessionStorage.setItem('app_logs', finalDisplay);
+    
+    // Auto-scroll so the most recent "fast" function is at the bottom
+    logBox.scrollTop = logBox.scrollHeight;
+});
+
+document.addEventListener("DOMContentLoaded", function() {
+    const logBox = document.getElementById('app_output');
     const langCode = document.getElementById('lang_select').value;
 
     // 1. Load history from sessionStorage
@@ -1590,43 +1629,6 @@ function addLog(key, category = 'info', replacements = {}) {
            }
        }
 
-       document.addEventListener("DOMContentLoaded", function() {
-    const logBox = document.getElementById('app_output');
-    const flashBridge = document.getElementById('flash-bridge');
-    const currentLang = document.getElementById('lang_select')?.value || "en-US";
-
-    // 1. PULL: Get everything that was in the log before this specific action
-    let existingHistory = sessionStorage.getItem('app_logs') || "";
-    
-    // 2. CAPTURE: Check if Python sent new messages (Cooldown, Generation Count, etc.)
-    const pendingLogs = flashBridge.querySelectorAll('.pending-log');
-    let newEntriesHtml = "";
-
-    pendingLogs.forEach(log => {
-        const category = log.getAttribute('data-category');
-        const messageKey = log.getAttribute('data-key');
-        const translatedMsg = getMessage(messageKey, currentLang);
-        const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-        
-        newEntriesHtml += `<div class="log-entry ${category}">[${time}] ${translatedMsg}</div>`;
-    });
-
-    // 3. MERGE: If there is no history AND no new messages, this is the very first load
-    if (existingHistory === "" && newEntriesHtml === "") {
-        const readyText = getMessage("app_ready", currentLang);
-        existingHistory = `<div class="log-entry info">[${new Date().toLocaleTimeString()}] ${readyText}</div>`;
-    }
-
-    // 4. THE FIX: Combine Old + New and save immediately
-    // This ensures that "Cooldown" doesn't delete "Generating..."
-    const finalContent = existingHistory + newEntriesHtml;
-    
-    logBox.innerHTML = finalContent;
-    sessionStorage.setItem('app_logs', finalContent);
-    
-    // Auto-scroll to the bottom so the newest fast-captured event is visible
-    logBox.scrollTop = logBox.scrollHeight;
-});
    </script>
 </body>
 </html>
