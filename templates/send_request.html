@@ -1,0 +1,33 @@
+<div class="container mt-5" style="max-width: 600px;">
+    <div class="card shadow-sm">
+        <div class="card-header bg-dark text-white">
+            <h4 class="mb-0">Submit a Special Request</h4>
+        </div>
+        <div class="card-body">
+            <form method="POST">
+                <div class="mb-3">
+                    <label class="form-label">What can we help with?</label>
+                    <select name="request_type" class="form-select" required>
+                        <option value="Custom Prompt Building">Build Custom Prompt</option>
+                        <option value="Donation Inquiry">Donations Inquiry</option>
+                        <option value="Complaint/Feedback">Complaints or Issues</option>
+                    </select>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">Company / Organization Name</label>
+                    <input type="text" name="company_name" class="form-control" placeholder="Optional">
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Your Message</label>
+                    <textarea name="message" class="form-control" rows="5" placeholder="Details about your prompt or complaint..." required></textarea>
+                </div>
+
+                <div class="d-grid">
+                    <button type="submit" class="btn btn-primary">Send to SuperPrompter Team</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
