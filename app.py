@@ -8,6 +8,7 @@ import os
 import io
 import wave
 import re
+import threading
 import google.generativeai as genai
 from flask import Flask, render_template, request, jsonify, make_response, redirect, url_for, flash, session, send_file
 import logging
@@ -135,6 +136,70 @@ def configure_ai_apis():
 
 # Call the consolidated function
 configure_ai_apis()
+
+# Model Usage Tracker
+class ModelUsageTracker:
+    def __init__(self):
+        self.counts = {
+            'gemma-3-1b-it': 0,
+            'gemma-3-4b-it': 0,
+            'gemma-3-12b-it': 0,
+            'gemma-3-27b-it': 0
+        }
+        self.limit = 12000
+        self.last_reset = datetime.now().date()
+        self.lock = threading.Lock()
+
+    def _check_reset(self):
+        """Resets counters if a new day has started."""
+        now = datetime.now().date()
+        if now > self.last_reset:
+            with self.lock:
+                for model in self.counts:
+                    self.counts[model] = 0
+                self.last_reset = now
+
+    def get_and_increment(self, preferred_model):
+        self._check_reset()
+        with self.lock:
+            # Check if preferred model is under limit
+            if self.counts[preferred_model] < self.limit:
+                self.counts[preferred_model] += 1
+                return preferred_model
+            
+            # Fallback Logic: If preferred is full, try the next smallest model
+            fallbacks = ['gemma-3-12b-it', 'gemma-3-4b-it', 'gemma-3-1b-it']
+            for model in fallbacks:
+                if self.counts[model] < self.limit:
+                    self.counts[model] += 1
+                    return model
+            
+            return None # All quotas exhausted
+
+# Initialize the global tracker
+usage_tracker = ModelUsageTracker()
+
+def get_dynamic_model_name(prompt_instruction: str) -> str:
+    length = len(prompt_instruction)
+
+    # 1. Determine "ideal" model based on length
+    if length > 5400:
+        preferred = 'gemma-3-27b-it'
+    elif length >= 2700:
+        preferred = 'gemma-3-12b-it'
+    elif length >= 1800:
+        preferred = 'gemma-3-4b-it'
+    else:
+        preferred = 'gemma-3-1b-it'
+
+    # 2. Check quota and get final model name
+    final_model = usage_tracker.get_and_increment(preferred)
+    
+    if not final_model:
+        raise Exception("Daily quota exceeded for all Gemma models.")
+        
+    return final_model
+
 
 # --- UPDATED: User Model for SQLAlchemy and Flask-Login ---
 class User(db.Model, UserMixin):
@@ -332,36 +397,24 @@ def filter_gemini_response(text):
 
 
 # --- Gemini API interaction function (NOW SYNCHRONOUS) ---
+
 def ask_gemini_for_prompt(prompt_instruction, max_output_tokens=1024):
-  if not GEMINI_API_CONFIGURED:
-      # This check is also done in the endpoint, but kept here for robustness
-      return "Gemini API Key is not configured or the AI model failed to initialize."
-
-
-  try:
-      gemini_model_instance = genai.GenerativeModel('gemini-2.5-flash-lite')
-
-
-      generation_config = {
-          "max_output_tokens": max_output_tokens,
-          "temperature": 0.1
-      }
-
-
-      # USE THE SYNCHRONOUS generate_content METHOD
-      response = gemini_model_instance.generate_content(
-          contents=[{"role": "user", "parts": [{"text": prompt_instruction}]}],
-          generation_config=generation_config
-      )
-      raw_gemini_text = response.text if response and response.text else "No response from model."
-      return filter_gemini_response(raw_gemini_text).strip()
-  except google_api_exceptions.GoogleAPICallError as e: # Catch specific API errors
-      app.logger.error(f"DEBUG: Google API Call Error: {e}", exc_info=True)
-      # Pass the string representation of the exception to the filter
-      return filter_gemini_response(f"Error communicating with SuperPrompter AI, please try after sometime.")
-  except Exception as e: # Catch any other unexpected errors
-      app.logger.error(f"DEBUG: Unexpected Error calling Gemini API: {e}", exc_info=True)
-      return filter_gemini_response(f"Error communicating with SuperPrompter AI, please try after sometime.")
+    try:
+        # This now handles both length-based tiering AND the 12k RPD check
+        selected_model = get_dynamic_model_name(prompt_instruction)
+        
+        response = gemma_client.models.generate_content(
+            model=selected_model,
+            contents=prompt_instruction,
+            config={
+                "max_output_tokens": max_output_tokens,
+                "temperature": 0.1
+            }
+        )
+        return filter_gemini_response(response.text).strip()
+    except Exception as e:
+        app.logger.error(f"Gemma Routing Error: {e}")
+        return "SuperPrompter AI Service temporarily unavailable due to high demand."
 
 
 # --- NEW: Gemini API for Image Understanding ---
