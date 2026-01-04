@@ -541,7 +541,11 @@
                <a href="{{ url_for('all_ai_apps') }}" class="btn btn-outline-light btn-sm mr-2">AI Hub</a>
                 <a href="{{ url_for('all_news') }}" class="btn btn-outline-light btn-sm mr-2">AI News</a>
                 <a href="{{ url_for('all_jobs') }}" class="btn btn-outline-light btn-sm mr-2">AI Jobs</a> 
-                <a href="{{ url_for('logout') }}" class="btn btn-outline-light btn-sm mr-2 onclick="sessionStorage.removeItem('app_logs');">Logout</a>
+                <a href="{{ url_for('logout') }}" 
+   class="btn btn-outline-light btn-sm mr-2" 
+   onclick="sessionStorage.removeItem('app_logs_history'); sessionStorage.removeItem('app_logs_seen_ids');">
+   Logout
+</a>
             {% else %}
                 <a href="{{ url_for('login') }}" class="btn btn-outline-light btn-sm mr-2">Login</a>
                 <a href="{{ url_for('register') }}" class="btn btn-light btn-sm">Register</a>
@@ -553,8 +557,11 @@
     <div id="flash-bridge" style="display: none;">
     {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
-            {% for category, message in messages %}
-                <span class="pending-log" data-category="{{ category }}" data-key="{{ message }}"></span>
+            {% for category, msg_obj in messages %}
+                <span class="pending-log" 
+                      data-id="{{ msg_obj.id }}" 
+                      data-category="{{ category }}" 
+                      data-key="{{ msg_obj.key }}"></span>
             {% endfor %}
         {% endif %}
     {% endwith %}
@@ -856,68 +863,73 @@
 document.addEventListener("DOMContentLoaded", () => {
     const logBox = document.getElementById("app_output");
     const flashBridge = document.getElementById("flash-bridge");
-    const langCode =
-        document.getElementById("lang_select")?.value || "en-US";
+    const langCode = document.getElementById("lang_select")?.value || "en-US";
 
-    // ----------------------------------
-    // 1. Load log DATA (array, not HTML)
-    // ----------------------------------
-    let logs = JSON.parse(sessionStorage.getItem("app_logs") || "[]");
+    // Storage Keys
+    const STORE_CONTENT = "app_logs_history";
+    const STORE_IDS = "app_logs_seen_ids";
 
-    // ----------------------------------
-    // 2. Consume flash messages ONCE
-    // ----------------------------------
-    const pendingLogs = flashBridge.querySelectorAll(".pending-log");
+    // 1. Withdraw history from Session Storage
+    const logs = JSON.parse(sessionStorage.getItem(STORE_CONTENT) || "[]");
+    const seenIds = new Set(JSON.parse(sessionStorage.getItem(STORE_IDS) || "[]"));
 
-    pendingLogs.forEach(node => {
-        logs.push({
-            time: new Date().toLocaleTimeString([], {
-                hour: "2-digit",
-                minute: "2-digit",
-                second: "2-digit"
-            }),
-            category: node.dataset.category || "info",
-            message: getMessage(node.dataset.key, langCode)
-        });
+    // 2. Clear and Render History
+    logBox.innerHTML = "";
+    logs.forEach(l => {
+        logBox.insertAdjacentHTML("beforeend", 
+            `<div class="log-entry ${l.category}">[${l.time}] ${l.message}</div>`
+        );
     });
 
-    // ----------------------------------
-    // 3. Empty-state only if truly empty
-    // ----------------------------------
+    // 3. Process the Flash Bridge for New "Fast" Events
+    const pendingNodes = flashBridge.querySelectorAll(".pending-log");
+    let addedAny = false;
+
+    pendingNodes.forEach(node => {
+        const eid = node.dataset.id;
+        
+        // IF ID ALREADY EXISTS, SKIP (Prevents replacing/duplication)
+        if (seenIds.has(eid)) return;
+
+        const entry = {
+            id: eid,
+            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+            category: node.dataset.category || "info",
+            message: getMessage(node.dataset.key, langCode)
+        };
+
+        logs.push(entry);
+        seenIds.add(eid);
+        addedAny = true;
+
+        logBox.insertAdjacentHTML("beforeend", 
+            `<div class="log-entry ${entry.category}">[${entry.time}] ${entry.message}</div>`
+        );
+    });
+
+    // 4. Handle "Ready" message for brand new sessions
     if (logs.length === 0) {
-        logs.push({
-            time: new Date().toLocaleTimeString(),
+        const initEntry = {
+            id: "init",
+            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
             category: "info",
             message: getMessage("app_ready", langCode)
-        });
+        };
+        logs.push(initEntry);
+        seenIds.add("init");
+        logBox.innerHTML = `<div class="log-entry info">[${initEntry.time}] ${initEntry.message}</div>`;
+        addedAny = true;
     }
 
-    // ----------------------------------
-    // 4. Persist DATA (single truth)
-    // ----------------------------------
-    sessionStorage.setItem("app_logs", JSON.stringify(logs));
+    // 5. Final Save to Storage
+    if (addedAny) {
+        sessionStorage.setItem(STORE_CONTENT, JSON.stringify(logs));
+        sessionStorage.setItem(STORE_IDS, JSON.stringify([...seenIds]));
+    }
 
-    // ----------------------------------
-    // 5. Render logs (pure function)
-    // ----------------------------------
-    logBox.innerHTML = logs
-        .map(
-            l =>
-                `<div class="log-entry ${l.category}">[${l.time}] ${l.message}</div>`
-        )
-        .join("");
-
-    // ----------------------------------
-    // 6. Consume flash bridge
-    // ----------------------------------
-    flashBridge.innerHTML = "";
-
-    // ----------------------------------
-    // 7. Scroll
-    // ----------------------------------
+    // Scroll to the latest activity
     logBox.scrollTop = logBox.scrollHeight;
 });
-
 
 function addLog(key, category = 'info', replacements = {}) {
     const logBox = document.getElementById('app_output');
