@@ -1116,56 +1116,99 @@ if (triggerImageInputButton && imageInput) {
     });
 }
 
-// 9. Main Prompt Generation Handler
+// 9. Unified Generation Handler
 document.getElementById('promptForm').addEventListener('submit', async function(e) {
-    e.preventDefault(); // Critical: prevents page reload
+    e.preventDefault(); // Stop page refresh
     
     const promptInput = document.getElementById('prompt_input').value.trim();
     const selectedLanguage = document.getElementById('lang_select').value;
-    const generateBtn = document.getElementById('generate_prompts_btn');
-
-    // Input Validation
+    
+    // Input Validation 
     if (!promptInput) {
-        addLog(getMessage("no_input_provided", selectedLanguage), "warning");
+        addLog(getMessage("no_input_provided", selectedLanguage), "warning"); 
         return;
     }
 
-    // UI Updates before request
-    addLog(getMessage("generating", selectedLanguage), "info");
-    generateBtn.disabled = true;
-    generateBtn.textContent = 'Generating...';
+    // UI Preparation [cite: 122, 271]
+    addLog(getMessage("generating", selectedLanguage), "info"); 
+    generateButton.disabled = true; [cite: 165, 273]
+    generateButton.textContent = 'Generating...'; 
 
     try {
-        const formData = new FormData(this); // Captures text AND image if present
-        const response = await fetch('/generate', { 
-            method: 'POST', 
-            body: formData 
-        });
-
-        const data = await response.json();
+        const formData = new FormData(this); // Captures text and images
+        const response = await fetch('/generate', { method: 'POST', body: formData }); 
+        const data = await response.json(); 
 
         if (data.error) {
-            addLog(`❌ ${data.error}`, "danger");
+            addLog(`❌ ${data.error}`, "danger"); 
         } else {
-            // Update the output areas
-            document.getElementById('polished_output').textContent = data.polished;
-            document.getElementById('creative_output').textContent = data.creative;
-            document.getElementById('technical_output').textContent = data.technical;
+            // Update UI with Results [cite: 133, 316]
+            document.getElementById('polished_output').textContent = data.polished; 
+            document.getElementById('creative_output').textContent = data.creative; 
+            document.getElementById('technical_output').textContent = data.technical; 
             
-            // Add success to persistent log
-            addLog("✅ " + getMessage("generation_complete", selectedLanguage), "success");
-            
-            // Sync the history lists
-            fetchAndDisplayRawPrompts();
+            addLog("✅ " + getMessage("generation_complete", selectedLanguage), "success"); [
+            fetchAndDisplayRawPrompts(); 
         }
     } catch (error) {
-        addLog("❌ " + getMessage("generation_failed", selectedLanguage), "danger");
-        console.error("Fetch error:", error);
+        addLog("❌ " + getMessage("generation_failed", selectedLanguage), "danger"); [
     } finally {
-        generateBtn.textContent = 'Generate Prompts';
-        updateAllButtonStates(); // Re-checks cooldown and enables action buttons
+        generateButton.textContent = 'Generate Prompts'; 
+        updateAllButtonStates(); // Re-sync button states [cite: 144, 341]
     }
 });
+
+// 10. Reverse Prompting Logic
+reversePromptButton.addEventListener('click', async function() {
+    const promptInput = document.getElementById('prompt_input').value.trim(); 
+    const selectedLanguage = document.getElementById('lang_select').value;
+
+    if (!promptInput) return addLog(getMessage("no_input_provided", selectedLanguage), "warning");
+
+    addLog(getMessage("reverse_prompting", selectedLanguage), "info");
+    reversePromptButton.textContent = 'Inferring...';
+
+    try {
+        const response = await fetch('/reverse_prompt', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ input_text: promptInput, language_code: selectedLanguage })
+        });
+        const data = await response.json();
+        
+        document.getElementById('polished_output').textContent = data.inferred_prompt;
+        addLog("✅ " + getMessage("reverse_prompt_complete", selectedLanguage), "success");
+    } catch (error) {
+        addLog("❌ " + getMessage("reverse_prompt_failed", selectedLanguage), "danger"); 
+    } finally {
+        reversePromptButton.textContent = 'Reverse Prompt'; 
+        updateAllButtonStates(); 
+    }
+});
+
+// 11. Image Processing Logic
+processImageButton.addEventListener('click', async function() {
+    const file = imageInput.files[0]; [cite: 592]
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onloadend = async function() {
+        const base64data = reader.result.split(',')[1]; 
+        const response = await fetch('/process_image_prompt', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ image_data: base64data, language_code: langSelect.value })
+        });
+        const data = await response.json();
+        if (data.recognized_text) {
+            document.getElementById('prompt_input').value = data.recognized_text;
+            addLog(getMessage("image_success", langSelect.value), "success"); 
+        }
+    };
+    reader.readAsDataURL(file);
+});
+
+
 
 // 10. Save Prompt to Database
 document.querySelectorAll('.save-button').forEach(button => {
@@ -1228,28 +1271,43 @@ document.querySelectorAll('.llm-site-btn').forEach(btn => {
     });
 });
 
-// 12. External LLM Redirection with Error Logging
+// 12. External LLM & Full View Logic [cite: 685, 696]
 function openLLM(llmKey) {
-    const selectedLanguage = document.getElementById('lang_select').value;
-    const appOutput = document.getElementById('app_output');
-
     if (LLM_URLS[llmKey]) {
-        // Successful redirection
         window.open(LLM_URLS[llmKey], '_blank');
-        addLog(`External Action: Opened ${llmKey}`, 'info');
+        addLog(`Opened ${llmKey}`, "info");
     } else {
-        // Error handling integration with persistent log
-        const errorMsg = `Error: Unknown LLM key: ${llmKey}`;
-        addLog(errorMsg, 'danger');
-        
-        // Visual UI fallback
-        if (appOutput) {
-            appOutput.textContent = errorMsg;
-            appOutput.className = 'mt-4 danger';
-        }
-        console.error(errorMsg);
+        addLog(`Error: Unknown LLM key: ${llmKey}`, "danger"); 
     }
 }
+
+// 13. DOMContentLoaded: The Persistence Anchor [cite: 82, 710]
+document.addEventListener("DOMContentLoaded", function() {
+    const logBox = document.getElementById('app_output');
+    const currentLang = document.getElementById('lang_select')?.value || "en-US";
+
+    // Restore History [cite: 88, 715]
+    let logHistory = sessionStorage.getItem('app_logs') || "";
+    
+    // Merge Flash Messages [cite: 92, 719]
+    const pendingLogs = document.querySelectorAll('.pending-log');
+    pendingLogs.forEach(log => {
+        const category = log.getAttribute('data-category') || 'info'; 
+        const messageKey = log.getAttribute('data-key'); 
+        const translatedMsg = getMessage(messageKey, currentLang); 
+        const time = new Date().toLocaleTimeString([], { hour12: false });
+        logHistory += `<div class="log-entry ${category}">[${time}] ${translatedMsg}</div>`;
+    });
+
+    // Save and Scroll [cite: 107, 736]
+    logBox.innerHTML = logHistory || `<div class="log-entry info">${getMessage("application_ready", currentLang)}</div>`;
+    sessionStorage.setItem('app_logs', logBox.innerHTML); 
+    logBox.scrollTop = logBox.scrollHeight; 
+
+    // Sync UI States [cite: 108, 110]
+    fetchAndDisplaySavedPrompts(); 
+    updateAllButtonStates(); 
+});
 
 // 13. Full Context View Modal Functions
 function openFullContextView(title, elementId) {
