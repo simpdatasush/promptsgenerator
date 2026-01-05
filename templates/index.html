@@ -86,12 +86,12 @@
            margin-bottom: 20px;
        }
 
-       /* Input Section Styling */
        .prompt-input-section.card {
-           border: 1px solid #e0e0e0;
-           box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-           margin-bottom: 30px;
-       }
+    max-width: 1250px; /* Adjust this to your preferred maximum width */
+    margin-left: auto;
+    margin-right: auto;
+    width: 100%;
+}
 
        .prompt-input-section .card-body {
            padding: 25px;
@@ -109,7 +109,7 @@
            border-radius: 8px;
            padding: 15px;
            font-size: 1rem;
-           min-height: 150px;
+           min-height: 110px;
            box-shadow: inset 0 11px 3px rgba(0, 0, 0, 0.08);
        }
 
@@ -150,36 +150,43 @@
        }
 
        #app_output {
-           margin-top: 20px;
-           font-size: 0.95em;
-           color: #555;
-           background-color: #e9ecef;
-           padding: 15px;
-           border-radius: 8px;
-           border: 1px solid #dee2e6;
-           min-height: 50px;
-           overflow-y: auto;
-       }
-       /* Specific styles for app_output messages */
-       #app_output.info {
-           background-color: #e9ecef;
-           color: #555;
-       }
-       #app_output.warning {
-           background-color: #fff3cd; /* Light yellow */
-           color: #856404; /* Dark yellow text */
-           border-color: #ffeeba;
-       }
-       #app_output.danger {
-           background-color: #f8d7da; /* Light red */
-           color: #721c24; /* Dark red text */
-           border-color: #f5c6cb;
-       }
-       #app_output.success {
-           background-color: #d4edda; /* Light green */
-           color: #155724; /* Dark green text */
-           border-color: #c3e6cb;
-       }
+    margin-top: 20px;
+    min-height: 100px;
+    max-height: 250px;
+    overflow-y: auto;      /* ← Users can scroll to see all logs */
+    overflow-x: hidden;
+    font-family: 'Courier New', monospace;
+    font-size: 0.95rem;
+    background-color: #e9ecef;
+    padding: 15px;
+    border-radius: 8px;
+    border: 1px solid #dee2e6;
+    
+    /* Force internal layout to stay within bounds */
+    width: 100%;
+    box-sizing: border-box; 
+    display: flex;
+    flex-direction: column;
+
+    /* SCROLLING & WRAPPING */
+    overflow-y: auto;        /* Vertical scrollbar if needed */
+    overflow-x: hidden;      /* No horizontal scrollbar */
+    word-wrap: break-word;   /* Wraps long cooldown text to next line */
+    display: flex;
+    flex-direction: column;
+}
+
+.log-entry {
+    word-wrap: break-word;
+    white-space: pre-wrap;
+    margin-bottom: 5px;
+    width: 100%;
+}
+
+/* Color coding for logs */
+.log-entry.success { color: #155724; border-left-color: #28a745; }
+.log-entry.danger  { color: #721c24; border-left-color: #dc3545; }
+.log-entry.info    { color: #555;    border-left-color: #6c757d; }
 
 
        /* Prompt Output Grid */
@@ -539,7 +546,7 @@
                <a href="{{ url_for('all_ai_apps') }}" class="btn btn-outline-light btn-sm mr-2">AI Hub</a>
                 <a href="{{ url_for('all_news') }}" class="btn btn-outline-light btn-sm mr-2">AI News</a>
                 <a href="{{ url_for('all_jobs') }}" class="btn btn-outline-light btn-sm mr-2">AI Jobs</a> 
-                <a href="{{ url_for('logout') }}" class="btn btn-outline-light btn-sm">Logout</a>
+                <a href="{{ url_for('logout') }}" class="btn btn-outline-light btn-sm mr-2 onclick="sessionStorage.removeItem('app_logs');">Logout</a>
             {% else %}
                 <a href="{{ url_for('login') }}" class="btn btn-outline-light btn-sm mr-2">Login</a>
                 <a href="{{ url_for('register') }}" class="btn btn-light btn-sm">Register</a>
@@ -548,17 +555,15 @@
         </div>
     </header>
 
-    <div class="main-content-wrapper">
-        <!-- Flash Messages -->
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                <div class="alert-container">
-                    {% for category, message in messages %}
-                        <div class="alert alert-{{ category }}">{{ message }}</div>
-                    {% endfor %}
-                </div>
-            {% endif %}
-        {% endwith %}
+    <div id="flash-bridge" style="display: none;">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <span class="pending-log" data-category="{{ category }}" data-key="{{ message }}"></span>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+</div>
 
         <div class="prompt-input-section card">
             <div class="card-body">
@@ -608,8 +613,9 @@
                 </div>
                 <!-- END Image Preview and Processing -->
 
-                <div id="app_output" class="mt-4 info">Application messages will appear here.</div>
-            </div>
+   <div id="log-container">
+            <div id="app_output" class="info">
+                </div>
         </div>
 
         <div class="prompt-output-grid">
@@ -843,730 +849,743 @@
            },
        };
 
-       function getMessage(key, langCode, replacements = {}) {
-           const messages = MESSAGES[langCode] || MESSAGES["en-US"];
-           let message = messages[key] || MESSAGES["en-US"][key] || key;
-           for (const placeholder in replacements) {
-               message = message.replace(`{${placeholder}}`, replacements[placeholder]);
-           }
-           return message;
-       }
-
-
-       // Function to fetch and display saved prompts
-       async function fetchAndDisplaySavedPrompts() {
-           const savedPromptsListElement = document.getElementById('saved_prompts_list');
-           savedPromptsListElement.innerHTML = '';
-
-           try {
-               const response = await fetch('/get_saved_prompts');
-               if (!response.ok) {
-                   console.warn(`Could not fetch saved prompts: HTTP status ${response.status}`);
-                   savedPromptsListElement.innerHTML = '<li class="list-group-item">Please log in to view your saved prompts.</li>';
-                   return;
-               }
-               const savedPrompts = await response.json();
-
-               if (savedPrompts.length === 0) {
-                   savedPromptsListElement.innerHTML = '<li class="list-group-item">No prompts saved yet.</li>';
-               } else {
-                   savedPrompts.forEach(prompt => {
-                       const listItem = document.createElement('li');
-                       listItem.className = 'list-group-item';
-                       listItem.innerHTML = `
-                           <strong>${prompt.type.charAt(0).toUpperCase() + prompt.type.slice(1)} Prompt (${prompt.timestamp}):</strong>
-                           <pre>${prompt.text}</pre>
-                       `;
-                       savedPromptsListElement.appendChild(listItem);
-                   });
-               }
-           } catch (error) {
-               console.error("Error fetching saved prompts:", error);
-               savedPromptsListElement.innerHTML = '<li class="list-group-item">Error loading saved prompts.</li>';
-           }
-       }
-
-       // Function to fetch and display past raw requests
-       async function fetchAndDisplayRawPrompts() {
-           const pastRawRequestsListElement = document.getElementById('past_raw_requests_list');
-           pastRawRequestsListElement.innerHTML = ''; // Clear previous entries
-
-           try {
-               const response = await fetch('/get_raw_prompts');
-               if (!response.ok) {
-                   console.warn(`Could not fetch raw prompts: HTTP status ${response.status}`);
-                   pastRawRequestsListElement.innerHTML = '<li class="list-group-item">Please log in to view your past raw requests.</li>';
-                   return;
-               }
-               const rawPrompts = await response.json();
-
-               if (rawPrompts.length === 0) {
-                   pastRawRequestsListElement.innerHTML = '<li class="list-group-item">No raw requests saved yet.</li>';
-               } else {
-                   rawPrompts.forEach(prompt => {
-                       const listItem = document.createElement('li');
-                       listItem.className = 'list-group-item';
-                       listItem.innerHTML = `
-                           <strong>${prompt.timestamp}:</strong>
-                           <span>${prompt.raw_text}</span>
-                       `;
-                       pastRawRequestsListElement.appendChild(listItem);
-                   });
-               }
-           } catch (error) {
-               console.error("Error fetching raw prompts:", error);
-               pastRawRequestsListElement.innerHTML = '<li class="list-group-item">Error loading past raw requests.</li>';
-           }
-       }
-
-
-       document.addEventListener('DOMContentLoaded', () => {
-           fetchAndDisplaySavedPrompts();
-           fetchAndDisplayRawPrompts();
-           updateAllButtonStates(); // Initial check and update of all button states
-       });
-
-       // Cooldown timer variables
-       let cooldownTimerInterval;
-       const cooldownTimerDisplay = document.getElementById('cooldown_timer');
-       const generateButton = document.getElementById('generate_prompts_btn');
-       const reversePromptButton = document.getElementById('reverse_prompt_btn');
-       const appOutput = document.getElementById('app_output'); // Get appOutput reference here
-
-       // NEW: Get references to all LLM website buttons
-       const chatGPTBtn = document.getElementById('chatgpt_llm_btn');
-       const claudeBtn = document.getElementById('claude_llm_btn');
-       const mistralBtn = document.getElementById('mistral_llm_btn');
-       const geminiBtn = document.getElementById('gemini_llm_btn');
-       const grokBtn = document.getElementById('grok_llm_btn');
-       const perplexityBtn = document.getElementById('perplexity_llm_btn');
-       const deepSeekBtn = document.getElementById('deepseek_llm_btn');
-
-       // Get reference to download button
-       const downloadPromptsBtn = document.getElementById('download_prompts_btn');
-
-
-       function startCooldownTimer(remainingTime) {
-           let timeLeft = remainingTime;
-           generateButton.disabled = true;
-           reversePromptButton.disabled = true;
-           cooldownTimerDisplay.style.display = 'inline';
-           cooldownTimerDisplay.textContent = `Cooldown: ${timeLeft}s`;
-
-           if (cooldownTimerInterval) {
-               clearInterval(cooldownTimerInterval);
-           }
-
-           cooldownTimerInterval = setInterval(() => {
-               timeLeft--;
-               cooldownTimerDisplay.textContent = `Cooldown: ${timeLeft}s`;
-               if (timeLeft <= 0) {
-                   clearInterval(cooldownTimerInterval);
-                   updateAllButtonStates(); // Re-check status to re-enable buttons
-               }
-           }, 1000);
-       }
-
-       // Function to enable/disable LLM website buttons
-       function setLLMWebsiteButtonsDisabled(isDisabled) {
-           if (chatGPTBtn) chatGPTBtn.disabled = isDisabled;
-           if (claudeBtn) claudeBtn.disabled = isDisabled;
-           if (mistralBtn) mistralBtn.disabled = isDisabled;
-           if (geminiBtn) geminiBtn.disabled = isDisabled;
-           if (grokBtn) grokBtn.disabled = isDisabled;
-           if (perplexityBtn) perplexityBtn.disabled = isDisabled;
-           if (deepSeekBtn) deepSeekBtn.disabled = isDisabled;
-       }
-
-       // Function to enable/disable save/download buttons
-       function setSaveActionButtonsDisabled(isDisabled) {
-           document.querySelectorAll('.save-button').forEach(btn => btn.disabled = isDisabled);
-           if (downloadPromptsBtn) downloadPromptsBtn.disabled = isDisabled;
-       }
-
-
-       async function updateAllButtonStates() {
-           const promptInput = document.getElementById('prompt_input').value.trim();
-           const selectedLanguage = document.getElementById('lang_select').value;
-
-           try {
-               const response = await fetch('/check_cooldown');
-               const data = await response.json();
-
-               let canGenerate = true;
-               let messageType = 'info';
-               let statusMessage = getMessage("application_ready", selectedLanguage);
-
-               if (data.cooldown_active) {
-                   canGenerate = false;
-                   messageType = 'warning';
-                   statusMessage = `Cooldown active: Please wait ${data.remaining_time} seconds before your next generation.`;
-                   startCooldownTimer(data.remaining_time); // Start/continue timer
-               } else if (data.daily_limit_reached) {
-                   canGenerate = false;
-                   messageType = 'danger';
-                   statusMessage = `Daily limit reached: You have used ${data.daily_count}/2 generations today. Please try again tomorrow.`;
-                   cooldownTimerDisplay.style.display = 'none'; // Ensure timer is hidden
-               } else {
-                   // If not on cooldown or limit, show daily count for non-admins
-                   if (!data.is_admin) {
-                       statusMessage += ` You have used ${data.daily_count}/2 generations today.`;
-                   }
-                   cooldownTimerDisplay.style.display = 'none'; // Ensure timer is hidden
-               }
-
-               appOutput.textContent = statusMessage;
-               appOutput.className = `mt-4 ${messageType}`; // Update class for styling
-
-               // Only disable generate/reverse buttons based on canGenerate
-               generateButton.disabled = !canGenerate;
-               reversePromptButton.disabled = !canGenerate;
-
-               // LLM action buttons (Save, Get, Download) and LLM website buttons
-               // should only be enabled if there's output, regardless of cooldown/daily limit for generation
-               const hasOutput = document.getElementById('polished_output').textContent.trim() !== '' ||
-                                 document.getElementById('creative_output').textContent.trim() !== '' ||
-                                 document.getElementById('technical_output').textContent.trim() !== '';
-
-               // Enable/disable save/download buttons based ONLY on whether there's output
-               setSaveActionButtonsDisabled(!hasOutput);
-               // Enable/disable LLM website buttons based ONLY on whether there's output
-               setLLMWebsiteButtonsDisabled(!hasOutput);
-
-           } catch (error) {
-               console.error("Error checking cooldown/daily limit:", error);
-               appOutput.textContent = "Error checking application status. Please refresh.";
-               appOutput.className = 'mt-4 danger';
-               generateButton.disabled = true;
-               reversePromptButton.disabled = true;
-               setSaveActionButtonsDisabled(true); // Disable on error
-               setLLMWebsiteButtonsDisabled(true); // Disable on error
-           }
-       }
-
-
-       document.getElementById('promptForm').addEventListener('submit', async function(event) {
-           event.preventDefault();
-
-           const promptInput = document.getElementById('prompt_input').value.trim(); // Trim whitespace
-           const selectedLanguage = document.getElementById('lang_select').value;
-           
-           // Clear previous outputs and token counts
-           document.getElementById('polished_output').textContent = '';
-           document.getElementById('creative_output').textContent = '';
-           document.getElementById('technical_output').textContent = '';
-
-           document.getElementById('polished_token_count').textContent = '0 chars';
-           document.getElementById('creative_token_count').textContent = '0 chars';
-           document.getElementById('technical_token_count').textContent = '0 chars';
-
-           // --- NEW: Input validation ---
-           if (!promptInput) {
-               appOutput.textContent = getMessage("no_input_provided", selectedLanguage);
-               appOutput.className = 'mt-4 warning';
-               setSaveActionButtonsDisabled(true);
-               setLLMWebsiteButtonsDisabled(true);
-               return; // Stop execution if no input
-           }
-           // --- END NEW ---
-
-           appOutput.textContent = getMessage("generating", selectedLanguage);
-           appOutput.className = 'mt-4 info'; // Set to info during generation
-           generateButton.disabled = true;
-           reversePromptButton.disabled = true;
-           setSaveActionButtonsDisabled(true); // Disable all LLM-related buttons immediately
-           setLLMWebsiteButtonsDisabled(true); // Disable LLM website buttons immediately
-           generateButton.textContent = 'Generating...';
-           cooldownTimerDisplay.style.display = 'none';
-
-           console.log("Frontend: Sending request to /generate...");
-
-           try {
-               const formData = new FormData();
-               formData.append('prompt_input', promptInput);
-               formData.append('language_code', selectedLanguage);
-
-               const response = await fetch('/generate', {
-                   method: 'POST',
-                   body: formData
-               });
-
-               console.log("Frontend: Received response status:", response.status);
-               console.log("Frontend: Response OK status:", response.ok);
-
-               if (!response.ok) {
-                   const errorData = await response.json();
-                   console.log("Frontend: Parsed error JSON:", errorData);
-
-                   if (errorData.cooldown_active && errorData.remaining_time) {
-                       appOutput.textContent = errorData.error;
-                       appOutput.className = 'mt-4 warning';
-                       startCooldownTimer(errorData.remaining_time);
-                   } else if (errorData.daily_limit_reached) { // Handle daily limit error
-                       appOutput.textContent = errorData.error;
-                       appOutput.className = 'mt-4 danger';
-                   }
-                   else if (response.status === 302) {
-                       window.location.href = response.url;
-                       return;
-                   } else {
-                       appOutput.textContent = getMessage("generation_failed", selectedLanguage) + `: ${errorData.error || `HTTP error! status: ${response.status}`}`;
-                       appOutput.className = 'mt-4 danger';
-                   }
-                   return;
-               }
-
-               const data = await response.json();
-               console.log("Frontend: Parsed successful response data:", data);
-
-               if (data.error) {
-                   appOutput.textContent = getMessage("api_error", selectedLanguage, {error: data.error});
-                   appOutput.className = 'mt-4 danger';
-                   console.error("Backend error reported:", data.error);
-               } else {
-                   document.getElementById('polished_output').textContent = data.polished;
-                   document.getElementById('creative_output').textContent = data.creative;
-                   document.getElementById('technical_output').textContent = data.technical;
-
-                   // Update token counts (using character count as a proxy)
-                   document.getElementById('polished_token_count').textContent = `${data.polished.length} chars`;
-                   document.getElementById('creative_token_count').textContent = `${data.creative.length} chars`;
-                   document.getElementById('technical_token_count').textContent = `${data.technical.length} chars`;
-
-                   appOutput.textContent = getMessage("generation_complete", selectedLanguage);
-                   appOutput.className = 'mt-4 success';
-                   fetchAndDisplayRawPrompts();
-                   // Cooldown and button states will be handled by updateAllButtonStates in finally block
-               }
-
-           } catch (error) {
-               let errorMessage = getMessage("generation_failed", selectedLanguage);
-               if (error.message.includes("Failed to fetch")) {
-                   errorMessage += `: Network error or server not reachable. Is the Flask app running?`;
-               } else {
-                   errorMessage += `: ${error.message}`;
-               }
-               appOutput.textContent = errorMessage;
-               appOutput.className = 'mt-4 danger';
-               console.error("Fetch error caught in JS:", error);
-           } finally {
-               generateButton.textContent = 'Generate Prompts';
-               updateAllButtonStates(); // Re-check status to re-enable buttons or show cooldown/limit
-           }
-       });
-
-       // Event listener for Reverse Prompt button
-       reversePromptButton.addEventListener('click', async function() {
-           const promptInput = document.getElementById('prompt_input').value.trim(); // Trim whitespace
-           const selectedLanguage = document.getElementById('lang_select').value;
-
-           // Clear previous outputs and token counts
-           document.getElementById('polished_output').textContent = '';
-           document.getElementById('creative_output').textContent = '';
-           document.getElementById('technical_output').textContent = '';
-
-           document.getElementById('polished_token_count').textContent = '0 chars';
-           document.getElementById('creative_token_count').textContent = '0 chars';
-           document.getElementById('technical_token_count').textContent = '0 chars';
-
-           // --- NEW: Input validation ---
-           if (!promptInput) {
-               appOutput.textContent = getMessage("no_input_provided", selectedLanguage);
-               appOutput.className = 'mt-4 warning';
-               setSaveActionButtonsDisabled(true);
-               setLLMWebsiteButtonsDisabled(true);
-               return; // Stop execution if no input
-           }
-           // --- END NEW ---
-
-           appOutput.textContent = getMessage("reverse_prompting", selectedLanguage);
-           appOutput.className = 'mt-4 info'; // Set to info during generation
-           generateButton.disabled = true;
-           reversePromptButton.disabled = true;
-           setSaveActionButtonsDisabled(true); // Disable all LLM-related buttons immediately
-           setLLMWebsiteButtonsDisabled(true); // Disable LLM website buttons immediately
-           reversePromptButton.textContent = 'Inferring...';
-           cooldownTimerDisplay.style.display = 'none';
-
-           console.log("Frontend: Sending request to /reverse_prompt...");
-
-           try {
-               const response = await fetch('/reverse_prompt', {
-                   method: 'POST',
-                   headers: {
-                       'Content-Type': 'application/json'
-                   },
-                   body: JSON.stringify({
-                       input_text: promptInput,
-                       language_code: selectedLanguage
-                   })
-               });
-
-               if (!response.ok) {
-                   const errorData = await response.json();
-                   if (errorData.cooldown_active && errorData.remaining_time) {
-                       appOutput.textContent = errorData.error;
-                       appOutput.className = 'mt-4 warning';
-                       startCooldownTimer(errorData.remaining_time);
-                   } else if (errorData.daily_limit_reached) { // Handle daily limit error
-                       appOutput.textContent = errorData.error;
-                       appOutput.className = 'mt-4 danger';
-                   }
-                   else if (response.status === 302) {
-                       window.location.href = response.url;
-                       return;
-                   } else {
-                       appOutput.textContent = getMessage("reverse_prompt_failed", selectedLanguage) + `: ${errorData.error || `HTTP error! status: ${response.status}`}`;
-                       appOutput.className = 'mt-4 danger';
-                   }
-                   return;
-               }
-
-               const data = await response.json();
-               if (data.error) {
-                   appOutput.textContent = getMessage("api_error", selectedLanguage, {error: data.error});
-                   appOutput.className = 'mt-4 danger';
-                   console.error("Backend error reported for reverse prompt:", data.error);
-               } else {
-                   // Display the inferred prompt in the polished output area
-                   document.getElementById('polished_output').textContent = data.inferred_prompt;
-                   document.getElementById('polished_token_count').textContent = `${data.inferred_prompt.length} chars`;
-                   appOutput.textContent = getMessage("reverse_prompt_complete", selectedLanguage);
-                   appOutput.className = 'mt-4 success';
-                   fetchAndDisplayRawPrompts();
-                   // Cooldown and button states will be handled by updateAllButtonStates in finally block
-               }
-
-           } catch (error) {
-               let errorMessage = getMessage("reverse_prompt_failed", selectedLanguage);
-               if (error.message.includes("Failed to fetch")) {
-                   errorMessage += `: Network error or server not reachable.`;
-               } else {
-                   errorMessage += `: ${error.message}`;
-               }
-               appOutput.textContent = errorMessage;
-               appOutput.className = 'mt-4 danger';
-               console.error("Fetch error caught in JS for reverse prompt:", error);
-           } finally {
-               reversePromptButton.textContent = 'Reverse Prompt';
-               updateAllButtonStates(); // Re-check status to re-enable buttons
-           }
-       });
-
-       // Event listeners for save buttons
-       document.querySelectorAll('.save-button').forEach(button => {
-           button.addEventListener('click', async function() {
-               const promptType = this.dataset.promptType;
-               const promptElementId = `${promptType}_output`;
-               const promptText = document.getElementById(promptElementId).textContent.trim();
-               const selectedLanguage = document.getElementById('lang_select').value;
-               const appOutput = document.getElementById('app_output');
-
-               if (!promptText) {
-                   appOutput.textContent = getMessage("no_prompt_to_save", selectedLanguage, {type: "selected"});
-                   appOutput.className = 'mt-4 warning';
-                   return;
-               }
-
-               try {
-                   const response = await fetch('/save_prompt', {
-                       method: 'POST',
-                       headers: {
-                           'Content-Type': 'application/json'
-                       },
-                       body: JSON.stringify({
-                           prompt_text: promptText,
-                           prompt_type: promptType
-                       })
-                   });
-
-                   if (!response.ok) {
-                       if (response.status === 302) {
-                           window.location.href = response.url;
-                           return;
-                       }
-                       const errorData = await response.json();
-                       throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
-                   }
-
-                   const data = await response.json();
-                   if (data.success) {
-                       appOutput.textContent = getMessage("prompt_saved", selectedLanguage);
-                       appOutput.className = 'mt-4 success';
-                       fetchAndDisplaySavedPrompts();
-                   } else {
-                       appOutput.textContent = getMessage("save_failed", selectedLanguage) + ` ${data.message}`;
-                       appOutput.className = 'mt-4 danger';
-                       console.error("Save error:", data.message);
-                   }
-               } catch (error) {
-                   appOutput.textContent = getMessage("network_error_save", selectedLanguage) + ` ${error.message}`;
-                   appOutput.className = 'mt-4 danger';
-                   console.error("Network error saving prompt:", error);
-               }
-           });
-       });
-
-       // --- Web Speech API for Voice Input with Language Selector ---
-       const voiceInputButton = document.getElementById('voice_input_button');
-       const promptInputTextarea = document.getElementById('prompt_input');
-       const langSelect = document.getElementById('lang_select');
-       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-
-       if (!SpeechRecognition) {
-           voiceInputButton.disabled = true;
-           voiceInputButton.textContent = '🎤 Voice Input Not Supported';
-           appOutput.textContent = getMessage("voice_not_supported", "en-US");
-           appOutput.className = 'mt-4 warning';
-           langSelect.disabled = true;
-       } else {
-           const recognition = new SpeechRecognition();
-           recognition.continuous = false;
-           recognition.interimResults = false;
-           recognition.lang = langSelect.value;
-
-           let isRecording = false;
-
-           langSelect.addEventListener('change', () => {
-               const selectedLanguage = langSelect.value;
-               recognition.lang = selectedLanguage;
-               const langName = langSelect.options[langSelect.selectedIndex].text;
-               appOutput.textContent = `Voice input language set to ${langName}. Remember to click "Generate" to get prompts in this language.`;
-               appOutput.className = 'mt-4 info';
-               if (isRecording) {
-                   recognition.stop();
-               }
-           });
-
-           voiceInputButton.addEventListener('click', () => {
-               const selectedLanguage = langSelect.value;
-               if (isRecording) {
-                   recognition.stop();
-                   return;
-               }
-
-               if (!recognition.continuous) {
-                   promptInputTextarea.value = '';
-               }
-
-               try {
-                   recognition.start();
-                   isRecording = true;
-                   voiceInputButton.textContent = '🔴 Stop Recording';
-                   voiceInputButton.classList.add('btn-danger');
-                   voiceInputButton.classList.remove('btn-outline-secondary');
-                   const langName = langSelect.options[langSelect.selectedIndex].text;
-                   appOutput.textContent = getMessage("listening", selectedLanguage).replace("(English)", `(${langName})`);
-                   appOutput.className = 'mt-4 info';
-               } catch (error) {
-                   console.error("Error starting speech recognition:", error);
-                   appOutput.textContent = getMessage("voice_start_error", selectedLanguage) + ` ${error.message}`;
-                   appOutput.className = 'mt-4 danger';
-                   isRecording = false;
-                   voiceInputButton.textContent = '🎤 Start Voice Input';
-                   voiceInputButton.classList.remove('btn-danger');
-                   voiceInputButton.classList.add('btn-outline-secondary');
-               }
-           });
-
-           recognition.onresult = (event) => {
-               const selectedLanguage = langSelect.value;
-               const transcript = event.results[0][0].transcript;
-               promptInputTextarea.value = transcript;
-               appOutput.textContent = getMessage("voice_captured", selectedLanguage);
-               appOutput.className = 'mt-4 success';
-           };
-
-           recognition.onerror = (event) => {
-               const selectedLanguage = langSelect.value;
-               console.error('Speech recognition error:', event.error);
-               appOutput.textContent = getMessage("voice_error", selectedLanguage) + ` ${event.error}`;
-               appOutput.className = 'mt-4 danger';
-               isRecording = false;
-               voiceInputButton.textContent = '🎤 Start Voice Input';
-               voiceInputButton.classList.remove('btn-danger');
-               voiceInputButton.classList.add('btn-outline-secondary');
-           };
-
-           recognition.onend = () => {
-               const selectedLanguage = langSelect.value;
-               isRecording = false;
-               voiceInputButton.textContent = '🎤 Start Voice Input';
-               voiceInputButton.classList.remove('btn-danger');
-               voiceInputButton.classList.add('btn-outline-secondary');
-               if (!appOutput.textContent.startsWith( '❌' ) && !appOutput.textContent.startsWith( '✅' )) {
-                   appOutput.textContent = getMessage("voice_ended", selectedLanguage);
-                   appOutput.className = 'mt-4 info';
-               }
-           };
-       }
-
-       // --- Image Input JavaScript Logic ---
-       const imageInput = document.getElementById('image_input');
-       const triggerImageInputButton = document.getElementById('trigger_image_input');
-       const imagePreview = document.getElementById('image_preview');
-       const processImageButton = document.getElementById('process_image_button');
-       const imageLoadingSpinner = document.getElementById('image_loading_spinner');
-       const imageInputSection = document.querySelector('.image-input-section');
-
-
-       triggerImageInputButton.addEventListener('click', () => {
-           imageInput.click();
-       });
-
-       imageInput.addEventListener('change', function(event) {
-           const file = event.target.files[0];
-           if (file) {
-               const reader = new FileReader();
-               reader.onload = function(e) {
-                   imagePreview.src = e.target.result;
-                   imagePreview.style.display = 'block';
-                   imageInputSection.style.display = 'block';
-               };
-               reader.readAsDataURL(file);
-           } else {
-               imagePreview.src = '#';
-               imagePreview.style.display = 'none';
-               imageInputSection.style.display = 'none';
-           }
-       });
-
-       processImageButton.addEventListener('click', async function() {
-           const file = imageInput.files[0];
-           const selectedLanguage = langSelect.value;
-
-           if (!file) {
-               appOutput.textContent = getMessage("no_image_selected", selectedLanguage);
-               appOutput.className = 'mt-4 warning';
-               return;
-           }
-
-           // Show loading spinner and disable button
-           imageLoadingSpinner.style.display = 'block';
-           processImageButton.disabled = true;
-           appOutput.textContent = getMessage("image_processing", selectedLanguage);
-           appOutput.className = 'mt-4 info';
-
-           const reader = new FileReader();
-           reader.onloadend = async function() {
-               const base64data = reader.result.split(',')[1];
-
-               try {
-                   const response = await fetch('/process_image_prompt', {
-                       method: 'POST',
-                       headers: {
-                           'Content-Type': 'application/json'
-                       },
-                       body: JSON.stringify({
-                           image_data: base64data,
-                           language_code: selectedLanguage
-                       })
-                   });
-
-                   if (!response.ok) {
-                       if (response.status === 302) {
-                           window.location.href = response.url;
-                           return;
-                       }
-                       const errorData = await response.json();
-                       throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
-                   }
-
-                   const data = await response.json();
-                   if (data.recognized_text) {
-                       promptInputTextarea.value = data.recognized_text;
-                       appOutput.textContent = getMessage("image_success", selectedLanguage);
-                       appOutput.className = 'mt-4 success';
-                       // Optionally, trigger generate prompts automatically
-                       // document.getElementById('promptForm').requestSubmit();
-                   } else {
-                       appOutput.textContent = getMessage("image_error", selectedLanguage) + ` No text recognized.`;
-                       appOutput.className = 'mt-4 danger';
-                   }
-
-               } catch (error) {
-                   appOutput.textContent = getMessage("image_error", selectedLanguage) + ` ${error.message}`;
-                   appOutput.className = 'mt-4 danger';
-                   console.error("Image processing fetch error:", error);
-               } finally {
-                   imageLoadingSpinner.style.display = 'none';
-                   processImageButton.disabled = false;
-                   imageInputSection.style.display = 'none';
-                   imagePreview.src = '#';
-                   imageInput.value = '';
-                   updateAllButtonStates(); // Re-check status to re-enable generate/reverse buttons
-               }
-           };
-           reader.readAsDataURL(file);
-       });
-
-       // --- Copy Prompt Text Function ---
-       async function copyPromptText(elementId) {
-           const promptText = document.getElementById(elementId).textContent.trim();
-           const selectedLanguage = document.getElementById('lang_select').value;
-
-           if (!promptText) {
-               appOutput.textContent = getMessage("no_prompt_to_save", selectedLanguage, {type: "selected"});
-               appOutput.className = 'mt-4 warning';
-               return;
-           }
-
-           try {
-               const textarea = document.createElement('textarea');
-               textarea.value = promptText;
-               document.body.appendChild(textarea);
-               textarea.select();
-               document.execCommand('copy');
-              
-               appOutput.textContent = getMessage("copy_success", selectedLanguage);
-               appOutput.className = 'mt-4 success';
-           } catch (err) {
-               appOutput.textContent = getMessage("copy_fail", selectedLanguage);
-               appOutput.className = 'mt-4 danger';
-               console.error('Failed to copy text:', err);
-           }
-       }
-
-       // --- Open LLM Function ---
-       const LLM_URLS = {
-           chatgpt: "https://chat.openai.com/",
-           claude: "https://claude.ai/chats",
-           mistral: "https://chat.mistral.ai/",
-           gemini: "https://gemini.google.com/app",
-           grok: "https://grok.x.ai/",
-           perplexity: "https://www.perplexity.ai/",
-           deepseek: "https://www.deepseek.com/chat"
-       };
-
-       function openLLM(llmKey) {
-           const selectedLanguage = document.getElementById('lang_select').value;
-
-           if (LLM_URLS[llmKey]) {
-               window.open(LLM_URLS[llmKey], '_blank');
-           } else {
-               appOutput.textContent = `Error: Unknown LLM key: ${llmKey}`;
-               appOutput.className = 'mt-4 danger';
-               console.error(`Unknown LLM key: ${llmKey}`);
-           }
-       }
-
-       // --- Full Context View Modal Functions ---
-       function openFullContextView(title, elementId) {
-           const modalOverlay = document.getElementById('fullContextModalOverlay');
-           const modalTitle = document.getElementById('fullContextModalTitle');
-           const modalText = document.getElementById('fullContextModalText');
-           const promptText = document.getElementById(elementId).textContent.trim();
-
-           modalTitle.textContent = title;
-           modalText.textContent = promptText;
-           modalOverlay.classList.add('show');
-       }
-
-       function closeFullContextView() {
-           const modalOverlay = document.getElementById('fullContextModalOverlay');
-           modalOverlay.classList.remove('show');
-       }
-       // --- END Full Context View Modal Functions ---
-   </script>
+       // ========================================
+// COMPLETE JAVASCRIPT CODE WITH FIXED LOGGING
+// ========================================
+
+function getMessage(key, langCode, replacements = {}) {
+    const messages = MESSAGES[langCode] || MESSAGES["en-US"];
+    let message = messages[key] || MESSAGES["en-US"][key] || key;
+    for (const placeholder in replacements) {
+        message = message.replace(`{${placeholder}}`, replacements[placeholder]);
+    }
+    return message;
+}
+
+// ========================================
+// CORE LOGGING FUNCTION - ALWAYS APPENDS
+// ========================================
+function addLog(key, category = 'info', replacements = {}) {
+    const logBox = document.getElementById('app_output');
+    const langCode = document.getElementById('lang_select').value;
+    
+    // Handle custom messages passed directly
+    let message;
+    if (replacements.message) {
+        message = replacements.message;
+    } else {
+        message = getMessage(key, langCode, replacements);
+    }
+    
+    const timestamp = new Date().toLocaleTimeString([], { 
+        hour: '2-digit', 
+        minute: '2-digit',
+        second: '2-digit'
+    });
+    
+    const entry = `<div class="log-entry ${category}">[${timestamp}] ${message}</div>`;
+    
+    // CRITICAL: Always append, never replace
+    logBox.innerHTML += entry;
+    
+    // Save to session storage
+    sessionStorage.setItem('app_logs', logBox.innerHTML);
+    
+    // Auto-scroll to bottom to show latest log
+    logBox.scrollTop = logBox.scrollHeight;
+}
+
+// ========================================
+// FETCH AND DISPLAY SAVED PROMPTS
+// ========================================
+async function fetchAndDisplaySavedPrompts() {
+    const savedPromptsListElement = document.getElementById('saved_prompts_list');
+    savedPromptsListElement.innerHTML = '';
+
+    try {
+        const response = await fetch('/get_saved_prompts');
+        if (!response.ok) {
+            console.warn(`Could not fetch saved prompts: HTTP status ${response.status}`);
+            savedPromptsListElement.innerHTML = '<li class="list-group-item">Please log in to view your saved prompts.</li>';
+            return;
+        }
+        const savedPrompts = await response.json();
+
+        if (savedPrompts.length === 0) {
+            savedPromptsListElement.innerHTML = '<li class="list-group-item">No prompts saved yet.</li>';
+        } else {
+            savedPrompts.forEach(prompt => {
+                const listItem = document.createElement('li');
+                listItem.className = 'list-group-item';
+                listItem.innerHTML = `
+                    <strong>${prompt.type.charAt(0).toUpperCase() + prompt.type.slice(1)} Prompt (${prompt.timestamp}):</strong>
+                    <pre>${prompt.text}</pre>
+                `;
+                savedPromptsListElement.appendChild(listItem);
+            });
+        }
+    } catch (error) {
+        console.error("Error fetching saved prompts:", error);
+        savedPromptsListElement.innerHTML = '<li class="list-group-item">Error loading saved prompts.</li>';
+    }
+}
+
+// ========================================
+// FETCH AND DISPLAY PAST RAW REQUESTS
+// ========================================
+async function fetchAndDisplayRawPrompts() {
+    const pastRawRequestsListElement = document.getElementById('past_raw_requests_list');
+    pastRawRequestsListElement.innerHTML = '';
+
+    try {
+        const response = await fetch('/get_raw_prompts');
+        if (!response.ok) {
+            console.warn(`Could not fetch raw prompts: HTTP status ${response.status}`);
+            pastRawRequestsListElement.innerHTML = '<li class="list-group-item">Please log in to view your past raw requests.</li>';
+            return;
+        }
+        const rawPrompts = await response.json();
+
+        if (rawPrompts.length === 0) {
+            pastRawRequestsListElement.innerHTML = '<li class="list-group-item">No raw requests saved yet.</li>';
+        } else {
+            rawPrompts.forEach(prompt => {
+                const listItem = document.createElement('li');
+                listItem.className = 'list-group-item';
+                listItem.innerHTML = `
+                    <strong>${prompt.timestamp}:</strong>
+                    <span>${prompt.raw_text}</span>
+                `;
+                pastRawRequestsListElement.appendChild(listItem);
+            });
+        }
+    } catch (error) {
+        console.error("Error fetching raw prompts:", error);
+        pastRawRequestsListElement.innerHTML = '<li class="list-group-item">Error loading past raw requests.</li>';
+    }
+}
+
+// ========================================
+// DOM CONTENT LOADED - INITIALIZE APP
+// ========================================
+document.addEventListener('DOMContentLoaded', () => {
+    const logBox = document.getElementById('app_output');
+    const currentLang = document.getElementById('lang_select')?.value || "en-US";
+
+    // Load log history from sessionStorage
+    let logHistory = sessionStorage.getItem('app_logs');
+
+    if (logHistory) {
+        logBox.innerHTML = logHistory;
+    } else {
+        // Initial "Application ready" message
+        const readyText = getMessage("application_ready", currentLang);
+        const time = new Date().toLocaleTimeString([], { 
+            hour: '2-digit', 
+            minute: '2-digit',
+            second: '2-digit'
+        });
+        logBox.innerHTML = `<div class="log-entry info">[${time}] ${readyText}</div>`;
+        sessionStorage.setItem('app_logs', logBox.innerHTML);
+    }
+
+    // Auto-scroll to bottom
+    logBox.scrollTop = logBox.scrollHeight;
+
+    // Initialize other components
+    fetchAndDisplaySavedPrompts();
+    fetchAndDisplayRawPrompts();
+    updateAllButtonStates();
+});
+
+// ========================================
+// COOLDOWN TIMER & BUTTON REFERENCES
+// ========================================
+let cooldownTimerInterval;
+const cooldownTimerDisplay = document.getElementById('cooldown_timer');
+const generateButton = document.getElementById('generate_prompts_btn');
+const reversePromptButton = document.getElementById('reverse_prompt_btn');
+const appOutput = document.getElementById('app_output');
+
+// LLM website buttons
+const chatGPTBtn = document.getElementById('chatgpt_llm_btn');
+const claudeBtn = document.getElementById('claude_llm_btn');
+const mistralBtn = document.getElementById('mistral_llm_btn');
+const geminiBtn = document.getElementById('gemini_llm_btn');
+const grokBtn = document.getElementById('grok_llm_btn');
+const perplexityBtn = document.getElementById('perplexity_llm_btn');
+const deepSeekBtn = document.getElementById('deepseek_llm_btn');
+
+// Download button
+const downloadPromptsBtn = document.getElementById('download_prompts_btn');
+
+// ========================================
+// START COOLDOWN TIMER
+// ========================================
+function startCooldownTimer(remainingTime) {
+    let timeLeft = remainingTime;
+    generateButton.disabled = true;
+    reversePromptButton.disabled = true;
+    cooldownTimerDisplay.style.display = 'inline';
+    cooldownTimerDisplay.textContent = `Cooldown: ${timeLeft}s`;
+
+    if (cooldownTimerInterval) {
+        clearInterval(cooldownTimerInterval);
+    }
+
+    cooldownTimerInterval = setInterval(() => {
+        timeLeft--;
+        cooldownTimerDisplay.textContent = `Cooldown: ${timeLeft}s`;
+        if (timeLeft <= 0) {
+            clearInterval(cooldownTimerInterval);
+            updateAllButtonStates();
+        }
+    }, 1000);
+}
+
+// ========================================
+// ENABLE/DISABLE LLM WEBSITE BUTTONS
+// ========================================
+function setLLMWebsiteButtonsDisabled(isDisabled) {
+    if (chatGPTBtn) chatGPTBtn.disabled = isDisabled;
+    if (claudeBtn) claudeBtn.disabled = isDisabled;
+    if (mistralBtn) mistralBtn.disabled = isDisabled;
+    if (geminiBtn) geminiBtn.disabled = isDisabled;
+    if (grokBtn) grokBtn.disabled = isDisabled;
+    if (perplexityBtn) perplexityBtn.disabled = isDisabled;
+    if (deepSeekBtn) deepSeekBtn.disabled = isDisabled;
+}
+
+// ========================================
+// ENABLE/DISABLE SAVE/DOWNLOAD BUTTONS
+// ========================================
+function setSaveActionButtonsDisabled(isDisabled) {
+    document.querySelectorAll('.save-button').forEach(btn => btn.disabled = isDisabled);
+    if (downloadPromptsBtn) downloadPromptsBtn.disabled = isDisabled;
+}
+
+// ========================================
+// UPDATE ALL BUTTON STATES - WITH LOGGING
+// ========================================
+async function updateAllButtonStates() {
+    const selectedLanguage = document.getElementById('lang_select').value;
+
+    try {
+        const response = await fetch('/check_cooldown');
+        const data = await response.json();
+
+        let canGenerate = true;
+
+        if (data.cooldown_active) {
+            canGenerate = false;
+            const cooldownMsg = `⏳ Cooldown active: Please wait ${data.remaining_time} seconds before your next generation.`;
+            addLog('info', 'warning', {message: cooldownMsg});
+            startCooldownTimer(data.remaining_time);
+        } else if (data.daily_limit_reached) {
+            canGenerate = false;
+            const limitMsg = `🚫 Daily limit reached: You have used ${data.daily_count}/2 generations today. Please try again tomorrow.`;
+            addLog('info', 'danger', {message: limitMsg});
+            cooldownTimerDisplay.style.display = 'none';
+        } else {
+            cooldownTimerDisplay.style.display = 'none';
+        }
+
+        generateButton.disabled = !canGenerate;
+        reversePromptButton.disabled = !canGenerate;
+
+        const hasOutput = 
+            document.getElementById('polished_output').textContent.trim() !== '' ||
+            document.getElementById('creative_output').textContent.trim() !== '' ||
+            document.getElementById('technical_output').textContent.trim() !== '';
+
+        setSaveActionButtonsDisabled(!hasOutput);
+        setLLMWebsiteButtonsDisabled(!hasOutput);
+
+    } catch (error) {
+        console.error("Error checking cooldown/daily limit:", error);
+        addLog('info', 'danger', {message: "❌ Error checking application status. Please refresh."});
+        generateButton.disabled = true;
+        reversePromptButton.disabled = true;
+        setSaveActionButtonsDisabled(true);
+        setLLMWebsiteButtonsDisabled(true);
+    }
+}
+
+// ========================================
+// GENERATE PROMPTS - FORM SUBMIT HANDLER
+// ========================================
+document.getElementById('promptForm').addEventListener('submit', async function(event) {
+    event.preventDefault();
+
+    const promptInput = document.getElementById('prompt_input').value.trim();
+    const selectedLanguage = document.getElementById('lang_select').value;
+    
+    // Clear previous outputs and token counts
+    document.getElementById('polished_output').textContent = '';
+    document.getElementById('creative_output').textContent = '';
+    document.getElementById('technical_output').textContent = '';
+    document.getElementById('polished_token_count').textContent = '0 chars';
+    document.getElementById('creative_token_count').textContent = '0 chars';
+    document.getElementById('technical_token_count').textContent = '0 chars';
+
+    if (!promptInput) {
+        addLog('no_input_provided', 'warning');
+        setSaveActionButtonsDisabled(true);
+        setLLMWebsiteButtonsDisabled(true);
+        return;
+    }
+
+    addLog('generating', 'info');
+    
+    generateButton.disabled = true;
+    reversePromptButton.disabled = true;
+    setSaveActionButtonsDisabled(true);
+    setLLMWebsiteButtonsDisabled(true);
+    generateButton.textContent = 'Generating...';
+    cooldownTimerDisplay.style.display = 'none';
+
+    console.log("Frontend: Sending request to /generate...");
+
+    try {
+        const formData = new FormData();
+        formData.append('prompt_input', promptInput);
+        formData.append('language_code', selectedLanguage);
+
+        const response = await fetch('/generate', {
+            method: 'POST',
+            body: formData
+        });
+
+        console.log("Frontend: Received response status:", response.status);
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            console.log("Frontend: Parsed error JSON:", errorData);
+
+            if (errorData.cooldown_active && errorData.remaining_time) {
+                addLog('info', 'warning', {message: errorData.error});
+                startCooldownTimer(errorData.remaining_time);
+            } else if (errorData.daily_limit_reached) {
+                addLog('info', 'danger', {message: errorData.error});
+            } else if (response.status === 302) {
+                window.location.href = response.url;
+                return;
+            } else {
+                const errorMsg = getMessage("generation_failed", selectedLanguage) + `: ${errorData.error || `HTTP error! status: ${response.status}`}`;
+                addLog('info', 'danger', {message: errorMsg});
+            }
+            return;
+        }
+
+        const data = await response.json();
+        console.log("Frontend: Parsed successful response data:", data);
+
+        if (data.error) {
+            addLog('api_error', 'danger', {error: data.error});
+            console.error("Backend error reported:", data.error);
+        } else {
+            document.getElementById('polished_output').textContent = data.polished;
+            document.getElementById('creative_output').textContent = data.creative;
+            document.getElementById('technical_output').textContent = data.technical;
+
+            document.getElementById('polished_token_count').textContent = `${data.polished.length} chars`;
+            document.getElementById('creative_token_count').textContent = `${data.creative.length} chars`;
+            document.getElementById('technical_token_count').textContent = `${data.technical.length} chars`;
+
+            addLog('generation_complete', 'success');
+            fetchAndDisplayRawPrompts();
+        }
+
+    } catch (error) {
+        let errorMessage = getMessage("generation_failed", selectedLanguage);
+        if (error.message.includes("Failed to fetch")) {
+            errorMessage += `: Network error or server not reachable.`;
+        } else {
+            errorMessage += `: ${error.message}`;
+        }
+        addLog('info', 'danger', {message: errorMessage});
+        console.error("Fetch error caught in JS:", error);
+    } finally {
+        generateButton.textContent = 'Generate Prompts';
+        updateAllButtonStates();
+    }
+});
+
+// ========================================
+// REVERSE PROMPT - BUTTON HANDLER
+// ========================================
+reversePromptButton.addEventListener('click', async function() {
+    const promptInput = document.getElementById('prompt_input').value.trim();
+    const selectedLanguage = document.getElementById('lang_select').value;
+
+    // Clear previous outputs
+    document.getElementById('polished_output').textContent = '';
+    document.getElementById('creative_output').textContent = '';
+    document.getElementById('technical_output').textContent = '';
+    document.getElementById('polished_token_count').textContent = '0 chars';
+    document.getElementById('creative_token_count').textContent = '0 chars';
+    document.getElementById('technical_token_count').textContent = '0 chars';
+
+    if (!promptInput) {
+        addLog('no_input_provided', 'warning');
+        setSaveActionButtonsDisabled(true);
+        setLLMWebsiteButtonsDisabled(true);
+        return;
+    }
+
+    addLog('reverse_prompting', 'info');
+    
+    generateButton.disabled = true;
+    reversePromptButton.disabled = true;
+    setSaveActionButtonsDisabled(true);
+    setLLMWebsiteButtonsDisabled(true);
+    reversePromptButton.textContent = 'Inferring...';
+    cooldownTimerDisplay.style.display = 'none';
+
+    console.log("Frontend: Sending request to /reverse_prompt...");
+
+    try {
+        const response = await fetch('/reverse_prompt', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                input_text: promptInput,
+                language_code: selectedLanguage
+            })
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            if (errorData.cooldown_active && errorData.remaining_time) {
+                addLog('info', 'warning', {message: errorData.error});
+                startCooldownTimer(errorData.remaining_time);
+            } else if (errorData.daily_limit_reached) {
+                addLog('info', 'danger', {message: errorData.error});
+            } else if (response.status === 302) {
+                window.location.href = response.url;
+                return;
+            } else {
+                const errorMsg = getMessage("reverse_prompt_failed", selectedLanguage) + `: ${errorData.error || `HTTP error! status: ${response.status}`}`;
+                addLog('info', 'danger', {message: errorMsg});
+            }
+            return;
+        }
+
+        const data = await response.json();
+        if (data.error) {
+            addLog('api_error', 'danger', {error: data.error});
+            console.error("Backend error reported for reverse prompt:", data.error);
+        } else {
+            document.getElementById('polished_output').textContent = data.inferred_prompt;
+            document.getElementById('polished_token_count').textContent = `${data.inferred_prompt.length} chars`;
+            
+            addLog('reverse_prompt_complete', 'success');
+            fetchAndDisplayRawPrompts();
+        }
+
+    } catch (error) {
+        let errorMessage = getMessage("reverse_prompt_failed", selectedLanguage);
+        if (error.message.includes("Failed to fetch")) {
+            errorMessage += `: Network error or server not reachable.`;
+        } else {
+            errorMessage += `: ${error.message}`;
+        }
+        addLog('info', 'danger', {message: errorMessage});
+        console.error("Fetch error caught in JS for reverse prompt:", error);
+    } finally {
+        reversePromptButton.textContent = 'Reverse Prompt';
+        updateAllButtonStates();
+    }
+});
+
+// ========================================
+// SAVE PROMPT BUTTONS - EVENT LISTENERS
+// ========================================
+document.querySelectorAll('.save-button').forEach(button => {
+    button.addEventListener('click', async function() {
+        const promptType = this.dataset.promptType;
+        const promptElementId = `${promptType}_output`;
+        const promptText = document.getElementById(promptElementId).textContent.trim();
+        const selectedLanguage = document.getElementById('lang_select').value;
+
+        if (!promptText) {
+            addLog('no_prompt_to_save', 'warning', {type: "selected"});
+            return;
+        }
+
+        try {
+            const response = await fetch('/save_prompt', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    prompt_text: promptText,
+                    prompt_type: promptType
+                })
+            });
+
+            if (!response.ok) {
+                if (response.status === 302) {
+                    window.location.href = response.url;
+                    return;
+                }
+                const errorData = await response.json();
+                throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+            }
+
+            const data = await response.json();
+            if (data.success) {
+                addLog('prompt_saved', 'success');
+                fetchAndDisplaySavedPrompts();
+            } else {
+                addLog('save_failed', 'danger', {message: data.message});
+                console.error("Save error:", data.message);
+            }
+        } catch (error) {
+            addLog('network_error_save', 'danger', {message: error.message});
+            console.error("Network error saving prompt:", error);
+        }
+    });
+});
+
+// ========================================
+// WEB SPEECH API - VOICE INPUT
+// ========================================
+const voiceInputButton = document.getElementById('voice_input_button');
+const promptInputTextarea = document.getElementById('prompt_input');
+const langSelect = document.getElementById('lang_select');
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+if (!SpeechRecognition) {
+    voiceInputButton.disabled = true;
+    voiceInputButton.textContent = '🎤 Voice Input Not Supported';
+    addLog('voice_not_supported', 'warning');
+    langSelect.disabled = true;
+} else {
+    const recognition = new SpeechRecognition();
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.lang = langSelect.value;
+
+    let isRecording = false;
+
+    langSelect.addEventListener('change', () => {
+        const selectedLanguage = langSelect.value;
+        recognition.lang = selectedLanguage;
+        const langName = langSelect.options[langSelect.selectedIndex].text;
+        addLog('info', 'info', {message: `🌐 Voice input language set to ${langName}.`});
+        if (isRecording) {
+            recognition.stop();
+        }
+    });
+
+    voiceInputButton.addEventListener('click', () => {
+        const selectedLanguage = langSelect.value;
+        if (isRecording) {
+            recognition.stop();
+            return;
+        }
+
+        if (!recognition.continuous) {
+            promptInputTextarea.value = '';
+        }
+
+        try {
+            recognition.start();
+            isRecording = true;
+            voiceInputButton.textContent = '🔴 Stop Recording';
+            voiceInputButton.classList.add('btn-danger');
+            voiceInputButton.classList.remove('btn-outline-secondary');
+            const langName = langSelect.options[langSelect.selectedIndex].text;
+            addLog('listening', 'info');
+        } catch (error) {
+            console.error("Error starting speech recognition:", error);
+            addLog('voice_start_error', 'danger', {error: error.message});
+            isRecording = false;
+            voiceInputButton.textContent = '🎤 Start Voice Input';
+            voiceInputButton.classList.remove('btn-danger');
+            voiceInputButton.classList.add('btn-outline-secondary');
+        }
+    });
+
+    recognition.onresult = (event) => {
+        const transcript = event.results[0][0].transcript;
+        promptInputTextarea.value = transcript;
+        addLog('voice_captured', 'success');
+    };
+
+    recognition.onerror = (event) => {
+        console.error('Speech recognition error:', event.error);
+        addLog('voice_error', 'danger', {error: event.error});
+        isRecording = false;
+        voiceInputButton.textContent = '🎤 Start Voice Input';
+        voiceInputButton.classList.remove('btn-danger');
+        voiceInputButton.classList.add('btn-outline-secondary');
+    };
+
+    recognition.onend = () => {
+        isRecording = false;
+        voiceInputButton.textContent = '🎤 Start Voice Input';
+        voiceInputButton.classList.remove('btn-danger');
+        voiceInputButton.classList.add('btn-outline-secondary');
+    };
+}
+
+// ========================================
+// IMAGE INPUT - PROCESSING
+// ========================================
+const imageInput = document.getElementById('image_input');
+const triggerImageInputButton = document.getElementById('trigger_image_input');
+const imagePreview = document.getElementById('image_preview');
+const processImageButton = document.getElementById('process_image_button');
+const imageLoadingSpinner = document.getElementById('image_loading_spinner');
+const imageInputSection = document.querySelector('.image-input-section');
+
+triggerImageInputButton.addEventListener('click', () => {
+    imageInput.click();
+});
+
+imageInput.addEventListener('change', function(event) {
+    const file = event.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            imagePreview.src = e.target.result;
+            imagePreview.style.display = 'block';
+            imageInputSection.style.display = 'block';
+        };
+        reader.readAsDataURL(file);
+    } else {
+        imagePreview.src = '#';
+        imagePreview.style.display = 'none';
+        imageInputSection.style.display = 'none';
+    }
+});
+
+processImageButton.addEventListener('click', async function() {
+    const file = imageInput.files[0];
+    const selectedLanguage = langSelect.value;
+
+    if (!file) {
+        addLog('no_image_selected', 'warning');
+        return;
+    }
+
+    imageLoadingSpinner.style.display = 'block';
+    processImageButton.disabled = true;
+    addLog('image_processing', 'info');
+
+    const reader = new FileReader();
+    reader.onloadend = async function() {
+        const base64data = reader.result.split(',')[1];
+
+        try {
+            const response = await fetch('/process_image_prompt', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    image_data: base64data,
+                    language_code: selectedLanguage
+                })
+            });
+
+            if (!response.ok) {
+                if (response.status === 302) {
+                    window.location.href = response.url;
+                    return;
+                }
+                const errorData = await response.json();
+                throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+            }
+
+            const data = await response.json();
+            if (data.recognized_text) {
+                promptInputTextarea.value = data.recognized_text;
+                addLog('image_success', 'success');
+            } else {
+                addLog('image_error', 'danger', {message: 'No text recognized.'});
+            }
+
+        } catch (error) {
+            addLog('image_error', 'danger', {message: error.message});
+            console.error("Image processing fetch error:", error);
+        } finally {
+            imageLoadingSpinner.style.display = 'none';
+            processImageButton.disabled = false;
+            imageInputSection.style.display = 'none';
+            imagePreview.src = '#';
+            imageInput.value = '';
+            updateAllButtonStates();
+        }
+    };
+    reader.readAsDataURL(file);
+});
+
+// ========================================
+// COPY PROMPT TEXT FUNCTION
+// ========================================
+function copyPromptText(elementId) {
+    const promptText = document.getElementById(elementId).textContent.trim();
+    const selectedLanguage = document.getElementById('lang_select').value;
+
+    if (!promptText) {
+        addLog('no_prompt_to_save', 'warning', {type: "selected"});
+        return;
+    }
+
+    try {
+        const textarea = document.createElement('textarea');
+        textarea.value = promptText;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+        addLog('copy_success', 'success');
+    } catch (err) {
+        addLog('copy_fail', 'danger');
+        console.error('Failed to copy text:', err);
+    }
+}
+
+// ========================================
+// OPEN LLM FUNCTION
+// ========================================
+const LLM_URLS = {
+    chatgpt: "https://chat.openai.com/",
+    claude: "https://claude.ai/chats",
+    mistral: "https://chat.mistral.ai/",
+    gemini: "https://gemini.google.com/app",
+    grok: "https://grok.x.ai/",
+    perplexity: "https://www.perplexity.ai/",
+    deepseek: "https://www.deepseek.com/chat"
+};
+
+function openLLM(llmKey) {
+    if (LLM_URLS[llmKey]) {
+        window.open(LLM_URLS[llmKey], '_blank');
+    } else {
+        addLog('info', 'danger', {message: `Error: Unknown LLM key: ${llmKey}`});
+        console.error(`Unknown LLM key: ${llmKey}`);
+    }
+}
+
+// ========================================
+// FULL CONTEXT VIEW MODAL FUNCTIONS
+// ========================================
+function openFullContextView(title, elementId) {
+    const modalOverlay = document.getElementById('fullContextModalOverlay');
+    const modalTitle = document.getElementById('fullContextModalTitle');
+    const modalText = document.getElementById('fullContextModalText');
+    const promptText = document.getElementById(elementId).textContent.trim();
+
+    modalTitle.textContent = title;
+    modalText.textContent = promptText;
+    modalOverlay.classList.add('show');
+}
+
+function closeFullContextView() {
+    const modalOverlay = document.getElementById('fullContextModalOverlay');
+    modalOverlay.classList.remove('show');
+}
+
 </body>
 </html>
