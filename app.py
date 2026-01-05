@@ -714,6 +714,30 @@ def get_app_logs():
 
     return jsonify(parsed_logs)
 
+def clean_prompt_text(text):
+    """
+    Removes Markdown formatting and excessive special characters 
+    to ensure a clean, 'non-messy' output.
+    """
+    if not text:
+        return ""
+    
+    # 1. Remove Markdown code blocks (```python ... ```)
+    text = re.sub(r'```[\s\S]*?```', '', text)
+    
+    # 2. Remove bold/italic markers (* or _)
+    text = text.replace('**', '').replace('__', '').replace('*', '').replace('_', '')
+    
+    # 3. Remove header markers (#)
+    text = re.sub(r'^#+\s*', '', text, flags=re.MULTILINE)
+    
+    # 4. Remove backticks (`)
+    text = text.replace('`', '')
+
+    # 5. Clean up extra newlines and spaces
+    text = re.sub(r'\n\s*\n', '\n', text) # Remove empty lines
+    return text.strip()
+
 @app.route('/generate', methods=['POST'])
 @login_required
 async def generate_prompts_endpoint():
@@ -753,7 +777,9 @@ async def generate_prompts_endpoint():
         return jsonify({"error": "No input provided"}), 400
 
     try:
-        results = await generate_prompts_async(raw_input, language_code)
+        
+        raw_results = await generate_prompts_async(raw_input, language_code)
+        results =clean_prompt_text(raw_results)
 
         # Update stats
         user.last_prompt_request = now
