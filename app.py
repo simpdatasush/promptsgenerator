@@ -779,7 +779,11 @@ async def generate_prompts_endpoint():
     try:
         
         raw_results = await generate_prompts_async(raw_input, language_code)
-        results =clean_prompt_text(raw_results)
+        results = {
+            "polished": clean_prompt_text(raw_results.get("polished", "")),
+            "creative": clean_prompt_text(raw_results.get("creative", "")),
+            "technical": clean_prompt_text(raw_results.get("technical", ""))
+        }
 
         # Update stats
         user.last_prompt_request = now
