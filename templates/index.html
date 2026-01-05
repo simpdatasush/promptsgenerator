@@ -1342,81 +1342,108 @@ document.addEventListener('DOMContentLoaded', function() {
            };
        }
 
+
+ // --- Image Input JavaScript Logic ---
+       const imageInput = document.getElementById('image_input');
+       const triggerImageInputButton = document.getElementById('trigger_image_input');
+       const imagePreview = document.getElementById('image_preview');
+       const processImageButton = document.getElementById('process_image_button');
+       const imageLoadingSpinner = document.getElementById('image_loading_spinner');
+       const imageInputSection = document.querySelector('.image-input-section');
+
+
+       triggerImageInputButton.addEventListener('click', () => {
+           imageInput.click();
+       });
+
+       imageInput.addEventListener('change', function(event) {
+           const file = event.target.files[0];
+           if (file) {
+               const reader = new FileReader();
+               reader.onload = function(e) {
+                   imagePreview.src = e.target.result;
+                   imagePreview.style.display = 'block';
+                   imageInputSection.style.display = 'block';
+               };
+               reader.readAsDataURL(file);
+           } else {
+               imagePreview.src = '#';
+               imagePreview.style.display = 'none';
+               imageInputSection.style.display = 'none';
+           }
+       });
+
        processImageButton.addEventListener('click', async function() {
-    const file = imageInput.files[0];
-    const selectedLanguage = langSelect.value;
+           const file = imageInput.files[0];
+           const selectedLanguage = langSelect.value;
 
-    if (!file) {
-        appOutput.textContent = getMessage("no_image_selected", selectedLanguage);
-        appOutput.className = 'mt-4 warning';
-        return;
-    }
+           if (!file) {
+               appOutput.textContent = getMessage("no_image_selected", selectedLanguage);
+               appOutput.className = 'mt-4 warning';
+               return;
+           }
 
-    // Show loading spinner and disable button
-    imageLoadingSpinner.style.display = 'block';
-    processImageButton.disabled = true;
-    appOutput.textContent = getMessage("image_processing", selectedLanguage);
-    appOutput.className = 'mt-4 info';
+           // Show loading spinner and disable button
+           imageLoadingSpinner.style.display = 'block';
+           processImageButton.disabled = true;
+           appOutput.textContent = getMessage("image_processing", selectedLanguage);
+           appOutput.className = 'mt-4 info';
 
-    const reader = new FileReader();
-    reader.onloadend = async function() {
-        const base64data = reader.result.split(',')[1];
+           const reader = new FileReader();
+           reader.onloadend = async function() {
+               const base64data = reader.result.split(',')[1];
 
-        try {
-            const response = await fetch('/process_image_prompt', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    image_data: base64data,
-                    language_code: selectedLanguage
-                })
-            });
+               try {
+                   const response = await fetch('/process_image_prompt', {
+                       method: 'POST',
+                       headers: {
+                           'Content-Type': 'application/json'
+                       },
+                       body: JSON.stringify({
+                           image_data: base64data,
+                           language_code: selectedLanguage
+                       })
+                   });
 
-            // --- STAGE 7 INTEGRATION: REFRESH LOGS FROM DB ---
-            // This ensures the [APP_LOG][success] from the backend appears in the log window
-            await syncLogsFromDB();
+                   if (!response.ok) {
+                       if (response.status === 302) {
+                           window.location.href = response.url;
+                           return;
+                       }
+                       const errorData = await response.json();
+                       throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+                   }
 
-            if (!response.ok) {
-                if (response.status === 302) {
-                    window.location.href = response.url;
-                    return;
-                }
-                const errorData = await response.json();
-                throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
-            }
+                   const data = await response.json();
+                   if (data.recognized_text) {
+                       promptInputTextarea.value = data.recognized_text;
+                       appOutput.textContent = getMessage("image_success", selectedLanguage);
+                       appOutput.className = 'mt-4 success';
+                       // Optionally, trigger generate prompts automatically
+                       // document.getElementById('promptForm').requestSubmit();
+                   } else {
+                       appOutput.textContent = getMessage("image_error", selectedLanguage) + ` No text recognized.`;
+                       appOutput.className = 'mt-4 danger';
+                   }
 
-            const data = await response.json();
-            if (data.recognized_text) {
-                promptInputTextarea.value = data.recognized_text;
-                appOutput.textContent = getMessage("image_success", selectedLanguage);
-                appOutput.className = 'mt-4 success';
-            } else {
-                appOutput.textContent = getMessage("image_error", selectedLanguage) + ` No text recognized.`;
-                appOutput.className = 'mt-4 danger';
-            }
+               } catch (error) {
+                   appOutput.textContent = getMessage("image_error", selectedLanguage) + ` ${error.message}`;
+                   appOutput.className = 'mt-4 danger';
+                   console.error("Image processing fetch error:", error);
+               } finally {
+                   imageLoadingSpinner.style.display = 'none';
+                   processImageButton.disabled = false;
+                   imageInputSection.style.display = 'none';
+                   imagePreview.src = '#';
+                   imageInput.value = '';
+                   updateAllButtonStates(); // Re-check status to re-enable generate/reverse buttons
+               }
+           };
+           reader.readAsDataURL(file);
+       });
 
-        } catch (error) {
-            // Re-sync logs even on catch in case the backend logged a specific error
-            await syncLogsFromDB(); 
-            appOutput.textContent = getMessage("image_error", selectedLanguage) + ` ${error.message}`;
-            appOutput.className = 'mt-4 danger';
-            console.error("Image processing fetch error:", error);
-        } finally {
-            imageLoadingSpinner.style.display = 'none';
-            processImageButton.disabled = false;
-            imageInputSection.style.display = 'none';
-            imagePreview.src = '#';
-            imageInput.value = '';
-            
-            // Re-check cooldowns/limits to update button states
-            if (typeof updateAllButtonStates === 'function') {
-                updateAllButtonStates();
-            }
-        }
-    };
-    reader.readAsDataURL(file);
-});
 
+          
 // 1. Create the Helper Function
 function refreshAllCharCounts() {
     const outputs = [
