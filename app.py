@@ -564,7 +564,7 @@ def landing():
     has_new_jobs = False
 
     # 1. Fetch latest 6 news items
-    raw_news_items = News.query.filter(~News.description.like('[AI_APP]%')).order_by(News.timestamp.desc()).limit(6).all()
+    raw_news_items = News.query.filter(~News.description.like('[AI_APP]%'),~News.description.like('[APP_LOG]%')).order_by(News.timestamp.desc()).limit(6).all()
     
     # Process news items to clean the description for the summary view
     cleaned_news_items = []
@@ -1003,7 +1003,8 @@ def all_news():
     # We must keep this as a 'BaseQuery' object for pagination to work
     news_query_object = News.query.filter(
         News.description.isnot(None), 
-        ~News.description.like('[AI_APP]%')
+        ~News.description.like('[AI_APP]%'),
+        ~News.description.like('[APP_LOG]%')
     ).order_by(News.timestamp.desc())
 
     # 2. ADD SEARCH FILTERS (If search_query exists)
