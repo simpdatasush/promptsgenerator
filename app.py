@@ -1719,8 +1719,12 @@ def admin_ai_apps():
 def add_ai_app():
     title = request.form.get('title')
     url = request.form.get('url')
+
+    category = request.form.get('category') # New field from dropdown
+    raw_desc = request.form.get('description')
+    
     # Prepend the tag so we can distinguish this from news later
-    description = f"[AI_APP] {request.form.get('description')}"
+    description = f"[AI_APP][{category}] {raw_desc}"
     
     new_app = News(
         title=title, 
@@ -1731,6 +1735,26 @@ def add_ai_app():
     db.session.add(new_app)
     db.session.commit()
     flash('AI App added to directory successfully!', 'success')
+    return redirect(url_for('admin_ai_apps'))
+
+@app.route('/admin/ai-apps/edit/<int:app_id>', methods=['POST'])
+@login_required
+@admin_required
+def edit_ai_app(app_id):
+    app_to_edit = News.query.get_or_404(app_id)
+    
+    # Get the updated data from the modal form
+    app_to_edit.title = request.form.get('title')
+    app_to_edit.url = request.form.get('url')
+    
+    category = request.form.get('category')
+    raw_desc = request.form.get('description')
+    
+    # Re-apply the tagging structure
+    app_to_edit.description = f"[AI_APP][{category}] {raw_desc}"
+    
+    db.session.commit()
+    flash(f'Updated {app_to_edit.title} successfully!', 'info')
     return redirect(url_for('admin_ai_apps'))
 
 @app.route('/admin/ai-apps/delete/<int:app_id>', methods=['POST'])
