@@ -151,6 +151,8 @@
 
        #app_output {
            margin-top: 20px;
+           min-height: 100px;
+           max-height: 250px;
            font-size: 0.95em;
            color: #555;
            background-color: #e9ecef;
@@ -180,6 +182,12 @@
            color: #155724; /* Dark green text */
            border-color: #c3e6cb;
        }
+
+      /* Add this to your <style> section in index.html */
+.log-entry.success { color: #28a745; border-left: 3px solid #28a745; padding-left: 10px; }
+.log-entry.warning { color: #ffc107; border-left: 3px solid #ffc107; padding-left: 10px; }
+.log-entry.danger  { color: #dc3545; border-left: 3px solid #dc3545; padding-left: 10px; }
+.log-entry.info    { color: #17a2b8; border-left: 3px solid #17a2b8; padding-left: 10px; }
 
 
        /* Prompt Output Grid */
