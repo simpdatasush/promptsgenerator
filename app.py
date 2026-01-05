@@ -651,254 +651,232 @@ def app_home():
 def llm_benchmark():
    return render_template('llm_benchmark.html', current_user=current_user)
 
+def log_app_event(user_id, message, category="info"):
+    """
+    Systematic logging using the News database model.
+    Format: [APP_LOG][category][HH:MM:SS] Message
+    """
+    from datetime import datetime
+    # Get current time for the log entry
+    timestamp = datetime.utcnow().strftime("%H:%M:%S")
+    
+    # Construct the tagged description based on your AI App methodology
+    # Example: [APP_LOG][success][14:30:05] Prompts generated successfully.
+    tagged_description = f"[APP_LOG][{category}][{timestamp}] {message}"
+    
+    # Create the entry in the News table
+    new_log = News(
+        title="System Log Entry",
+        url="#",
+        description=tagged_description,
+        user_id=user_id
+    )
+    
+    try:
+        db.session.add(new_log)
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f"Failed to save system log: {e}")
 
+@app.route('/get_app_logs', methods=['GET'])
+@login_required
+def get_app_logs():
+    """
+    Retrieves all persistent logs for the current user from the News table.
+    Parses the [APP_LOG][category][timestamp] format.
+    """
+    # Fetch all entries for this user tagged as app logs
+    log_entries = News.query.filter(
+        News.user_id == current_user.id,
+        News.description.like('[APP_LOG]%')
+    ).order_by(News.id.asc()).all()
 
+    parsed_logs = []
+    for entry in log_entries:
+        try:
+            // Format is: [APP_LOG][category][timestamp] message
+            // We split by ']' to isolate the parts
+            parts = entry.description.split(']', 3)
+            if len(parts) >= 4:
+                category = parts[1].replace('[', '')
+                timestamp = parts[2].replace('[', '')
+                message = parts[3].strip()
+                
+                parsed_logs.append({
+                    'category': category,
+                    'timestamp': timestamp,
+                    'message': message
+                })
+        except Exception as e:
+            app.logger.error(f"Error parsing log entry {entry.id}: {e}")
+            continue
+
+    return jsonify(parsed_logs)
 
 @app.route('/generate', methods=['POST'])
-@login_required # Protect this route
-async def generate_prompts_endpoint(): # This remains async
-  user = current_user # Get the current user object
-  now = datetime.utcnow() # Use utcnow for consistency with database default
+@login_required
+async def generate_prompts_endpoint():
+    user = current_user
+    now = datetime.utcnow()
 
+    # --- Cooldown Check ---
+    if user.last_prompt_request:
+        time_since_last_request = (now - user.last_prompt_request).total_seconds()
+        if time_since_last_request < COOLDOWN_SECONDS:
+            remaining_time = int(COOLDOWN_SECONDS - time_since_last_request)
+            # LOG THE COOLDOWN
+            log_app_event(user.id, f"Generation blocked: Please wait {remaining_time}s.", "warning")
+            return jsonify({
+                "error": f"Please wait {remaining_time} seconds.",
+                "cooldown_active": True,
+                "remaining_time": remaining_time
+            }), 429
 
-  # --- UPDATED: Cooldown Check using database timestamp ---
-  if user.last_prompt_request:
-      time_since_last_request = (now - user.last_prompt_request).total_seconds()
-      if time_since_last_request < COOLDOWN_SECONDS:
-          remaining_time = int(COOLDOWN_SECONDS - time_since_last_request)
-          app.logger.info(f"User {user.username} is on cooldown. Remaining: {remaining_time}s")
-          return jsonify({
-              "error": f"Please wait {remaining_time} seconds before generating new prompts.",
-              "cooldown_active": True,
-              "remaining_time": remaining_time
-          }), 429 # 429 Too Many Requests
-  # --- END UPDATED ---
+    # --- Daily Limit Check ---
+    if not user.is_admin:
+        today = now.date()
+        if user.last_count_reset_date != today:
+            user.daily_prompt_count = 0
+            user.last_count_reset_date = today
+            db.session.commit()
 
+        if user.daily_prompt_count >= 2:
+            # LOG THE LIMIT REACHED
+            log_app_event(user.id, "Daily limit of 2 generations reached.", "danger")
+            return jsonify({"error": "Daily limit reached.", "daily_limit_reached": True}), 429
 
-  # --- NEW: Daily Limit Check ---
-  if not user.is_admin: # Admins are exempt from the daily limit
-      today = now.date()
-      if user.last_count_reset_date != today:
-          user.daily_prompt_count = 0
-          user.last_count_reset_date = today
-          db.session.add(user) # Mark user as modified
-          db.session.commit() # Commit reset immediately to prevent race conditions on count
+    raw_input = request.form.get('prompt_input', '').strip()
+    language_code = request.form.get('language_code', 'en-US')
 
+    if not raw_input:
+        return jsonify({"error": "No input provided"}), 400
 
-      if user.daily_prompt_count >= 2: # Max 2 generations per day
-          app.logger.info(f"User {user.username} exceeded daily prompt limit.")
-          return jsonify({
-              "error": "You have reached your daily limit of 2 prompt generations. Please try again tomorrow.",
-              "daily_limit_reached": True
-          }), 429 # 429 Too Many Requests
-  # --- END NEW: Daily Limit Check ---
+    try:
+        results = await generate_prompts_async(raw_input, language_code)
 
+        # Update stats
+        user.last_prompt_request = now
+        if not user.is_admin:
+            user.daily_prompt_count += 1
+        
+        # Save Raw Request (Your existing logic)
+        new_raw_prompt = RawPrompt(user_id=user.id, raw_text=raw_input)
+        db.session.add(new_raw_prompt)
+        
+        # LOG THE SUCCESS
+        log_app_event(user.id, f"Success: Generated prompts for '{raw_input[:20]}...'", "success")
+        
+        db.session.commit()
+        return jsonify(results)
 
+    except Exception as e:
+        db.session.rollback()
+        # LOG THE SYSTEM ERROR
+        log_app_event(user.id, f"System Error: {str(e)[:50]}", "danger")
+        return jsonify({"error": str(e)}), 500
 
-
-  raw_input = request.form.get('prompt_input', '').strip()
-  language_code = request.form.get('language_code', 'en-US')
-
-
-  if not raw_input:
-      # This is handled client-side in index.html, but kept as a server-side fallback
-      return jsonify({
-          "polished": "Please enter some text to generate prompts.",
-          "creative": "",
-          "technical": "",
-      })
-
-
-  # --- ADDED: Explicit check for Gemini API configuration ---
-  if not GEMINI_API_CONFIGURED:
-      app.logger.error("Gemini API Key is not configured. Cannot generate prompts.")
-      return jsonify({
-          "error": "Gemini API Key is not configured. Please set the GEMINI_API_KEY environment variable in your deployment environment."
-      }), 500 # Return 500 Internal Server Error as it's a server-side configuration issue
-  # --- END ADDED ---
-
-
-  try:
-      # Await the async function directly
-      results = await generate_prompts_async(raw_input, language_code)
-
-
-      # --- UPDATED: Update last_prompt_request in database and Save raw_input ---
-      user.last_prompt_request = now # Record the time of this successful request
-      if not user.is_admin: # Only increment count for non-admin users
-          user.daily_prompt_count += 1
-      db.session.add(user) # Add the user object back to the session to mark it as modified
-      db.session.commit()
-      app.logger.info(f"User {user.username}'s last prompt request time updated and count incremented. (Forward Prompt)")
-
-
-      if current_user.is_authenticated:
-          try:
-              new_raw_prompt = RawPrompt(user_id=current_user.id, raw_text=raw_input)
-              db.session.add(new_raw_prompt)
-              db.session.commit()
-              app.logger.info(f"Raw prompt saved for user {current_user.username}")
-          except Exception as e:
-              app.logger.error(f"Error saving raw prompt for user {current_user.username}: {e}")
-              db.session.rollback() # Rollback in case of error
-      # --- END UPDATED ---
-
-
-      return jsonify(results)
-  except Exception as e:
-      app.logger.exception("Error during prompt generation in endpoint:")
-      return jsonify({"error": f"An unexpected server error occurred: {e}. Please check server logs for details."}), 500
-
-
-# --- NEW: Reverse Prompt Endpoint ---
 @app.route('/reverse_prompt', methods=['POST'])
 @login_required
 async def reverse_prompt_endpoint():
-   user = current_user
-   now = datetime.utcnow()
+    user = current_user
+    now = datetime.utcnow()
 
+    # --- Cooldown Check ---
+    if user.last_prompt_request:
+        time_since_last_request = (now - user.last_prompt_request).total_seconds()
+        if time_since_last_request < COOLDOWN_SECONDS:
+            remaining_time = int(COOLDOWN_SECONDS - time_since_last_request)
+            # LOG THE COOLDOWN BLOCK
+            log_app_event(user.id, f"Reverse Prompt blocked: Wait {remaining_time}s.", "warning")
+            return jsonify({
+                "error": f"Please wait {remaining_time} seconds.",
+                "cooldown_active": True,
+                "remaining_time": remaining_time
+            }), 429
 
-   # Apply cooldown to reverse prompting as well
-   if user.last_prompt_request: # Reusing the same cooldown for simplicity
-       time_since_last_request = (now - user.last_prompt_request).total_seconds()
-       if time_since_last_request < COOLDOWN_SECONDS:
-           remaining_time = int(COOLDOWN_SECONDS - time_since_last_request)
-           app.logger.info(f"User {user.username} is on cooldown for reverse prompt. Remaining: {remaining_time}s")
-           return jsonify({
-               "error": f"Please wait {remaining_time} seconds before performing another reverse prompt.",
-               "cooldown_active": True,
-               "remaining_time": remaining_time
-           }), 429
+    # --- Daily Limit Check ---
+    if not user.is_admin:
+        if user.daily_prompt_count >= 1: # Assuming 1 for Reverse Prompt
+            # LOG THE LIMIT BLOCK
+            log_app_event(user.id, "Daily limit for Reverse Prompt reached.", "danger")
+            return jsonify({"error": "Daily limit reached.", "daily_limit_reached": True}), 429
 
+    data = request.get_json()
+    input_text = data.get('input_text', '').strip()
+    language_code = data.get('language_code', 'en-US')
 
-   # --- NEW: Daily Limit Check for Reverse Prompt ---
-   if not user.is_admin: # Admins are exempt from the daily limit
-       today = now.date()
-       if user.last_count_reset_date != today:
-           user.daily_prompt_count = 0
-           user.last_count_reset_date = today
-           db.session.add(user) # Mark user as modified
-           db.session.commit() # Commit reset immediately to prevent race conditions on count
+    try:
+        inferred_prompt = await generate_reverse_prompt_async(input_text, language_code)
 
+        # Update stats
+        user.last_prompt_request = now
+        if not user.is_admin:
+            user.daily_prompt_count += 1
+        
+        # LOG THE SUCCESS
+        log_app_event(user.id, f"Success: Reverse prompt inferred for '{input_text[:20]}...'", "success")
+        
+        db.session.commit()
+        return jsonify({"inferred_prompt": inferred_prompt})
 
-       if user.daily_prompt_count >= 1: # Max 1 generations per day
-           app.logger.info(f"User {user.username} exceeded daily reverse prompt limit.")
-           return jsonify({
-               "error": "You have reached your daily limit of 1 prompt generations. Please try again tomorrow.",
-               "daily_limit_reached": True
-           }), 429 # 429 Too Many Requests
-   # --- END NEW: Daily Limit Check ---
+    except Exception as e:
+        db.session.rollback()
+        # LOG THE ERROR
+        log_app_event(user.id, f"Reverse Prompt Error: {str(e)[:50]}", "danger")
+        return jsonify({"error": str(e)}), 500
+      
 
-
-   data = request.get_json()
-   input_text = data.get('input_text', '').strip()
-   language_code = data.get('language_code', 'en-US')
-
-
-   if not input_text:
-       # This is handled client-side in index.html, but kept as a server-side fallback
-       return jsonify({"error": "Please provide text or code to infer a prompt from."}), 400
-
-
-   if not GEMINI_API_CONFIGURED:
-       app.logger.error("Gemini API Key is not configured. Cannot perform reverse prompting.")
-       return jsonify({
-           "error": "Gemini API Key is not configured. Please set the GEMINI_API_KEY environment variable."
-       }), 500
-
-
-   try:
-       inferred_prompt = await generate_reverse_prompt_async(input_text, language_code)
-
-
-       # Update last_prompt_request after successful reverse prompt
-       user.last_prompt_request = now
-       if not user.is_admin: # Only increment count for non-admin users
-           user.daily_prompt_count += 1
-       db.session.add(user)
-       db.session.commit()
-       app.logger.info(f"User {user.username}'s last prompt request time updated and count incremented after reverse prompt.")
-
-
-       return jsonify({"inferred_prompt": inferred_prompt})
-   except Exception as e:
-       app.logger.exception("Error during reverse prompt generation in endpoint:")
-       return jsonify({"error": f"An unexpected server error occurred: {e}. Please check server logs for details."}), 500
-# --- END NEW: Reverse Prompt Endpoint ---
-
-
-# --- NEW: Image Processing Endpoint ---
 @app.route('/process_image_prompt', methods=['POST'])
 @login_required
 async def process_image_prompt_endpoint():
-   user = current_user
-   now = datetime.utcnow()
+    user = current_user
+    now = datetime.utcnow()
 
+    # --- Cooldown Check ---
+    if user.last_prompt_request:
+        time_since_last_request = (now - user.last_prompt_request).total_seconds()
+        if time_since_last_request < COOLDOWN_SECONDS:
+            remaining_time = int(COOLDOWN_SECONDS - time_since_last_request)
+            # LOG THE COOLDOWN
+            log_app_event(user.id, f"Image processing blocked: Wait {remaining_time}s.", "warning")
+            return jsonify({"error": "Cooldown", "remaining_time": remaining_time}), 429
 
-   # Apply cooldown to image processing as well
-   if user.last_prompt_request:
-       time_since_last_request = (now - user.last_prompt_request).total_seconds()
-       if time_since_last_request < COOLDOWN_SECONDS:
-           remaining_time = int(COOLDOWN_SECONDS - time_since_last_request)
-           app.logger.info(f"User {user.username} is on cooldown for image processing. Remaining: {remaining_time}s")
-           return jsonify({
-               "error": f"Please wait {remaining_time} seconds before processing another image.",
-               "cooldown_active": True,
-               "remaining_time": remaining_time
-           }), 429
+    # --- Daily Limit Check ---
+    if not user.is_admin and user.daily_prompt_count >= 2:
+        # LOG THE LIMIT
+        log_app_event(user.id, "Image processing blocked: Daily limit reached.", "danger")
+        return jsonify({"error": "Daily limit reached"}), 429
 
+    data = request.get_json()
+    image_data_b64 = data.get('image_data')
 
-   # Daily limit check for image processing
-   if not user.is_admin:
-       today = now.date()
-       if user.last_count_reset_date != today:
-           user.daily_prompt_count = 0
-           user.last_count_reset_date = today
-           db.session.add(user)
-           db.session.commit()
+    if not image_data_b64:
+        return jsonify({"error": "No image data provided"}), 400
 
+    try:
+        # Decode base64 image data
+        image_data_bytes = base64.b64decode(image_data_b64)
+        
+        # Process image with Gemini (assumed utility function)
+        recognized_text = await asyncio.to_thread(ask_gemini_for_image_text, image_data_bytes)
 
-       if user.daily_prompt_count >= 1:
-           app.logger.info(f"User {user.username} exceeded daily image processing limit.")
-           return jsonify({
-               "error": "You have reached your daily limit of 1 image processing requests. Please try again tomorrow.",
-               "daily_limit_reached": True
-           }), 429
+        # Update stats
+        user.last_prompt_request = now
+        if not user.is_admin:
+            user.daily_prompt_count += 1
+        
+        # LOG THE SUCCESS
+        log_app_event(user.id, "Image processed successfully. Text extracted.", "success")
+        
+        db.session.commit()
+        return jsonify({"recognized_text": recognized_text})
 
-
-   data = request.get_json()
-   image_data_b64 = data.get('image_data')
-   language_code = data.get('language_code', 'en-US') # Not directly used by Gemini Vision, but good to pass
-
-
-   if not image_data_b64:
-       return jsonify({"error": "No image data provided."}), 400
-
-
-   try:
-       image_data_bytes = base64.b64decode(image_data_b64) # Decode base64 string to bytes
-      
-       # Call the Gemini API for image understanding
-       recognized_text = await asyncio.to_thread(ask_gemini_for_image_text, image_data_bytes)
-
-
-       # Update last_prompt_request after successful image processing
-       user.last_prompt_request = now
-       if not user.is_admin:
-           user.daily_prompt_count += 1
-       db.session.add(user)
-       db.session.commit()
-       app.logger.info(f"User {user.username}'s last prompt request time updated and count incremented after image processing.")
-
-
-       return jsonify({"recognized_text": recognized_text})
-   except Exception as e:
-       app.logger.exception("Error during image processing endpoint:")
-       return jsonify({"error": f"An unexpected server error occurred during image processing: {e}. Please check server logs for details."}), 500
-
-
-# --- END NEW: Image Processing Endpoint ---
-
+    except Exception as e:
+        db.session.rollback()
+        # LOG THE SYSTEM ERROR
+        log_app_event(user.id, f"Image Error: {str(e)[:50]}", "danger")
+        return jsonify({"error": str(e)}), 500
 
 
 
