@@ -210,16 +210,20 @@ body {
    </header>
 
    <div class="container">
-       <div class="text-center mb-5">
-           <h2 class="font-weight-bold">The Hub Picks</h2>
-           <p class="text-muted">Selected to help you move faster.</p>
-       </div>
+    <div class="text-center mb-5">
+        <h2 class="font-weight-bold">The Hub Picks</h2>
+        <p class="text-muted">Selected to help you move faster.</p>
+    </div>
 
-      <div class="alphabet-nav d-flex flex-wrap justify-content-center mb-5">
+    <div class="alphabet-nav d-flex flex-wrap justify-content-center mb-5">
         {% for char in "ABCDEFGHIJKLMNOPQRSTUVWXYZ" %}
             <button class="letter-btn" onclick="filterByLetter('{{ char }}', this)">{{ char }}</button>
         {% endfor %}
     </div>
+
+    <div id="dynamic-apps-container">
+        </div>
+</div>
 
        <div class="brick-grid">
            {% if ai_apps %}
@@ -251,78 +255,80 @@ body {
    </footer>
 
 <script>
-// Load all apps from Jinja2 into a JavaScript Array
+
+// 3. Load Python data into JS Array
 const allApps = [
     {% for app in ai_apps %}
     {
         title: "{{ app.title }}",
         url: "{{ app.url }}",
-        // Extract category or fallback to "General" for old apps
-        category: "{{ app.description }}".match(/\[AI_APP\]\[(.*?)\]/) 
-                  ? "{{ app.description }}".match(/\[AI_APP\]\[(.*?)\]/)[1] 
+        // Extract category or default to "General"
+        category: {{ app.description | tojson }}.match(/\[AI_APP\]\[(.*?)\]/) 
+                  ? {{ app.description | tojson }}.match(/\[AI_APP\]\[(.*?)\]/)[1] 
                   : "General",
-        // Clean description text for display
-        desc: "{{ app.description }}".replace(/\[AI_APP\](\[.*?\])?/, "").trim()
+        // Strip tags from description for clean display
+        desc: {{ app.description | tojson }}.replace(/\[AI_APP\](\[.*?\])?/, "").trim()
     },
     {% endfor %}
 ];
 
 function filterByLetter(letter, element) {
-    // 1. Handle Active Button Highlighting
+    // A. Manage Active Highlight
     document.querySelectorAll('.letter-btn').forEach(btn => btn.classList.remove('active'));
+    
     if (element) {
         element.classList.add('active');
     } else {
-        // Highlight 'A' on initial page load
-        Array.from(document.querySelectorAll('.letter-btn'))
-             .find(b => b.textContent === letter)?.classList.add('active');
+        // Find 'A' button on initial load
+        const buttons = document.querySelectorAll('.letter-btn');
+        Array.from(buttons).find(b => b.textContent === letter)?.classList.add('active');
     }
 
     const container = document.getElementById('dynamic-apps-container');
     container.innerHTML = "";
 
-    // 2. Filter apps by starting letter
+    // B. Filter by starting letter
     const matches = allApps.filter(app => app.title.toUpperCase().startsWith(letter));
 
     if (matches.length === 0) {
         container.innerHTML = `
             <div class="text-center py-5">
-                <i class="fas fa-search fa-3x text-light mb-3"></i>
-                <p class="text-muted">No apps found starting with "${letter}".</p>
+                <p class="text-muted">No apps found starting with <strong>${letter}</strong>.</p>
             </div>`;
         return;
     }
 
-    // 3. Group matches by Category
+    // C. Group matches by Category
     const grouped = matches.reduce((acc, app) => {
         acc[app.category] = acc[app.category] || [];
         acc[app.category].push(app);
         return acc;
     }, {});
 
-    // 4. Render Categorized Sections and Bricks
+    // D. Render categorized UI
     for (const [category, apps] of Object.entries(grouped)) {
-        let sectionHtml = `<h3 class="category-header">${category}</h3><div class="brick-grid">`;
+        let section = `<h3 class="category-header">${category}</h3><div class="brick-grid">`;
         
         apps.forEach(app => {
-            sectionHtml += `
+            section += `
                 <div class="brick-card">
                     <div class="brick-title">${app.title}</div>
                     <div class="brick-desc">${app.desc}</div>
                     <a href="${app.url}" target="_blank" class="brick-link">
-                        Open App <i class="fas fa-external-link-alt"></i>
+                        Open App <i class="fas fa-external-link-alt ml-1"></i>
                     </a>
                 </div>`;
         });
         
-        sectionHtml += `</div>`;
-        container.insertAdjacentHTML('beforeend', sectionHtml);
+        section += `</div>`;
+        container.insertAdjacentHTML('beforeend', section);
     }
 }
 
-// Automatically load 'A' when page opens
+// Default to 'A' when the user opens the page
 document.addEventListener("DOMContentLoaded", () => filterByLetter('A'));
 </script>
+
 
 </body>
 </html>
