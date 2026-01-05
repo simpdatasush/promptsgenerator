@@ -219,30 +219,41 @@ body {
 
 <script>
 function openEditModal(id, title, url, fullDesc) {
+    console.log("Function triggered for ID:", id); // Check your browser console (F12)
+    
     try {
-        console.log("Opening modal for ID:", id);
-        
-        // Extract category or default to LLM
+        // 1. Extract category and clean description
         const catMatch = fullDesc.match(/\[AI_APP\]\[(.*?)\]/);
         const category = catMatch ? catMatch[1] : "LLM"; 
-        
-        // Clean text
         const cleanDesc = fullDesc.replace(/\[AI_APP\](\[.*?\])?/, "").trim();
 
-        // Populate fields
-        document.getElementById('editForm').action = "/admin/ai-apps/edit/" + id;
+        // 2. Map data to form fields
+        const editForm = document.getElementById('editForm');
+        if (editForm) {
+            editForm.action = "/admin/ai-apps/edit/" + id;
+        }
+
         document.getElementById('editTitle').value = title;
         document.getElementById('editUrl').value = url;
         document.getElementById('editCategory').value = category;
         document.getElementById('editDesc').value = cleanDesc;
 
-        // Show Modal
-        $('#editAppModal').modal('show');
-    } catch (error) {
-        console.error("Error opening modal:", error);
+        // 3. THE TRIGGER (Try jQuery first, then Vanilla JS)
+        if (typeof jQuery !== 'undefined') {
+            $('#editAppModal').modal('show');
+        } else {
+            // Fallback for Bootstrap 5 (if jQuery is missing)
+            var myModal = new bootstrap.Modal(document.getElementById('editAppModal'));
+            myModal.show();
+        }
+
+    } catch (e) {
+        console.error("Error in openEditModal:", e);
+        alert("Check console for error details.");
     }
 }
 </script>
+
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
