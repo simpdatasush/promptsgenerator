@@ -157,6 +157,45 @@ body {
            border-top: 1px solid #dee2e6;
            margin-top: auto;
        }
+
+   /* Highlights the currently selected letter */
+.letter-btn {
+    border: 1px solid #dee2e6;
+    background: white;
+    width: 38px;
+    height: 38px;
+    margin: 4px;
+    border-radius: 6px;
+    font-weight: bold;
+    color: var(--color-primary);
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.letter-btn:hover {
+    background-color: #f8f9fa;
+    border-color: var(--color-primary);
+}
+
+.letter-btn.active {
+    background-color: var(--color-primary) !important;
+    color: white !important;
+    border-color: var(--color-primary) !important;
+    box-shadow: 0 4px 10px rgba(0, 123, 255, 0.3);
+    transform: scale(1.1);
+}
+
+/* Category Header Styling */
+.category-header {
+    width: 100%;
+    border-bottom: 2px solid var(--color-primary);
+    padding-bottom: 8px;
+    margin: 40px 0 20px 0;
+    font-weight: 800;
+    text-transform: uppercase;
+    color: var(--color-text-dark);
+    font-size: 1.2rem;
+}
    </style>
 </head>
 <body>
@@ -175,6 +214,12 @@ body {
            <h2 class="font-weight-bold">The Hub Picks</h2>
            <p class="text-muted">Selected to help you move faster.</p>
        </div>
+
+      <div class="alphabet-nav d-flex flex-wrap justify-content-center mb-5">
+        {% for char in "ABCDEFGHIJKLMNOPQRSTUVWXYZ" %}
+            <button class="letter-btn" onclick="filterByLetter('{{ char }}', this)">{{ char }}</button>
+        {% endfor %}
+    </div>
 
        <div class="brick-grid">
            {% if ai_apps %}
@@ -204,5 +249,80 @@ body {
            <a href="mailto:info@promptsgenerator.ai">Contact Support</a>
        </div>
    </footer>
+
+<script>
+// Load all apps from Jinja2 into a JavaScript Array
+const allApps = [
+    {% for app in ai_apps %}
+    {
+        title: "{{ app.title }}",
+        url: "{{ app.url }}",
+        // Extract category or fallback to "General" for old apps
+        category: "{{ app.description }}".match(/\[AI_APP\]\[(.*?)\]/) 
+                  ? "{{ app.description }}".match(/\[AI_APP\]\[(.*?)\]/)[1] 
+                  : "General",
+        // Clean description text for display
+        desc: "{{ app.description }}".replace(/\[AI_APP\](\[.*?\])?/, "").trim()
+    },
+    {% endfor %}
+];
+
+function filterByLetter(letter, element) {
+    // 1. Handle Active Button Highlighting
+    document.querySelectorAll('.letter-btn').forEach(btn => btn.classList.remove('active'));
+    if (element) {
+        element.classList.add('active');
+    } else {
+        // Highlight 'A' on initial page load
+        Array.from(document.querySelectorAll('.letter-btn'))
+             .find(b => b.textContent === letter)?.classList.add('active');
+    }
+
+    const container = document.getElementById('dynamic-apps-container');
+    container.innerHTML = "";
+
+    // 2. Filter apps by starting letter
+    const matches = allApps.filter(app => app.title.toUpperCase().startsWith(letter));
+
+    if (matches.length === 0) {
+        container.innerHTML = `
+            <div class="text-center py-5">
+                <i class="fas fa-search fa-3x text-light mb-3"></i>
+                <p class="text-muted">No apps found starting with "${letter}".</p>
+            </div>`;
+        return;
+    }
+
+    // 3. Group matches by Category
+    const grouped = matches.reduce((acc, app) => {
+        acc[app.category] = acc[app.category] || [];
+        acc[app.category].push(app);
+        return acc;
+    }, {});
+
+    // 4. Render Categorized Sections and Bricks
+    for (const [category, apps] of Object.entries(grouped)) {
+        let sectionHtml = `<h3 class="category-header">${category}</h3><div class="brick-grid">`;
+        
+        apps.forEach(app => {
+            sectionHtml += `
+                <div class="brick-card">
+                    <div class="brick-title">${app.title}</div>
+                    <div class="brick-desc">${app.desc}</div>
+                    <a href="${app.url}" target="_blank" class="brick-link">
+                        Open App <i class="fas fa-external-link-alt"></i>
+                    </a>
+                </div>`;
+        });
+        
+        sectionHtml += `</div>`;
+        container.insertAdjacentHTML('beforeend', sectionHtml);
+    }
+}
+
+// Automatically load 'A' when page opens
+document.addEventListener("DOMContentLoaded", () => filterByLetter('A'));
+</script>
+
 </body>
 </html>
