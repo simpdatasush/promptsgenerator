@@ -1156,79 +1156,41 @@ document.addEventListener('DOMContentLoaded', function() {
            }
            // --- END NEW ---
 
-           appOutput.textContent = getMessage("reverse_prompting", selectedLanguage);
-           appOutput.className = 'mt-4 info'; // Set to info during generation
-           generateButton.disabled = true;
-           reversePromptButton.disabled = true;
-           setSaveActionButtonsDisabled(true); // Disable all LLM-related buttons immediately
-           setLLMWebsiteButtonsDisabled(true); // Disable LLM website buttons immediately
-           reversePromptButton.textContent = 'Inferring...';
-           cooldownTimerDisplay.style.display = 'none';
+           document.getElementById('reverse_prompt_btn').addEventListener('click', async function() {
+    const promptInput = document.getElementById('prompt_input').value.trim();
+    const btn = this;
 
-           console.log("Frontend: Sending request to /reverse_prompt...");
+    if (!promptInput) return;
 
-           try {
-               const response = await fetch('/reverse_prompt', {
-                   method: 'POST',
-                   headers: {
-                       'Content-Type': 'application/json'
-                   },
-                   body: JSON.stringify({
-                       input_text: promptInput,
-                       language_code: selectedLanguage
-                   })
-               });
+    btn.disabled = true;
+    btn.textContent = 'Inferring...';
 
-               if (!response.ok) {
-                   const errorData = await response.json();
-                   if (errorData.cooldown_active && errorData.remaining_time) {
-                       appOutput.textContent = errorData.error;
-                       appOutput.className = 'mt-4 warning';
-                       startCooldownTimer(errorData.remaining_time);
-                   } else if (errorData.daily_limit_reached) { // Handle daily limit error
-                       appOutput.textContent = errorData.error;
-                       appOutput.className = 'mt-4 danger';
-                   }
-                   else if (response.status === 302) {
-                       window.location.href = response.url;
-                       return;
-                   } else {
-                       appOutput.textContent = getMessage("reverse_prompt_failed", selectedLanguage) + `: ${errorData.error || `HTTP error! status: ${response.status}`}`;
-                       appOutput.className = 'mt-4 danger';
-                   }
-                   return;
-               }
+    try {
+        const response = await fetch('/reverse_prompt', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                input_text: promptInput,
+                language_code: document.getElementById('lang_select').value
+            })
+        });
 
-               const data = await response.json();
-               if (data.error) {
-                   appOutput.textContent = getMessage("api_error", selectedLanguage, {error: data.error});
-                   appOutput.className = 'mt-4 danger';
-                   console.error("Backend error reported for reverse prompt:", data.error);
-               } else {
-                   // Display the inferred prompt in the polished output area
-                   document.getElementById('polished_output').textContent = data.inferred_prompt;
-                   document.getElementById('polished_token_count').textContent = `${data.inferred_prompt.length} chars`;
-                   appOutput.textContent = getMessage("reverse_prompt_complete", selectedLanguage);
-                   appOutput.className = 'mt-4 success';
-                   fetchAndDisplayRawPrompts();
-                   // Cooldown and button states will be handled by updateAllButtonStates in finally block
-               }
+        // REFRESH LOGS FROM DB IMMEDIATELY
+        await syncLogsFromDB();
 
-           } catch (error) {
-               let errorMessage = getMessage("reverse_prompt_failed", selectedLanguage);
-               if (error.message.includes("Failed to fetch")) {
-                   errorMessage += `: Network error or server not reachable.`;
-               } else {
-                   errorMessage += `: ${error.message}`;
-               }
-               appOutput.textContent = errorMessage;
-               appOutput.className = 'mt-4 danger';
-               console.error("Fetch error caught in JS for reverse prompt:", error);
-           } finally {
-               reversePromptButton.textContent = 'Reverse Prompt';
-               updateAllButtonStates(); // Re-check status to re-enable buttons
-           }
-       });
+        if (response.ok) {
+            const data = await response.json();
+            // Display the result in the Polished Output box
+            document.getElementById('polished_output').textContent = data.inferred_prompt;
+        }
+    } catch (error) {
+        console.error("Reverse prompt failed:", error);
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'Reverse Prompt';
+        if (typeof updateAllButtonStates === 'function') updateAllButtonStates();
+    }
+});
 
        // Event listeners for save buttons
        document.querySelectorAll('.save-button').forEach(button => {
@@ -1378,131 +1340,123 @@ document.addEventListener('DOMContentLoaded', function() {
            };
        }
 
-       // --- Image Input JavaScript Logic ---
-       const imageInput = document.getElementById('image_input');
-       const triggerImageInputButton = document.getElementById('trigger_image_input');
-       const imagePreview = document.getElementById('image_preview');
-       const processImageButton = document.getElementById('process_image_button');
-       const imageLoadingSpinner = document.getElementById('image_loading_spinner');
-       const imageInputSection = document.querySelector('.image-input-section');
-
-
-       triggerImageInputButton.addEventListener('click', () => {
-           imageInput.click();
-       });
-
-       imageInput.addEventListener('change', function(event) {
-           const file = event.target.files[0];
-           if (file) {
-               const reader = new FileReader();
-               reader.onload = function(e) {
-                   imagePreview.src = e.target.result;
-                   imagePreview.style.display = 'block';
-                   imageInputSection.style.display = 'block';
-               };
-               reader.readAsDataURL(file);
-           } else {
-               imagePreview.src = '#';
-               imagePreview.style.display = 'none';
-               imageInputSection.style.display = 'none';
-           }
-       });
-
        processImageButton.addEventListener('click', async function() {
-           const file = imageInput.files[0];
-           const selectedLanguage = langSelect.value;
+    const file = imageInput.files[0];
+    const selectedLanguage = langSelect.value;
 
-           if (!file) {
-               appOutput.textContent = getMessage("no_image_selected", selectedLanguage);
-               appOutput.className = 'mt-4 warning';
-               return;
-           }
+    if (!file) {
+        appOutput.textContent = getMessage("no_image_selected", selectedLanguage);
+        appOutput.className = 'mt-4 warning';
+        return;
+    }
 
-           // Show loading spinner and disable button
-           imageLoadingSpinner.style.display = 'block';
-           processImageButton.disabled = true;
-           appOutput.textContent = getMessage("image_processing", selectedLanguage);
-           appOutput.className = 'mt-4 info';
+    // Show loading spinner and disable button
+    imageLoadingSpinner.style.display = 'block';
+    processImageButton.disabled = true;
+    appOutput.textContent = getMessage("image_processing", selectedLanguage);
+    appOutput.className = 'mt-4 info';
 
-           const reader = new FileReader();
-           reader.onloadend = async function() {
-               const base64data = reader.result.split(',')[1];
+    const reader = new FileReader();
+    reader.onloadend = async function() {
+        const base64data = reader.result.split(',')[1];
 
-               try {
-                   const response = await fetch('/process_image_prompt', {
-                       method: 'POST',
-                       headers: {
-                           'Content-Type': 'application/json'
-                       },
-                       body: JSON.stringify({
-                           image_data: base64data,
-                           language_code: selectedLanguage
-                       })
-                   });
+        try {
+            const response = await fetch('/process_image_prompt', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    image_data: base64data,
+                    language_code: selectedLanguage
+                })
+            });
 
-                   if (!response.ok) {
-                       if (response.status === 302) {
-                           window.location.href = response.url;
-                           return;
-                       }
-                       const errorData = await response.json();
-                       throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
-                   }
+            // --- STAGE 7 INTEGRATION: REFRESH LOGS FROM DB ---
+            // This ensures the [APP_LOG][success] from the backend appears in the log window
+            await syncLogsFromDB();
 
-                   const data = await response.json();
-                   if (data.recognized_text) {
-                       promptInputTextarea.value = data.recognized_text;
-                       appOutput.textContent = getMessage("image_success", selectedLanguage);
-                       appOutput.className = 'mt-4 success';
-                       // Optionally, trigger generate prompts automatically
-                       // document.getElementById('promptForm').requestSubmit();
-                   } else {
-                       appOutput.textContent = getMessage("image_error", selectedLanguage) + ` No text recognized.`;
-                       appOutput.className = 'mt-4 danger';
-                   }
+            if (!response.ok) {
+                if (response.status === 302) {
+                    window.location.href = response.url;
+                    return;
+                }
+                const errorData = await response.json();
+                throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+            }
 
-               } catch (error) {
-                   appOutput.textContent = getMessage("image_error", selectedLanguage) + ` ${error.message}`;
-                   appOutput.className = 'mt-4 danger';
-                   console.error("Image processing fetch error:", error);
-               } finally {
-                   imageLoadingSpinner.style.display = 'none';
-                   processImageButton.disabled = false;
-                   imageInputSection.style.display = 'none';
-                   imagePreview.src = '#';
-                   imageInput.value = '';
-                   updateAllButtonStates(); // Re-check status to re-enable generate/reverse buttons
-               }
-           };
-           reader.readAsDataURL(file);
-       });
+            const data = await response.json();
+            if (data.recognized_text) {
+                promptInputTextarea.value = data.recognized_text;
+                appOutput.textContent = getMessage("image_success", selectedLanguage);
+                appOutput.className = 'mt-4 success';
+            } else {
+                appOutput.textContent = getMessage("image_error", selectedLanguage) + ` No text recognized.`;
+                appOutput.className = 'mt-4 danger';
+            }
 
-       // --- Copy Prompt Text Function ---
+        } catch (error) {
+            // Re-sync logs even on catch in case the backend logged a specific error
+            await syncLogsFromDB(); 
+            appOutput.textContent = getMessage("image_error", selectedLanguage) + ` ${error.message}`;
+            appOutput.className = 'mt-4 danger';
+            console.error("Image processing fetch error:", error);
+        } finally {
+            imageLoadingSpinner.style.display = 'none';
+            processImageButton.disabled = false;
+            imageInputSection.style.display = 'none';
+            imagePreview.src = '#';
+            imageInput.value = '';
+            
+            // Re-check cooldowns/limits to update button states
+            if (typeof updateAllButtonStates === 'function') {
+                updateAllButtonStates();
+            }
+        }
+    };
+    reader.readAsDataURL(file);
+});
+
        async function copyPromptText(elementId) {
-           const promptText = document.getElementById(elementId).textContent.trim();
-           const selectedLanguage = document.getElementById('lang_select').value;
+    const promptText = document.getElementById(elementId).textContent.trim();
+    const selectedLanguage = document.getElementById('lang_select').value;
+    const charCount = promptText.length; // Fixed: Calculate actual length
 
-           if (!promptText) {
-               appOutput.textContent = getMessage("no_prompt_to_save", selectedLanguage, {type: "selected"});
-               appOutput.className = 'mt-4 warning';
-               return;
-           }
+    if (!promptText || charCount === 0) {
+        // Update temporary output
+        appOutput.textContent = getMessage("no_prompt_to_save", selectedLanguage, {type: "selected"});
+        appOutput.className = 'mt-4 warning';
+        return;
+    }
 
-           try {
-               const textarea = document.createElement('textarea');
-               textarea.value = promptText;
-               document.body.appendChild(textarea);
-               textarea.select();
-               document.execCommand('copy');
-              
-               appOutput.textContent = getMessage("copy_success", selectedLanguage);
-               appOutput.className = 'mt-4 success';
-           } catch (err) {
-               appOutput.textContent = getMessage("copy_fail", selectedLanguage);
-               appOutput.className = 'mt-4 danger';
-               console.error('Failed to copy text:', err);
-           }
-       }
+    try {
+        // Execute Copy
+        const textarea = document.createElement('textarea');
+        textarea.value = promptText;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+
+        // Update the log window visually with the character count
+        const logBox = document.getElementById('app_output');
+        const timestamp = new Date().toLocaleTimeString([], { hour12: false });
+        
+        const logEntry = document.createElement('div');
+        logEntry.className = 'log-entry success';
+        logEntry.innerHTML = `<strong>[${timestamp}]</strong> Success: Prompt copied to clipboard (${charCount} characters).`;
+        
+        // Append to the log box so it's visible to the user
+        logBox.appendChild(logEntry);
+        logBox.scrollTop = logBox.scrollHeight;
+
+        // Note: If you want this to PERSIST in the News table like the others, 
+        // you would need a small fetch('/log_custom_event') here.
+        
+    } catch (err) {
+        appOutput.textContent = getMessage("copy_fail", selectedLanguage);
+        appOutput.className = 'mt-4 danger';
+        console.error('Failed to copy text:', err);
+    }
+}
 
        // --- Open LLM Function ---
        const LLM_URLS = {
