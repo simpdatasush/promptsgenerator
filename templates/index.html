@@ -1102,6 +1102,8 @@ document.getElementById('promptForm').addEventListener('submit', async function(
         const response = await fetch('/generate', { method: 'POST', body: formData });
         
         // STAGE 6 CRITICAL STEP: Always sync logs after the server processes the request
+       // ADD THIS LINE HERE
+        refreshAllCharCounts();
         await syncLogsFromDB();
 
         if (response.ok) {
@@ -1176,6 +1178,8 @@ document.addEventListener('DOMContentLoaded', function() {
         });
 
         // REFRESH LOGS FROM DB IMMEDIATELY
+        // ADD THIS LINE HERE
+        refreshAllCharCounts();
         await syncLogsFromDB();
 
         if (response.ok) {
@@ -1415,10 +1419,28 @@ document.addEventListener('DOMContentLoaded', function() {
     reader.readAsDataURL(file);
 });
 
-       async function copyPromptText(elementId) {
+// 1. Create the Helper Function
+function refreshAllCharCounts() {
+    const outputs = [
+        { text: 'polished_output', count: 'polished_token_count' },
+        { text: 'creative_output', count: 'creative_token_count' },
+        { text: 'technical_output', count: 'technical_token_count' }
+    ];
+
+    outputs.forEach(item => {
+        const textElement = document.getElementById(item.text);
+        const countElement = document.getElementById(item.count);
+        if (textElement && countElement) {
+            const length = textElement.textContent.trim().length;
+            countElement.textContent = `${length} chars`;
+        }
+    });
+}
+          
+// 2. Update your Copy Function to include the count
+async function copyPromptText(elementId) {
     const promptText = document.getElementById(elementId).textContent.trim();
-    const selectedLanguage = document.getElementById('lang_select').value;
-    const charCount = promptText.length; // Fixed: Calculate actual length
+    const charCount = promptText.length;
 
     if (!promptText || charCount === 0) {
         // Update temporary output
@@ -1428,7 +1450,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     try {
-        // Execute Copy
         const textarea = document.createElement('textarea');
         textarea.value = promptText;
         document.body.appendChild(textarea);
@@ -1436,24 +1457,19 @@ document.addEventListener('DOMContentLoaded', function() {
         document.execCommand('copy');
         document.body.removeChild(textarea);
 
-        // Update the log window visually with the character count
+        // Update the character count display just in case
+        refreshAllCharCounts();
+
+        // Update Log Window
         const logBox = document.getElementById('app_output');
         const timestamp = new Date().toLocaleTimeString([], { hour12: false });
-        
         const logEntry = document.createElement('div');
         logEntry.className = 'log-entry success';
-        logEntry.innerHTML = `<strong>[${timestamp}]</strong> Success: Prompt copied to clipboard (${charCount} characters).`;
-        
-        // Append to the log box so it's visible to the user
+        logEntry.innerHTML = `<strong>[${timestamp}]</strong> Success: Copied ${charCount} chars to clipboard.`;
         logBox.appendChild(logEntry);
         logBox.scrollTop = logBox.scrollHeight;
 
-        // Note: If you want this to PERSIST in the News table like the others, 
-        // you would need a small fetch('/log_custom_event') here.
-        
     } catch (err) {
-        appOutput.textContent = getMessage("copy_fail", selectedLanguage);
-        appOutput.className = 'mt-4 danger';
         console.error('Failed to copy text:', err);
     }
 }
