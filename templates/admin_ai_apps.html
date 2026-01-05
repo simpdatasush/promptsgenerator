@@ -140,6 +140,17 @@ body {
                        <label>Official URL:</label>
                        <input type="url" class="form-control" name="url" placeholder="https://..." required>
                    </div>
+                  
+                  <div class="form-group">
+    <label>App Category:</label>
+    <select class="form-control" name="category" required>
+        <option value="" disabled selected>Select Category...</option>
+        <option value="LLM">LLM</option>
+        <option value="Agent">Agent</option>
+        <option value="Multimedia">Multimedia</option>
+        <option value="Productivity">Productivity</option>
+    </select>
+</div>
                    <div class="form-group">
                        <label>Short Description (The Brick Text):</label>
                        <textarea class="form-control" name="description" rows="3" placeholder="Explain what this tool does in 2 sentences..." required></textarea>
@@ -163,11 +174,18 @@ body {
                                <p class="text-muted small mb-1">{{ app.description | replace('[AI_APP]', '') | truncate(100) }}</p>
                                <small class="text-secondary">Added on: {{ app.timestamp.strftime('%Y-%m-%d') }}</small>
                            </div>
-                           <div class="actions">
-                               <form action="{{ url_for('delete_ai_app', app_id=app.id) }}" method="POST" onsubmit="return confirm('Delete this tool from the directory?');">
-                                   <button type="submit" class="btn btn-outline-danger btn-sm"><i class="fas fa-trash"></i></button>
-                               </form>
-                           </div>
+                           <div class="actions d-flex">
+    <button class="btn btn-outline-primary btn-sm mr-2" 
+            onclick="openEditModal('{{ app.id }}', '{{ app.title }}', '{{ app.url }}', '{{ app.description }}')">
+        <i class="fas fa-edit"></i> Edit
+    </button>
+    
+    <form action="{{ url_for('delete_ai_app', app_id=app.id) }}" method="POST" onsubmit="return confirm('Delete this tool?');">
+        <button type="submit" class="btn btn-outline-danger btn-sm">
+            <i class="fas fa-trash"></i>
+        </button>
+    </form>
+</div>
                        </div>
                    {% endfor %}
                {% else %}
@@ -182,5 +200,66 @@ body {
            Directory Management System &nbsp; | &nbsp; <a href="mailto:info@promptsgenerator.ai">Support</a>
        </div>
    </footer>
+<div class="modal fade" id="editAppModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <form id="editForm" method="POST">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">Edit AI Tool</h5>
+                    <button type="button" class="close text-white" data-dismiss="modal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label>App Name:</label>
+                        <input type="text" name="title" id="editTitle" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Official URL:</label>
+                        <input type="url" name="url" id="editUrl" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Category:</label>
+                        <select name="category" id="editCategory" class="form-control" required>
+                            <option value="LLM">LLM</option>
+                            <option value="Agent">Agent</option>
+                            <option value="Multimedia">Multimedia</option>
+                            <option value="Productivity">Productivity</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Description:</label>
+                        <textarea name="description" id="editDesc" class="form-control" rows="3" required></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function openEditModal(id, title, url, fullDesc) {
+    // 1. Extract category from the bracket tag or default to "LLM"
+    const catMatch = fullDesc.match(/\[AI_APP\]\[(.*?)\]/);
+    const category = catMatch ? catMatch[1] : "LLM"; 
+    
+    // 2. Remove the tags from the description for clean editing
+    const cleanDesc = fullDesc.replace(/\[AI_APP\](\[.*?\])?/, "").trim();
+
+    // 3. Fill the Modal fields
+    document.getElementById('editForm').action = "/admin/ai-apps/edit/" + id;
+    document.getElementById('editTitle').value = title;
+    document.getElementById('editUrl').value = url;
+    document.getElementById('editCategory').value = category;
+    document.getElementById('editDesc').value = cleanDesc;
+
+    // 4. Open the modal
+    $('#editAppModal').modal('show');
+}
+</script>
+
 </body>
 </html>
