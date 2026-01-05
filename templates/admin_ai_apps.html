@@ -116,90 +116,80 @@ body {
    </header>
 
    <div class="container">
-       <h2>Manage AI Apps Directory</h2>
+    <h2>Manage AI Apps Directory</h2>
 
-       {% with messages = get_flashed_messages(with_categories=true) %}
-           {% if messages %}
-               {% for category, message in messages %}
-                   <div class="alert alert-{{ category }}">{{ message }}</div>
-               {% endfor %}
-           {% endif %}
-       {% endwith %}
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }}">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
 
-       <div class="card mb-4 border-primary">
-           <div class="card-header bg-primary text-white">
-               <h4 class="mb-0">Register New AI Tool</h4>
-           </div>
-           <div class="card-body">
-               <form action="{{ url_for('add_ai_app') }}" method="POST">
-                   <div class="form-group">
-                       <label>App Name / Title:</label>
-                       <input type="text" class="form-control" name="title" placeholder="e.g. ChatGPT, Midjourney" required>
-                   </div>
-                   <div class="form-group">
-                       <label>Official URL:</label>
-                       <input type="url" class="form-control" name="url" placeholder="https://..." required>
-                   </div>
-                  
-                  <div class="form-group">
-    <label>App Category:</label>
-    <select class="form-control" name="category" required>
-        <option value="" disabled selected>Select Category...</option>
-        <option value="LLM">LLM</option>
-        <option value="Agent">Agent</option>
-        <option value="Multimedia">Multimedia</option>
-        <option value="Productivity">Productivity</option>
-    </select>
+    <div class="card mb-4 border-primary">
+        <div class="card-header bg-primary text-white">
+            <h4 class="mb-0">Register New AI Tool</h4>
+        </div>
+        <div class="card-body">
+            <form action="{{ url_for('add_ai_app') }}" method="POST">
+                <div class="form-group">
+                    <label>App Name:</label>
+                    <input type="text" class="form-control" name="title" required>
+                </div>
+                <div class="form-group">
+                    <label>Official URL:</label>
+                    <input type="url" class="form-control" name="url" required>
+                </div>
+                <div class="form-group">
+                    <label>App Category:</label>
+                    <select class="form-control" name="category" required>
+                        <option value="" disabled selected>Select Category...</option>
+                        <option value="LLM">LLM</option>
+                        <option value="Agent">Agent</option>
+                        <option value="Multimedia">Multimedia</option>
+                        <option value="Productivity">Productivity</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Description:</label>
+                    <textarea class="form-control" name="description" rows="3" required></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary btn-block">Add to Directory</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header"><h4>Current Directory Items</h4></div>
+        <div class="card-body">
+            {% if ai_apps %}
+                {% for app in ai_apps %}
+                <div class="app-item d-flex justify-content-between align-items-center border-bottom py-2">
+                    <div>
+                        <h5 class="mb-0">{{ app.title }}</h5>
+                        <small class="text-muted">{{ app.description | truncate(60) }}</small>
+                    </div>
+                    <div class="actions">
+                        <button class="btn btn-outline-primary btn-sm" 
+                                onclick='openEditModal("{{ app.id }}", "{{ app.title }}", "{{ app.url }}", {{ app.description | tojson | safe }})'>
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        
+                        <form action="{{ url_for('delete_ai_app', app_id=app.id) }}" method="POST" class="d-inline">
+                            <button type="submit" class="btn btn-outline-danger btn-sm" onclick="return confirm('Delete?')">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <p>No apps found.</p>
+            {% endif %}
+        </div>
+    </div>
 </div>
-                   <div class="form-group">
-                       <label>Short Description (The Brick Text):</label>
-                       <textarea class="form-control" name="description" rows="3" placeholder="Explain what this tool does in 2 sentences..." required></textarea>
-                   </div>
-                   <button type="submit" class="btn btn-primary btn-block">Add to Directory</button>
-               </form>
-           </div>
-       </div>
 
-       <div class="card">
-           <div class="card-header">
-               <h4>Current Directory Items</h4>
-           </div>
-           <div class="card-body">
-               {% if ai_apps %}
-                   {% for app in ai_apps %}
-                       <div class="app-item">
-                           <div>
-                               <span class="app-badge">AI TOOL</span>
-                               <h5 class="mt-1"><a href="{{ app.url }}" target="_blank">{{ app.title }}</a></h5>
-                               <p class="text-muted small mb-1">{{ app.description | replace('[AI_APP]', '') | truncate(100) }}</p>
-                               <small class="text-secondary">Added on: {{ app.timestamp.strftime('%Y-%m-%d') }}</small>
-                           </div>
-                           <div class="actions d-flex">
-    <button class="btn btn-outline-primary btn-sm mr-2" 
-            onclick='openEditModal("{{ app.id }}", "{{ app.title }}", "{{ app.url }}", {{ app.description|tojson|safe }})'>
-        <i class="fas fa-edit"></i> Edit
-    </button>
-    
-    <form action="{{ url_for('delete_ai_app', app_id=app.id) }}" method="POST" onsubmit="return confirm('Delete this tool?');">
-        <button type="submit" class="btn btn-outline-danger btn-sm">
-            <i class="fas fa-trash"></i>
-        </button>
-    </form>
-</div>
-                       </div>
-                   {% endfor %}
-               {% else %}
-                   <p class="text-center text-muted">No AI apps listed yet.</p>
-               {% endif %}
-           </div>
-       </div>
-   </div>
-
-   <footer class="footer">
-       <div class="footer-content">
-           Directory Management System &nbsp; | &nbsp; <a href="mailto:info@promptsgenerator.ai">Support</a>
-       </div>
-   </footer>
 <div class="modal fade" id="editAppModal" tabindex="-1" role="dialog">
     <div class="modal-dialog" role="document">
         <div class="modal-content">
@@ -209,30 +199,17 @@ body {
                     <button type="button" class="close text-white" data-dismiss="modal">&times;</button>
                 </div>
                 <div class="modal-body">
-                    <div class="form-group">
-                        <label>App Name:</label>
-                        <input type="text" name="title" id="editTitle" class="form-control" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Official URL:</label>
-                        <input type="url" name="url" id="editUrl" class="form-control" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Category:</label>
-                        <select name="category" id="editCategory" class="form-control" required>
-                            <option value="LLM">LLM</option>
-                            <option value="Agent">Agent</option>
-                            <option value="Multimedia">Multimedia</option>
-                            <option value="Productivity">Productivity</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Description:</label>
-                        <textarea name="description" id="editDesc" class="form-control" rows="3" required></textarea>
-                    </div>
+                    <input type="text" name="title" id="editTitle" class="form-control mb-2" required>
+                    <input type="url" name="url" id="editUrl" class="form-control mb-2" required>
+                    <select name="category" id="editCategory" class="form-control mb-2">
+                        <option value="LLM">LLM</option>
+                        <option value="Agent">Agent</option>
+                        <option value="Multimedia">Multimedia</option>
+                        <option value="Productivity">Productivity</option>
+                    </select>
+                    <textarea name="description" id="editDesc" class="form-control" rows="3"></textarea>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
                     <button type="submit" class="btn btn-primary">Save Changes</button>
                 </div>
             </form>
@@ -243,29 +220,26 @@ body {
 <script>
 function openEditModal(id, title, url, fullDesc) {
     try {
-        console.log("Opening modal for ID:", id); // Check if function is even firing
-
-        // 1. Extract category
+        console.log("Opening modal for ID:", id);
+        
+        // Extract category or default to LLM
         const catMatch = fullDesc.match(/\[AI_APP\]\[(.*?)\]/);
         const category = catMatch ? catMatch[1] : "LLM"; 
         
-        // 2. Clean description
+        // Clean text
         const cleanDesc = fullDesc.replace(/\[AI_APP\](\[.*?\])?/, "").trim();
 
-        // 3. Fill fields
-        const form = document.getElementById('editForm');
-        if(form) form.action = "/admin/ai-apps/edit/" + id;
-        
+        // Populate fields
+        document.getElementById('editForm').action = "/admin/ai-apps/edit/" + id;
         document.getElementById('editTitle').value = title;
         document.getElementById('editUrl').value = url;
         document.getElementById('editCategory').value = category;
         document.getElementById('editDesc').value = cleanDesc;
 
-        // 4. Show modal
-        var myModal = new bootstrap.Modal(document.getElementById('editAppModal')); 
-        myModal.show();
+        // Show Modal
+        $('#editAppModal').modal('show');
     } catch (error) {
-        console.error("Modal error:", error);
+        console.error("Error opening modal:", error);
     }
 }
 </script>
