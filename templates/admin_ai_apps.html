@@ -176,7 +176,7 @@ body {
                            </div>
                            <div class="actions d-flex">
     <button class="btn btn-outline-primary btn-sm mr-2" 
-            onclick="openEditModal('{{ app.id }}', '{{ app.title }}', '{{ app.url }}', '{{ app.description }}')">
+            onclick='openEditModal("{{ app.id }}", "{{ app.title }}", "{{ app.url }}", {{ app.description|tojson|safe }})'>
         <i class="fas fa-edit"></i> Edit
     </button>
     
@@ -242,22 +242,31 @@ body {
 
 <script>
 function openEditModal(id, title, url, fullDesc) {
-    // 1. Extract category from the bracket tag or default to "LLM"
-    const catMatch = fullDesc.match(/\[AI_APP\]\[(.*?)\]/);
-    const category = catMatch ? catMatch[1] : "LLM"; 
-    
-    // 2. Remove the tags from the description for clean editing
-    const cleanDesc = fullDesc.replace(/\[AI_APP\](\[.*?\])?/, "").trim();
+    try {
+        console.log("Opening modal for ID:", id); // Check if function is even firing
 
-    // 3. Fill the Modal fields
-    document.getElementById('editForm').action = "/admin/ai-apps/edit/" + id;
-    document.getElementById('editTitle').value = title;
-    document.getElementById('editUrl').value = url;
-    document.getElementById('editCategory').value = category;
-    document.getElementById('editDesc').value = cleanDesc;
+        // 1. Extract category
+        const catMatch = fullDesc.match(/\[AI_APP\]\[(.*?)\]/);
+        const category = catMatch ? catMatch[1] : "LLM"; 
+        
+        // 2. Clean description
+        const cleanDesc = fullDesc.replace(/\[AI_APP\](\[.*?\])?/, "").trim();
 
-    // 4. Open the modal
-    $('#editAppModal').modal('show');
+        // 3. Fill fields
+        const form = document.getElementById('editForm');
+        if(form) form.action = "/admin/ai-apps/edit/" + id;
+        
+        document.getElementById('editTitle').value = title;
+        document.getElementById('editUrl').value = url;
+        document.getElementById('editCategory').value = category;
+        document.getElementById('editDesc').value = cleanDesc;
+
+        // 4. Show modal
+        var myModal = new bootstrap.Modal(document.getElementById('editAppModal')); 
+        myModal.show();
+    } catch (error) {
+        console.error("Modal error:", error);
+    }
 }
 </script>
 
