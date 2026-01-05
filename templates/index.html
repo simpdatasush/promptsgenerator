@@ -1133,7 +1133,7 @@ document.addEventListener('DOMContentLoaded', function() {
     setInterval(syncLogsFromDB, 30000);
 });
 
-       // Event listener for Reverse Prompt button
+// Event listener for Reverse Prompt button
        reversePromptButton.addEventListener('click', async function() {
            const promptInput = document.getElementById('prompt_input').value.trim(); // Trim whitespace
            const selectedLanguage = document.getElementById('lang_select').value;
@@ -1157,43 +1157,81 @@ document.addEventListener('DOMContentLoaded', function() {
            }
            // --- END NEW ---
 
-           document.getElementById('reverse_prompt_btn').addEventListener('click', async function() {
-    const promptInput = document.getElementById('prompt_input').value.trim();
-    const btn = this;
+           appOutput.textContent = getMessage("reverse_prompting", selectedLanguage);
+           appOutput.className = 'mt-4 info'; // Set to info during generation
+           generateButton.disabled = true;
+           reversePromptButton.disabled = true;
+           setSaveActionButtonsDisabled(true); // Disable all LLM-related buttons immediately
+           setLLMWebsiteButtonsDisabled(true); // Disable LLM website buttons immediately
+           reversePromptButton.textContent = 'Inferring...';
+           cooldownTimerDisplay.style.display = 'none';
 
-    if (!promptInput) return;
+           console.log("Frontend: Sending request to /reverse_prompt...");
 
-    btn.disabled = true;
-    btn.textContent = 'Inferring...';
+           try {
+               const response = await fetch('/reverse_prompt', {
+                   method: 'POST',
+                   headers: {
+                       'Content-Type': 'application/json'
+                   },
+                   body: JSON.stringify({
+                       input_text: promptInput,
+                       language_code: selectedLanguage
+                   })
+               });
 
-    try {
-        const response = await fetch('/reverse_prompt', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                input_text: promptInput,
-                language_code: document.getElementById('lang_select').value
-            })
-        });
+               if (!response.ok) {
+                   const errorData = await response.json();
+                   if (errorData.cooldown_active && errorData.remaining_time) {
+                       appOutput.textContent = errorData.error;
+                       appOutput.className = 'mt-4 warning';
+                       startCooldownTimer(errorData.remaining_time);
+                   } else if (errorData.daily_limit_reached) { // Handle daily limit error
+                       appOutput.textContent = errorData.error;
+                       appOutput.className = 'mt-4 danger';
+                   }
+                   else if (response.status === 302) {
+                       window.location.href = response.url;
+                       return;
+                   } else {
+                       appOutput.textContent = getMessage("reverse_prompt_failed", selectedLanguage) + `: ${errorData.error || `HTTP error! status: ${response.status}`}`;
+                       appOutput.className = 'mt-4 danger';
+                   }
+                   return;
+               }
 
-        // REFRESH LOGS FROM DB IMMEDIATELY
-        // ADD THIS LINE HERE
-        await syncLogsFromDB();
+               const data = await response.json();
+               if (data.error) {
+                   appOutput.textContent = getMessage("api_error", selectedLanguage, {error: data.error});
+                   appOutput.className = 'mt-4 danger';
+                   console.error("Backend error reported for reverse prompt:", data.error);
+               } else {
+                   // Display the inferred prompt in the polished output area
+                   document.getElementById('polished_output').textContent = data.inferred_prompt;
+                   document.getElementById('polished_token_count').textContent = `${data.inferred_prompt.length} chars`;
+                   appOutput.textContent = getMessage("reverse_prompt_complete", selectedLanguage);
+                   appOutput.className = 'mt-4 success';
+                   fetchAndDisplayRawPrompts();
+                   // Cooldown and button states will be handled by updateAllButtonStates in finally block
+               }
 
-        if (response.ok) {
-            const data = await response.json();
-            // Display the result in the Polished Output box
-            document.getElementById('polished_output').textContent = data.inferred_prompt;
-        }
-    } catch (error) {
-        console.error("Reverse prompt failed:", error);
-    } finally {
-        btn.disabled = false;
-        btn.textContent = 'Reverse Prompt';
-        if (typeof updateAllButtonStates === 'function') updateAllButtonStates();
-    }
-});
-
+           } catch (error) {
+               let errorMessage = getMessage("reverse_prompt_failed", selectedLanguage);
+               if (error.message.includes("Failed to fetch")) {
+                   errorMessage += `: Network error or server not reachable.`;
+               } else {
+                   errorMessage += `: ${error.message}`;
+               }
+               appOutput.textContent = errorMessage;
+               appOutput.className = 'mt-4 danger';
+               console.error("Fetch error caught in JS for reverse prompt:", error);
+           } finally {
+               reversePromptButton.textContent = 'Reverse Prompt';
+               updateAllButtonStates(); // Re-check status to re-enable buttons
+           }
+       });
+      
+      
        // Event listeners for save buttons
        document.querySelectorAll('.save-button').forEach(button => {
            button.addEventListener('click', async function() {
