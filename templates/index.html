@@ -1103,7 +1103,6 @@ document.getElementById('promptForm').addEventListener('submit', async function(
         
         // STAGE 6 CRITICAL STEP: Always sync logs after the server processes the request
        // ADD THIS LINE HERE
-        refreshAllCharCounts();
         await syncLogsFromDB();
 
         if (response.ok) {
@@ -1179,7 +1178,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // REFRESH LOGS FROM DB IMMEDIATELY
         // ADD THIS LINE HERE
-        refreshAllCharCounts();
         await syncLogsFromDB();
 
         if (response.ok) {
