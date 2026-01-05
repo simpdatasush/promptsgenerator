@@ -695,8 +695,8 @@ def get_app_logs():
     parsed_logs = []
     for entry in log_entries:
         try:
-            // Format is: [APP_LOG][category][timestamp] message
-            // We split by ']' to isolate the parts
+            # Format is: [APP_LOG][category][timestamp] message
+            # We split by ']' to isolate the parts
             parts = entry.description.split(']', 3)
             if len(parts) >= 4:
                 category = parts[1].replace('[', '')
