@@ -1581,46 +1581,48 @@ async function copyPromptText(elementId) {
            const modalOverlay = document.getElementById('fullContextModalOverlay');
            modalOverlay.classList.remove('show');
        }
+      
 async function submitToCommunity(elementId) {
-    const promptText = document.getElementById(elementId).textContent.trim();
+    const promptContent = document.getElementById(elementId).textContent.trim();
     const appOutput = document.getElementById('app_output');
+    
+    // Capture the button that was clicked
+    const btn = window.event.target.closest('button');
+    const originalHTML = btn.innerHTML;
 
-    if (!promptText || promptText === "") {
-        appOutput.innerHTML = `<div class="log-entry warning">⚠️ No prompt content to submit!</div>`;
+    if (!promptContent) {
+        appOutput.innerHTML = `<div class="log-entry warning">⚠️ Nothing to share!</div>`;
         return;
     }
 
-    // Get the button that was clicked to provide feedback
-    const btn = window.event.target.closest('button');
-    const originalText = btn.innerHTML;
-
     try {
+        // Visual Feedback: Disable button and show spinner
         btn.disabled = true;
-        btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Submitting...`;
+        btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Sharing...`;
 
         const response = await fetch('/submit_to_community', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ prompt_text: promptText })
+            body: JSON.stringify({
+                prompt_text: promptContent,
+                variant: elementId.split('_')[0] 
+            })
         });
 
         const result = await response.json();
 
-        if (result.success) {
-            appOutput.innerHTML = `<div class="log-entry success">✅ Shared to Marketplace! It will appear after admin review.</div>`;
+        if (response.ok) {
+            appOutput.innerHTML = `<div class="log-entry success">✅ Shared to Community Hub!</div>`;
             btn.innerHTML = `<i class="fas fa-check"></i> Shared`;
             btn.classList.replace('btn-success', 'btn-outline-success');
         } else {
-            throw new Error(result.error || "Submission failed");
+            throw new Error(result.error || "Server rejected submission");
         }
     } catch (error) {
-        console.error("Submission Error:", error);
         appOutput.innerHTML = `<div class="log-entry danger">❌ Error: ${error.message}</div>`;
         btn.disabled = false;
-        btn.innerHTML = originalText;
+        btn.innerHTML = originalHTML;
     }
-    
-    appOutput.scrollTop = appOutput.scrollHeight;
 }
    </script>
 </body>
