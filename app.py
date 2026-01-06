@@ -2005,7 +2005,39 @@ def reset_password(token):
    return render_template('reset_password.html', token=token)
 # --- END NEW: Forgot Password Routes ---
 
+@app.route('/submit_to_community', methods=['POST'])
+@login_required
+def submit_to_community():
+    try:
+        data = request.get_json()
+        prompt_text = data.get('prompt_text')
+        
+        if not prompt_text:
+            return jsonify({"success": False, "error": "Prompt content is empty"}), 400
 
+        # 1. Generate a title from the first few words
+        words = prompt_text.split()
+        generated_title = " ".join(words[:5]) + ("..." if len(words) > 5 else "")
+
+        # 2. Format with your tag system: [PROMPT][CATEGORY][VISIBILITY]
+        # We default community submissions to 'Community' category and 'OPEN' visibility
+        formatted_description = f"[PROMPT][Community][OPEN] {prompt_text}"
+
+        # 3. Save to the News model (since your marketplace route uses News)
+        new_entry = News(
+            title=f"User Sub: {generated_title}",
+            description=formatted_description,
+            # If your News model has a user_id or status field, add them here
+        )
+
+        db.session.add(new_entry)
+        db.session.commit()
+
+        return jsonify({"success": True})
+
+    except Exception as e:
+        print(f"Submission Error: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
 
 
 # --- Save Prompt Endpoint ---
