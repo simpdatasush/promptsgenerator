@@ -2005,6 +2005,8 @@ def reset_password(token):
    return render_template('reset_password.html', token=token)
 # --- END NEW: Forgot Password Routes ---
 
+from datetime import datetime # Ensure this import is at the top of app.py
+
 @app.route('/submit_to_community', methods=['POST'])
 @login_required
 def submit_to_community():
@@ -2016,33 +2018,28 @@ def submit_to_community():
         if not prompt_text:
             return jsonify({"success": False, "error": "Prompt content is empty"}), 400
 
-        # 1. Generate a title
+        # Generate a short title for the news entry
         words = prompt_text.split()
         generated_title = " ".join(words[:5]) + ("..." if len(words) > 5 else "")
 
-        # 2. Format with your tag system
-        # [PROMPT][Category][Visibility]
-        category = variant.capitalize()
-        formatted_description = f"[PROMPT][{category}][OPEN] {prompt_text}"
-
-        # 3. Save to News model with ALL required fields
+        # Create the database record
         new_entry = News(
             title=f"Community: {generated_title}",
-            description=formatted_description,
-            # FIX: Adding required 'url' and 'published_date' to satisfy NOT NULL constraints
-            url="#", 
-            published_date=datetime.utcnow().strftime('%Y-%m-%d'),
-            user_id=current_user.id  # Link it to the user who submitted it
+            description=f"[PROMPT][{variant.capitalize()}][OPEN] {prompt_text}",
+            url="#",
+            # FIX: Use Python datetime objects, not strings
+            timestamp=datetime.now(), 
+            published_date=datetime.now().date(), 
+            user_id=current_user.id
         )
 
         db.session.add(new_entry)
         db.session.commit()
-
         return jsonify({"success": True})
 
     except Exception as e:
-        db.session.rollback() # Always rollback on error
-        print(f"Submission Error: {e}")
+        db.session.rollback()
+        print(f"Database Error: {e}")
         return jsonify({"success": False, "error": str(e)}), 500
 
 
