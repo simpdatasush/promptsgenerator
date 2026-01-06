@@ -183,18 +183,20 @@ body {
                         </h5>
                         <small class="text-muted">{{ p.description | truncate(100) }}</small>
                     </div>
-                    <div class="actions ml-3" style="white-space: nowrap;">
-                        <button class="btn btn-outline-primary btn-sm" 
-                                onclick='openPromptEditModal("{{ p.id }}", "{{ p.title }}", {{ p.description | tojson | safe }})'>
-                            <i class="fas fa-edit"></i>
-                        </button>
-                        
-                        <form action="{{ url_for('delete_prompt', prompt_id=p.id) }}" method="POST" class="d-inline">
-                            <button type="submit" class="btn btn-outline-danger btn-sm" onclick="return confirm('Permanently delete this prompt from the marketplace?')">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </form>
-                    </div>
+                   <div class="actions ml-3" style="white-space: nowrap;">
+    <button class="btn btn-outline-primary btn-sm edit-prompt-btn" 
+            data-id="{{ p.id }}" 
+            data-title="{{ p.title }}" 
+            data-full-desc='{{ p.description | tojson | safe }}'>
+        <i class="fas fa-edit"></i>
+    </button>
+    
+    <form action="{{ url_for('delete_prompt', prompt_id=p.id) }}" method="POST" class="d-inline">
+        <button type="submit" class="btn btn-outline-danger btn-sm" onclick="return confirm('Permanently delete this prompt?')">
+            <i class="fas fa-trash"></i>
+        </button>
+    </form>
+</div>
                 </div>
                 {% endfor %}
             {% else %}
@@ -208,9 +210,15 @@ body {
 </div>
 
 <script>
-function openPromptEditModal(id, title, fullDesc) {
-    try {
-        // Parse: [PROMPT][CATEGORY][VISIBILITY] Content
+document.addEventListener('click', function(e) {
+    // Check if the clicked element is the edit button
+    const btn = e.target.closest('.edit-prompt-btn');
+    if (btn) {
+        const id = btn.getAttribute('data-id');
+        const title = btn.getAttribute('data-title');
+        const fullDesc = JSON.parse(btn.getAttribute('data-full-desc'));
+
+        // Regex parsing for [PROMPT][CATEGORY][VISIBILITY] Content
         const catMatch = fullDesc.match(/\[PROMPT\]\[(.*?)\]/);
         const visMatch = fullDesc.match(/\[PROMPT\]\[.*?\]\[(.*?)\]/);
         
@@ -218,17 +226,17 @@ function openPromptEditModal(id, title, fullDesc) {
         const visibility = visMatch ? visMatch[1] : "OPEN";
         const cleanContent = fullDesc.replace(/\[PROMPT\]\[.*?\]\[.*?\]/, "").trim();
 
+        // Populate Modal Fields
         document.getElementById('editPromptForm').action = "/admin/prompts/edit/" + id;
         document.getElementById('editPromptTitle').value = title;
         document.getElementById('editPromptCategory').value = category;
         document.getElementById('editPromptVisibility').value = visibility;
         document.getElementById('editPromptContent').value = cleanContent;
 
+        // Show Modal
         $('#editPromptModal').modal('show');
-    } catch (e) {
-        console.error("Error:", e);
     }
-}
+});
 </script>
 
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
