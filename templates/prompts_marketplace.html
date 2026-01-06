@@ -191,10 +191,12 @@ body {
     </div>
 
     <div class="alphabet-nav d-flex flex-wrap justify-content-center mb-5">
-        {% for char in "ABCDEFGHIJKLMNOPQRSTUVWXYZ" %}
-            <button class="letter-btn" onclick="filterByLetter('{{ char }}', this)">{{ char }}</button>
-        {% endfor %}
-    </div>
+    <button class="letter-btn active" onclick="filterByLetter('ALL', this)">ALL</button>
+    {% for char in "ABCDEFGHIJKLMNOPQRSTUVWXYZ" %}
+        <button class="letter-btn" onclick="filterByLetter('{{ char }}', this)">{{ char }}</button>
+    {% endfor %}
+    <button class="letter-btn" onclick="filterByLetter('OTHER', this)">#</button>
+</div>
 
     <div id="dynamic-prompts-container"></div>
         </div>
@@ -257,6 +259,7 @@ body {
 
 <script>
 
+<script>
 // 3. Load Python data into JS Array
 const allPrompts = [
     {% for p in prompts %}
@@ -272,25 +275,47 @@ const allPrompts = [
 ];
 
 function filterByLetter(letter, element) {
+    // UI: Update active state for buttons
     document.querySelectorAll('.letter-btn').forEach(btn => btn.classList.remove('active'));
-    if (element) element.classList.add('active');
+    if (element) {
+        element.classList.add('active');
+    } else {
+        // Default to 'ALL' or 'A' button if no element passed
+        const defaultBtn = [...document.querySelectorAll('.letter-btn')].find(b => b.innerText === letter);
+        if (defaultBtn) defaultBtn.classList.add('active');
+    }
 
     const container = document.getElementById('dynamic-prompts-container');
     container.innerHTML = "";
 
-    const matches = allPrompts.filter(p => p.title.toUpperCase().startsWith(letter));
+    // FILTER LOGIC
+    let matches;
+    if (letter === 'ALL') {
+        matches = allPrompts;
+    } else if (letter === 'OTHER') {
+        // Matches titles NOT starting with A-Z
+        matches = allPrompts.filter(p => !/^[a-zA-Z]/.test(p.title.trim()));
+    } else {
+        // Matches specific starting letter
+        matches = allPrompts.filter(p => p.title.trim().toUpperCase().startsWith(letter));
+    }
 
     if (matches.length === 0) {
-        container.innerHTML = `<div class="text-center py-5 text-muted">No prompts found for "${letter}"</div>`;
+        container.innerHTML = `<div class="text-center py-5 text-muted">
+            <i class="fas fa-search fa-3x mb-3"></i><br>
+            No prompts found for "${letter}"
+        </div>`;
         return;
     }
 
+    // GROUPING BY CATEGORY
     const grouped = matches.reduce((acc, p) => {
         acc[p.category] = acc[p.category] || [];
         acc[p.category].push(p);
         return acc;
     }, {});
 
+    // RENDERING
     for (const [category, prompts] of Object.entries(grouped)) {
         let section = `<h3 class="category-header">${category}</h3><div class="brick-grid">`;
         
@@ -299,7 +324,10 @@ function filterByLetter(letter, element) {
             
             section += `
                 <div class="prompt-card">
-                    <div class="brick-title">${p.title}</div>
+                    <div class="brick-title d-flex justify-content-between">
+                        ${p.title}
+                        ${isLocked ? '<i class="fas fa-lock text-warning small"></i>' : ''}
+                    </div>
                     
                     <div class="prompt-text-area ${isLocked ? 'content-blurred' : ''}" id="prompt-${p.id}">
                         ${isLocked ? "This is a premium prompt. Access the content by supporting our community." : p.content}
@@ -312,7 +340,7 @@ function filterByLetter(letter, element) {
                         </div>
                     ` : ''}
 
-                    <div class="mt-auto d-flex justify-content-between align-items-center">
+                    <div class="mt-auto pt-2 d-flex justify-content-between align-items-center">
                         ${!isLocked ? `
                             <button class="btn-copy" onclick="copyToClipboard('${p.id}')">
                                 <i class="fas fa-copy"></i> Copy
@@ -320,7 +348,7 @@ function filterByLetter(letter, element) {
                         ` : `
                             <a href="/donate" class="btn-buy"><i class="fas fa-shopping-cart"></i> Get Access</a>
                         `}
-                        <small class="text-muted">${p.category}</small>
+                        <span class="badge badge-light border text-muted">${p.category}</span>
                     </div>
                 </div>`;
         });
@@ -330,14 +358,27 @@ function filterByLetter(letter, element) {
     }
 }
 
+/**
+ * Enhanced Copy Function
+ * Finds the actual data from the allPrompts array to avoid copying "Blurred" text
+ */
 function copyToClipboard(id) {
-    const text = document.getElementById('prompt-' + id).innerText;
-    navigator.clipboard.writeText(text).then(() => {
-        alert("Prompt copied to clipboard!");
-    });
+    const promptData = allPrompts.find(p => p.id == id);
+    if (promptData && promptData.visibility !== "LOCKED") {
+        navigator.clipboard.writeText(promptData.content).then(() => {
+            // Optional: Change button text temporarily for feedback
+            const btn = window.event.target.closest('.btn-copy');
+            const originalHTML = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+            setTimeout(() => { btn.innerHTML = originalHTML; }, 2000);
+        });
+    }
 }
 
-document.addEventListener("DOMContentLoaded", () => filterByLetter('A'));
+// Set default view to 'ALL' on load
+document.addEventListener("DOMContentLoaded", () => {
+    filterByLetter('ALL');
+});
 </script>
 
 
