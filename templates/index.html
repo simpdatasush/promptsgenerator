@@ -632,9 +632,14 @@
                         </div>
                     </div>
                     <div class="card-body">
-                        <pre id="polished_output"></pre>
-                        <button class="save-button btn btn-sm btn-primary mt-2" data-prompt-type="polished">Save</button>
-                    </div>
+    <pre id="polished_output"></pre>
+    <div class="d-flex justify-content-start gap-2 mt-2">
+        <button class="save-button btn btn-sm btn-primary" data-prompt-type="polished">Save</button>
+        <button class="submit-community-btn btn btn-sm btn-success" onclick="submitToCommunity('polished_output')">
+            <i class="fas fa-share-square"></i> Submit to Hub
+        </button>
+    </div>
+</div>
                 </div>
             </div>
             <div class="col">
@@ -1577,6 +1582,61 @@ async function copyPromptText(elementId) {
            modalOverlay.classList.remove('show');
        }
        // --- END Full Context View Modal Functions ---
+      /**
+ * Handles the AJAX request to submit a generated prompt to the community hub.
+ * @param {string} elementId - The ID of the <pre> element containing the prompt text.
+ */
+async function submitToCommunity(elementId) {
+    const promptContent = document.getElementById(elementId).textContent.trim();
+    const selectedLanguage = document.getElementById('lang_select').value;
+    const appOutput = document.getElementById('app_output');
+
+    // 1. Basic Validation
+    if (!promptContent) {
+        const errorMsg = getMessage("no_prompt_to_save", selectedLanguage, { type: "community" });
+        appOutput.innerHTML = `<div class="log-entry warning">${errorMsg}</div>`;
+        return;
+    }
+
+    // 2. Prepare the Data
+    // We determine the variant type (polished, creative, technical) from the elementId
+    const variantType = elementId.split('_')[0]; 
+
+    try {
+        // 3. Perform the AJAX Request
+        const response = await fetch('/submit_to_community', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                prompt_text: promptContent,
+                variant: variantType,
+                language: selectedLanguage
+            })
+        });
+
+        const result = await response.json();
+
+        // 4. Handle Response
+        if (response.ok) {
+            // Success message
+            appOutput.innerHTML = `<div class="log-entry success">✅ Successfully shared to Community Hub!</div>`;
+            // Optional: Disable the button to prevent double submissions
+            event.target.disabled = true;
+            event.target.innerHTML = '<i class="fas fa-check"></i> Shared';
+        } else {
+            // Handle server-side errors (e.g., Not logged in)
+            appOutput.innerHTML = `<div class="log-entry danger">❌ Submission failed: ${result.error || 'Unknown error'}</div>`;
+        }
+    } catch (error) {
+        console.error("Submission Error:", error);
+        appOutput.innerHTML = `<div class="log-entry danger">❌ Network error. Could not connect to the hub.</div>`;
+    }
+
+    // Auto-scroll logs to bottom [cite: 1528]
+    appOutput.scrollTop = appOutput.scrollHeight;
+}
    </script>
 </body>
 </html>
