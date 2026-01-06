@@ -2011,23 +2011,28 @@ def submit_to_community():
     try:
         data = request.get_json()
         prompt_text = data.get('prompt_text')
+        variant = data.get('variant', 'General')
         
         if not prompt_text:
             return jsonify({"success": False, "error": "Prompt content is empty"}), 400
 
-        # 1. Generate a title from the first few words
+        # 1. Generate a title
         words = prompt_text.split()
         generated_title = " ".join(words[:5]) + ("..." if len(words) > 5 else "")
 
-        # 2. Format with your tag system: [PROMPT][CATEGORY][VISIBILITY]
-        # We default community submissions to 'Community' category and 'OPEN' visibility
-        formatted_description = f"[PROMPT][Community][OPEN] {prompt_text}"
+        # 2. Format with your tag system
+        # [PROMPT][Category][Visibility]
+        category = variant.capitalize()
+        formatted_description = f"[PROMPT][{category}][OPEN] {prompt_text}"
 
-        # 3. Save to the News model (since your marketplace route uses News)
+        # 3. Save to News model with ALL required fields
         new_entry = News(
-            title=f"User Sub: {generated_title}",
+            title=f"Community: {generated_title}",
             description=formatted_description,
-            # If your News model has a user_id or status field, add them here
+            # FIX: Adding required 'url' and 'published_date' to satisfy NOT NULL constraints
+            url="#", 
+            published_date=datetime.utcnow().strftime('%Y-%m-%d'),
+            user_id=current_user.id  # Link it to the user who submitted it
         )
 
         db.session.add(new_entry)
@@ -2036,6 +2041,7 @@ def submit_to_community():
         return jsonify({"success": True})
 
     except Exception as e:
+        db.session.rollback() # Always rollback on error
         print(f"Submission Error: {e}")
         return jsonify({"success": False, "error": str(e)}), 500
 
