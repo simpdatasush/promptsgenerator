@@ -46,7 +46,7 @@ app = Flask(__name__)
 # --- NEW: Flask-SQLAlchemy Configuration ---
 # Configure SQLite database. This file will be created in your project directory.
 # On Render, this database file will be ephemeral unless you attach a persistent disk.
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////var/data/site.db' #'sqlite:///site.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///site.db' #'sqlite:////var/data/site.db' #
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False # Suppress a warning
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'a_very_secret_key_that_should_be_in_env') # Needed for Flask-Login sessions
 db = SQLAlchemy(app)
@@ -564,7 +564,7 @@ def landing():
     has_new_jobs = False
 
     # 1. Fetch latest 6 news items
-    raw_news_items = News.query.filter(~News.description.like('[AI_APP]%'),~News.description.like('[APP_LOG]%')).order_by(News.timestamp.desc()).limit(6).all()
+    raw_news_items = News.query.filter(~News.description.like('[AI_APP]%'),~News.description.like('[APP_LOG]%'),~News.description.like('[PROMPT]%')).order_by(News.timestamp.desc()).limit(6).all()
     
     # Process news items to clean the description for the summary view
     cleaned_news_items = []
@@ -1004,7 +1004,8 @@ def all_news():
     news_query_object = News.query.filter(
         News.description.isnot(None), 
         ~News.description.like('[AI_APP]%'),
-        ~News.description.like('[APP_LOG]%')
+        ~News.description.like('[APP_LOG]%'),
+        ~News.description.like('[PROMPT]%')
     ).order_by(News.timestamp.desc())
 
     # 2. ADD SEARCH FILTERS (If search_query exists)
@@ -1779,6 +1780,77 @@ def delete_ai_app(app_id):
 @app.route('/donate')
 def donate():
     return render_template('donate.html')
+
+# 1. Public Marketplace View
+@app.route('/prompts')
+def prompts_marketplace():
+    # Fetch everything tagged with [PROMPT]
+    prompts = News.query.filter(News.description.like('[PROMPT]%')).order_by(News.timestamp.desc()).all()
+    return render_template('prompts_marketplace.html', prompts=prompts)
+
+# 2. Admin Management Page
+@app.route('/admin/prompts')
+@login_required
+@admin_required
+def admin_prompts():
+    prompts = News.query.filter(News.description.like('[PROMPT]%')).order_by(News.timestamp.desc()).all()
+    return render_template('admin_prompts.html', prompts=prompts)
+
+# 3. Add Prompt (Used by Admin or User)
+@app.route('/admin/prompts/add', methods=['POST'])
+@login_required
+@admin_required
+def add_prompt():
+    title = request.form.get('title')
+    category = request.form.get('category') # e.g., Coding, Writing, Marketing
+    visibility = request.form.get('visibility', 'OPEN') # OPEN or LOCKED
+    content = request.form.get('content') # The actual prompt text
+    
+    # Structure: [PROMPT][CATEGORY][VISIBILITY] Content
+    description = f"[PROMPT][{category}][{visibility}] {content}"
+    
+    new_prompt = News(
+        title=title,
+        description=description,
+        user_id=current_user.id,
+        url="#" # Prompts don't necessarily need a URL, but we'll fill it
+    )
+    db.session.add(new_prompt)
+    db.session.commit()
+    flash('Prompt submitted successfully!', 'success')
+    return redirect(request.referrer) # Returns user to wherever they were
+
+# 4. Edit Prompt (Admin only)
+@app.route('/admin/prompts/edit/<int:prompt_id>', methods=['POST'])
+@login_required
+@admin_required
+def edit_prompt(prompt_id):
+    prompt = News.query.get_or_404(prompt_id)
+    category = request.form.get('category')
+    visibility = request.form.get('visibility')
+    content = request.form.get('content')
+    
+    prompt.title = request.form.get('title')
+    prompt.description = f"[PROMPT][{category}][{visibility}] {content}"
+    
+    db.session.commit()
+    flash('Prompt updated!', 'info')
+    return redirect(url_for('admin_prompts'))
+
+@app.route('/delete_prompt/<int:prompt_id>', methods=['POST'])
+@login_required
+@admin_required
+def delete_prompt(prompt_id):
+    prompt = SavedPrompt.query.get_or_404(prompt_id)
+    # Check if user is owner or admin
+    if prompt.user_id != current_user.id and not current_user.is_admin:
+        flash('Permission denied.', 'danger')
+        return redirect(url_for('index'))
+    
+    db.session.delete(prompt)
+    db.session.commit()
+    flash('Prompt deleted successfully.', 'success')
+    return redirect(request.referrer or url_for('index'))
     
 
 # --- NEW: Change Password Route ---
