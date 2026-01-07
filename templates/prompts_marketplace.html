@@ -5,7 +5,7 @@
    <meta name="viewport" content="width=device-width, initial-scale=1.0">
    <title>SuperPrompter - Prompts Marketplace</title>
    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
    <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
     <link rel="apple-touch-icon" href="{{ url_for('static', filename='favicon.png') }}">
    
@@ -427,10 +427,11 @@ function filterByLetter(letter, element) {
                         <span class="stat ml-3" onclick="handleStat(this)"><i class="far fa-thumbs-up text-primary"></i> <small>0</small></span>
                         
                         <div class="ml-auto">
-                            <a href="https://x.com/intent/post?text=Check out this AI prompt by ${p.maskedUser}" target="_blank" class="share-link"><i class="fab fa-x-twitter"></i></a>
+                            <a href="https://x.com/intent/post?text=Check out this AI prompt by ${p.maskedUser}" target="_blank" class="share-link"><i class="fa-brands fa-x-twitter"></i></a>
                             <a href="https://www.linkedin.com/sharing/share-offsite/?url=${window.location.href}" target="_blank" class="share-link ml-2"><i class="fab fa-linkedin"></i></a>
                         </div>
                     </div>
+                    
 
                     <div class="mt-auto">
                         ${!isLocked ? `
@@ -485,26 +486,31 @@ function handleStat(el) {
     icon.classList.replace('far', 'fas');
 }
 
-function copyToClipboard(elementId) {
-    const textElement = document.getElementById(elementId);
-    // Use innerText to avoid capturing HTML tags, but trim it
-    const text = textElement.innerText.trim();
-
-    navigator.clipboard.writeText(text).then(() => {
-        // Find the button that was clicked for feedback
-        const btn = window.event.target.closest('button');
-        const originalHTML = btn.innerHTML;
+function copyToClipboard(id) {
+    // Find the prompt data by ID from our global array
+    const promptData = allPrompts.find(p => String(p.id) === String(id));
+    
+    if (promptData && promptData.visibility !== "LOCKED") {
+        const textToCopy = promptData.content;
         
-        btn.innerHTML = '<i class="fas fa-check"></i> Copied!';
-        btn.classList.replace('btn-outline-success', 'btn-success');
-        
-        setTimeout(() => {
-            btn.innerHTML = originalHTML;
-            btn.classList.replace('btn-success', 'btn-outline-success');
-        }, 2000);
-    }).catch(err => {
-        alert("Could not copy text. Please try selecting and copying manually.");
-    });
+        navigator.clipboard.writeText(textToCopy).then(() => {
+            // UI Feedback: Target the button that was clicked
+            const btn = event.currentTarget;
+            const originalHTML = btn.innerHTML;
+            
+            btn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+            btn.classList.add('btn-success');
+            btn.classList.remove('btn-outline-success');
+            
+            setTimeout(() => {
+                btn.innerHTML = originalHTML;
+                btn.classList.remove('btn-success');
+                btn.classList.add('btn-outline-success');
+            }, 2000);
+        }).catch(err => {
+            console.error('Failed to copy: ', err);
+        });
+    }
 }
    
 function animateStat(id) {
