@@ -1852,16 +1852,6 @@ def delete_prompt(prompt_id):
     flash('Prompt deleted successfully.', 'success')
     return redirect(request.referrer or url_for('index'))
 
-
-@app.route('/update_stat/<int:prompt_id>/<string:stat_type>', methods=['POST'])
-def update_stat(prompt_id, stat_type):
-    prompt = News.query.get_or_404(prompt_id)
-    if stat_type == 'heart':
-        prompt.hearts = (prompt.hearts or 0) + 1
-    else:
-        prompt.likes = (prompt.likes or 0) + 1
-    db.session.commit()
-    return {"status": "success"}, 200
     
 # --- NEW: Change Password Route ---
 @app.route('/change_password', methods=['GET', 'POST'])
