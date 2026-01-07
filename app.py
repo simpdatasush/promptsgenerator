@@ -128,10 +128,6 @@ def configure_ai_apis():
             # 2. Configure the Gemma (New) SDK Client
             # Use the verified api_key variable here
             gemma_client = gemma_genai.Client(api_key=api_key)
-
-            # 3. Configure the Gemini live (New) SDK Client
-            # Use the verified api_key variable here
-            gemini_live_client = gemma_genai.Client(api_key=api_key, http_options={'api_version': 'v1alpha'})
             
             GEMINI_API_CONFIGURED = True
             app.logger.info("Both Gemini and Gemma APIs configured successfully.")
