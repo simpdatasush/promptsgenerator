@@ -184,12 +184,13 @@ body {
                         <small class="text-muted">{{ p.description | truncate(100) }}</small>
                     </div>
                    <div class="actions ml-3" style="white-space: nowrap;">
+                      
     <button class="btn btn-outline-primary btn-sm edit-prompt-btn" 
-            data-id="{{ p.id }}" 
-            data-title="{{ p.title }}" 
-            data-full-desc='{{ p.description | tojson | safe }}'>
-        <i class="fas fa-edit"></i>
-    </button>
+        data-id="{{ p.id }}" 
+        data-title="{{ p.title }}" 
+        data-full-desc='{{ p.description | tojson | safe }}'>
+    <i class="fas fa-edit"></i>
+</button>
     
     <form action="{{ url_for('delete_prompt', prompt_id=p.id) }}" method="POST" class="d-inline">
         <button type="submit" class="btn btn-outline-danger btn-sm" onclick="return confirm('Permanently delete this prompt?')">
@@ -210,15 +211,16 @@ body {
 </div>
 
 <script>
+/ Use Event Delegation to handle the click
 document.addEventListener('click', function(e) {
-    // Check if the clicked element is the edit button
     const btn = e.target.closest('.edit-prompt-btn');
     if (btn) {
-        const id = btn.getAttribute('data-id');
-        const title = btn.getAttribute('data-title');
-        const fullDesc = JSON.parse(btn.getAttribute('data-full-desc'));
+        const id = btn.dataset.id;
+        const title = btn.dataset.title;
+        // The description is stored as a JSON string, so we parse it safely
+        const fullDesc = JSON.parse(btn.dataset.fullDesc);
 
-        // Regex parsing for [PROMPT][CATEGORY][VISIBILITY] Content
+        // Parsing logic for [PROMPT][CATEGORY][VISIBILITY]
         const catMatch = fullDesc.match(/\[PROMPT\]\[(.*?)\]/);
         const visMatch = fullDesc.match(/\[PROMPT\]\[.*?\]\[(.*?)\]/);
         
@@ -226,14 +228,12 @@ document.addEventListener('click', function(e) {
         const visibility = visMatch ? visMatch[1] : "OPEN";
         const cleanContent = fullDesc.replace(/\[PROMPT\]\[.*?\]\[.*?\]/, "").trim();
 
-        // Populate Modal Fields
         document.getElementById('editPromptForm').action = "/admin/prompts/edit/" + id;
         document.getElementById('editPromptTitle').value = title;
         document.getElementById('editPromptCategory').value = category;
         document.getElementById('editPromptVisibility').value = visibility;
         document.getElementById('editPromptContent').value = cleanContent;
 
-        // Show Modal
         $('#editPromptModal').modal('show');
     }
 });
