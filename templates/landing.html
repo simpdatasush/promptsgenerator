@@ -652,54 +652,66 @@ let socket;
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 24000 });
 
 function connectAlex() {
-    socket = new WebSocket(`ws://${window.location.host}/ws/alex-concierge`);
-    // Note: Do NOT set binaryType to 'arraybuffer' if your server sends JSON strings
-    // If your Python server (ws.send) sends raw bytes, keep it. 
-    // But if it sends the raw API response, use the logic below:
-
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    socket = new WebSocket(`${protocol}//${window.location.host}/ws/alex-concierge`);
+    
+    // We leave binaryType default (Blob/String) to handle the JSON check logic
+    
     socket.onmessage = async (event) => {
         try {
-            // 1. Check if the data is a string (JSON) or raw bytes
             let rawData;
+
+            // 1. Handle JSON (Base64) or Binary
             if (typeof event.data === 'string') {
                 const json = JSON.parse(event.data);
-                // Look for the audio data in the Gemini response structure
                 const base64Data = json.serverContent?.modelTurn?.parts?.[0]?.inlineData?.data;
                 if (!base64Data) return;
                 
-                // Convert Base64 string to ArrayBuffer
                 const binaryString = window.atob(base64Data);
-                const len = binaryString.length;
-                const bytes = new Uint8Array(len);
-                for (let i = 0; i < len; i++) {
+                const bytes = new Uint8Array(binaryString.length);
+                for (let i = 0; i < binaryString.length; i++) {
                     bytes[i] = binaryString.charCodeAt(i);
                 }
                 rawData = bytes.buffer;
+            } else if (event.data instanceof Blob) {
+                rawData = await event.data.arrayBuffer();
             } else {
-                rawData = event.data;
+                rawData = event.data; // Already an ArrayBuffer
             }
 
-            // 2. Process PCM Data
-            frog.classList.add('frog-speaking');
-            const int16Data = new Int16Array(rawData);
-            const float32Data = new Float32Array(int16Data.length);
-            
-            for (let i = 0; i < int16Data.length; i++) {
-                float32Data[i] = int16Data[i] / 32768.0;
-            }
+            // 2. Audio Processing (PCM 16-bit to Float 32)
+            if (rawData.byteLength > 0) {
+                frog.classList.add('frog-speaking');
+                const int16Data = new Int16Array(rawData);
+                const float32Data = new Float32Array(int16Data.length);
+                
+                for (let i = 0; i < int16Data.length; i++) {
+                    float32Data[i] = int16Data[i] / 32768.0;
+                }
 
-            // 3. Playback
-            const buffer = audioCtx.createBuffer(1, float32Data.length, 24000);
-            buffer.getChannelData(0).set(float32Data);
-            const source = audioCtx.createBufferSource();
-            source.buffer = buffer;
-            source.connect(audioCtx.destination);
-            source.onended = () => frog.classList.remove('frog-speaking');
-            source.start();
+                // 3. Playback via Web Audio API
+                const buffer = audioCtx.createBuffer(1, float32Data.length, 24000);
+                buffer.getChannelData(0).set(float32Data);
+                const source = audioCtx.createBufferSource();
+                source.buffer = buffer;
+                source.connect(audioCtx.destination);
+                source.onended = () => frog.classList.remove('frog-speaking');
+                source.start();
+            }
 
         } catch (err) {
-            console.error("Audio Playback Error:", err);
+            console.error("Alex Audio Playback Error:", err);
         }
+    };
+
+    // Correctly placed Error Handler
+    socket.onerror = (error) => {
+        console.error("WebSocket Connection Error:", error);
+    };
+
+    socket.onclose = () => {
+        console.log("Alex connection closed.");
+        frog.classList.remove('frog-speaking');
     };
 }
 
