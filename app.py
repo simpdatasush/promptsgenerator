@@ -1718,6 +1718,8 @@ def generate_audio(post_id):
 
 sock = Sock(app)
 
+gemini_live_client = gemma_genai.Client(http_options={'api_version': 'v1alpha'})
+
 @sock.route('/ws/alex-concierge')
 def alex_concierge(ws):
     model_id = "gemini-2.5-flash-native-audio-preview-12-2025"
