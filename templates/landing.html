@@ -533,15 +533,15 @@
     <i class="fas fa-bullhorn"></i> <strong>Latest Update:</strong> {{ status_message }}
 </div>
 
-<div id="voice-assistant-container">
-    <div id="alex-speech-bubble">Hi, I'm Alex. Need help ?</div>
-    <div id="frog-widget" class="frog-idle">
-        <img src="/static/frog_assistant.png" id="frog-image" alt="Alex">
-        <button id="mic-trigger">
-            <i class="fas fa-microphone"></i>
+<div id="alex-widget-container" style="position: fixed; bottom: 20px; right: 20px; z-index: 1000; display: flex; flex-direction: column; align-items: flex-end;">
+    <div id="alex-status" style="background: rgba(0,0,0,0.7); color: white; padding: 5px 10px; border-radius: 10px; margin-bottom: 5px; font-size: 12px; display: none;">lexi is speaking...</div>
+    <div style="display: flex; gap: 10px; background: white; padding: 10px; border-radius: 30px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); border: 1px solid #eee;">
+        <input type="text" id="alex-input" placeholder="Ask lexi anything..." style="border: none; outline: none; padding: 5px 15px; width: 200px; font-family: 'Playfair Display', serif;">
+        <button id="alex-send" style="background: #1a1a1a; color: white; border: none; border-radius: 50%; width: 35px; height: 35px; cursor: pointer;">
+            <i class="fas fa-paper-plane"></i>
         </button>
     </div>
-</div>        
+</div>       
 
 <section class="news-section mb-5">
     <h2 class="section-title"><a href="{{ url_for('all_news') }}" class="text-decoration-none text-dark">Latest News</a></h2>
@@ -644,64 +644,51 @@
 
 <script>
 
-const micBtn = document.getElementById('mic-trigger');
+const alexInput = document.getElementById('alex-input');
+const sendBtn = document.getElementById('alex-send');
 const frog = document.getElementById('frog-widget');
-let isSessionActive = false;
+
 let socket;
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 24000 });
 
-micBtn.onclick = async () => {
-    if (isSessionActive) {
-        stopSession();
-        return;
-    }
-    startSession();
-};
+// 1. Connection Logic
+function connectAlex() {
+    socket = new WebSocket(`ws://${window.location.host}/ws/alex-concierge`);
+    socket.binaryType = 'arraybuffer'; // Crucial for receiving raw audio bytes
 
-async function startSession() {
-    isSessionActive = true;
-    micBtn.classList.replace('btn-primary', 'btn-danger');
-    frog.classList.add('frog-listening');
-    
-    // Connect to your Python Backend WebSocket
-    socket = new WebSocket(`ws://${window.location.host}/ws/gemini-live`);
-    
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    const audioContext = new AudioContext({ sampleRate: 16000 });
-    const source = audioContext.createMediaStreamSource(stream);
-    const processor = audioContext.createScriptProcessor(4096, 1, 1);
-
-    source.connect(processor);
-    processor.connect(audioContext.destination);
-
-    processor.onaudioprocess = (e) => {
-        const inputData = e.inputBuffer.getChannelData(0);
-        // Convert to 16-bit PCM and send via socket
-        const pcmData = new Int16Array(inputData.length);
-        for (let i = 0; i < inputData.length; i++) {
-            pcmData[i] = Math.max(-1, Math.min(1, inputData[i])) * 0x7FFF;
-        }
-        if (socket.readyState === WebSocket.OPEN) {
-            socket.send(pcmData.buffer);
-        }
-    };
-
-    // Playback response from Gemini
     socket.onmessage = async (event) => {
-        const audioBuffer = await audioContext.decodeAudioData(event.data);
-        const playSource = audioContext.createBufferSource();
-        playSource.buffer = audioBuffer;
-        playSource.connect(audioContext.destination);
-        playSource.start();
+        // Trigger the frog speaking animation
+        frog.classList.add('frog-speaking');
         
-        frog.classList.replace('frog-listening', 'frog-speaking');
-        playSource.onended = () => frog.classList.replace('frog-speaking', 'frog-listening');
+        // Play the raw PCM chunks coming from Gemini
+        const arrayBuffer = event.data;
+        const int16Data = new Int16Array(arrayBuffer);
+        const float32Data = new Float32Array(int16Data.length);
+        
+        for (let i = 0; i < int16Data.length; i++) {
+            float32Data[i] = int16Data[i] / 32768.0;
+        }
+
+        const buffer = audioCtx.createBuffer(1, float32Data.length, 24000);
+        buffer.getChannelData(0).set(float32Data);
+        const source = audioCtx.createBufferSource();
+        source.buffer = buffer;
+        source.connect(audioCtx.destination);
+        source.onended = () => frog.classList.remove('frog-speaking');
+        source.start();
     };
 }
 
-function stopSession() {
-    isSessionActive = false;
-    location.reload(); // Simplest way to reset all audio streams
-}
+// 2. Trigger Logic (Send Text instead of Mic Data)
+sendBtn.onclick = () => {
+    if (!socket || socket.readyState !== WebSocket.OPEN) connectAlex();
+    
+    const text = alexInput.value;
+    if (text.trim()) {
+        socket.send(text); // Send the text query to Python
+        alexInput.value = '';
+    }
+};
 
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
