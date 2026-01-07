@@ -348,6 +348,77 @@
     text-decoration: underline;
 }
 
+#voice-assistant-container {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    transition: all 0.3s ease;
+}
+
+#alex-speech-bubble {
+    background: white;
+    padding: 10px 15px;
+    border-radius: 15px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    margin-bottom: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    position: relative;
+    animation: float 3s ease-in-out infinite;
+}
+
+#alex-speech-bubble::after {
+    content: '';
+    position: absolute;
+    bottom: -8px;
+    right: 20px;
+    border-width: 8px 8px 0;
+    border-style: solid;
+    border-color: white transparent;
+}
+
+#frog-image {
+    width: 100px;
+    height: auto;
+    cursor: pointer;
+}
+
+#mic-trigger {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    background: var(--color-primary);
+    color: white;
+    border: none;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Animations for Voice States */
+.frog-listening { animation: pulse 1.5s infinite; }
+.frog-speaking { transform: scale(1.1); }
+
+@keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+}
+
+@keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(0, 123, 255, 0.7); }
+    70% { box-shadow: 0 0 0 15px rgba(0, 123, 255, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(0, 123, 255, 0); }
+}
+
         /* Responsive adjustments */
         @media (max-width: 768px) {
             .app-header {
@@ -462,6 +533,15 @@
     <i class="fas fa-bullhorn"></i> <strong>Latest Update:</strong> {{ status_message }}
 </div>
 
+<div id="voice-assistant-container">
+    <div id="alex-speech-bubble">Hi, I'm Alex. Need help ?</div>
+    <div id="frog-widget" class="frog-idle">
+        <img src="/static/images/frog_assistant.png" id="frog-image" alt="Alex">
+        <button id="mic-trigger">
+            <i class="fas fa-microphone"></i>
+        </button>
+    </div>
+</div>        
 
 <section class="news-section mb-5">
     <h2 class="section-title"><a href="{{ url_for('all_news') }}" class="text-decoration-none text-dark">Latest News</a></h2>
@@ -563,6 +643,66 @@
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 
 <script>
+
+const micBtn = document.getElementById('mic-trigger');
+const frog = document.getElementById('frog-widget');
+let isSessionActive = false;
+let socket;
+
+micBtn.onclick = async () => {
+    if (isSessionActive) {
+        stopSession();
+        return;
+    }
+    startSession();
+};
+
+async function startSession() {
+    isSessionActive = true;
+    micBtn.classList.replace('btn-primary', 'btn-danger');
+    frog.classList.add('frog-listening');
+    
+    // Connect to your Python Backend WebSocket
+    socket = new WebSocket(`ws://${window.location.host}/ws/gemini-live`);
+    
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const audioContext = new AudioContext({ sampleRate: 16000 });
+    const source = audioContext.createMediaStreamSource(stream);
+    const processor = audioContext.createScriptProcessor(4096, 1, 1);
+
+    source.connect(processor);
+    processor.connect(audioContext.destination);
+
+    processor.onaudioprocess = (e) => {
+        const inputData = e.inputBuffer.getChannelData(0);
+        // Convert to 16-bit PCM and send via socket
+        const pcmData = new Int16Array(inputData.length);
+        for (let i = 0; i < inputData.length; i++) {
+            pcmData[i] = Math.max(-1, Math.min(1, inputData[i])) * 0x7FFF;
+        }
+        if (socket.readyState === WebSocket.OPEN) {
+            socket.send(pcmData.buffer);
+        }
+    };
+
+    // Playback response from Gemini
+    socket.onmessage = async (event) => {
+        const audioBuffer = await audioContext.decodeAudioData(event.data);
+        const playSource = audioContext.createBufferSource();
+        playSource.buffer = audioBuffer;
+        playSource.connect(audioContext.destination);
+        playSource.start();
+        
+        frog.classList.replace('frog-listening', 'frog-speaking');
+        playSource.onended = () => frog.classList.replace('frog-speaking', 'frog-listening');
+    };
+}
+
+function stopSession() {
+    isSessionActive = false;
+    location.reload(); // Simplest way to reset all audio streams
+}
+
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
       navigator.serviceWorker.register("/static/sw.js");
