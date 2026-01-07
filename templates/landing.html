@@ -655,13 +655,9 @@ function connectAlex() {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     socket = new WebSocket(`${protocol}//${window.location.host}/ws/alex-concierge`);
     
-    // We leave binaryType default (Blob/String) to handle the JSON check logic
-    
     socket.onmessage = async (event) => {
         try {
             let rawData;
-
-            // 1. Handle JSON (Base64) or Binary
             if (typeof event.data === 'string') {
                 const json = JSON.parse(event.data);
                 const base64Data = json.serverContent?.modelTurn?.parts?.[0]?.inlineData?.data;
@@ -676,44 +672,60 @@ function connectAlex() {
             } else if (event.data instanceof Blob) {
                 rawData = await event.data.arrayBuffer();
             } else {
-                rawData = event.data; // Already an ArrayBuffer
+                rawData = event.data;
             }
 
-            // 2. Audio Processing (PCM 16-bit to Float 32)
             if (rawData.byteLength > 0) {
-                frog.classList.add('frog-speaking');
+                frog?.classList.add('frog-speaking');
                 const int16Data = new Int16Array(rawData);
                 const float32Data = new Float32Array(int16Data.length);
-                
                 for (let i = 0; i < int16Data.length; i++) {
                     float32Data[i] = int16Data[i] / 32768.0;
                 }
 
-                // 3. Playback via Web Audio API
                 const buffer = audioCtx.createBuffer(1, float32Data.length, 24000);
                 buffer.getChannelData(0).set(float32Data);
                 const source = audioCtx.createBufferSource();
                 source.buffer = buffer;
                 source.connect(audioCtx.destination);
-                source.onended = () => frog.classList.remove('frog-speaking');
+                source.onended = () => frog?.classList.remove('frog-speaking');
                 source.start();
             }
-
         } catch (err) {
             console.error("Alex Audio Playback Error:", err);
         }
     };
 
-    // Correctly placed Error Handler
-    socket.onerror = (error) => {
-        console.error("WebSocket Connection Error:", error);
-    };
-
+    socket.onerror = (error) => console.error("WebSocket Connection Error:", error);
     socket.onclose = () => {
         console.log("Alex connection closed.");
-        frog.classList.remove('frog-speaking');
+        frog?.classList.remove('frog-speaking');
     };
 }
+
+// Helper to wait for the connection to be ready
+function sendMessage(text) {
+    if (socket && socket.readyState === WebSocket.OPEN) {
+        socket.send(text);
+    } else if (socket && socket.readyState === WebSocket.CONNECTING) {
+        // Wait for the 'open' event then send
+        socket.addEventListener('open', () => socket.send(text), { once: true });
+    } else {
+        // If closed or null, connect first then send
+        connectAlex();
+        socket.addEventListener('open', () => socket.send(text), { once: true });
+    }
+}
+
+sendBtn.onclick = async () => {
+    if (audioCtx.state === 'suspended') await audioCtx.resume();
+    
+    const text = alexInput.value;
+    if (text.trim()) {
+        sendMessage(text);
+        alexInput.value = '';
+    }
+};
 
 // 2. Trigger Logic
 sendBtn.onclick = async () => { // Added 'async'
