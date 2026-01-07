@@ -1724,12 +1724,13 @@ sock = Sock(app)
 
 @sock.route('/ws/alex-concierge')
 def alex_concierge(ws):
-    # Using your specific model for 2026
     model_id = "gemini-2.5-flash-native-audio-preview-12-2025"
-    SUPPORT_INSTRUCTION = "You are a professional British Concierge. Always respond with voice. Your goal is to provide fast, empathetic, and technically accurate assistance.Do not provide medical, legal, or financial advice. Be brief and elegant & Maintain memory of this conversation. "
+    SUPPORT_INSTRUCTION = (
+         "You are a professional British Concierge. Always respond with voice. Your goal is to provide fast, empathetic, and technically accurate assistance.Do not provide medical, legal, or financial advice. Be brief and elegant & Maintain memory of this conversation. "
+    )
 
     async def start_live_session():
-        # Establishing the connection with your SUPPORT_INSTRUCTION
+        # Establishing the connection
         async with gemini_live_client.aio.live.connect(
             model=model_id,
             config=gemma_types.LiveConnectConfig(
@@ -1747,9 +1748,9 @@ def alex_concierge(ws):
                 """Task: Receive TEXT from browser and push to Gemini"""
                 try:
                     while True:
-                        text_msg = ws.receive() # Text from landing page input
+                        # Use to_thread to prevent ws.receive() from blocking Alex's voice
+                        text_msg = await asyncio.to_thread(ws.receive)
                         if text_msg:
-                            # Using the structure from your working snippet
                             await session.send_client_content(
                                 turns=[{"role": "user", "parts": [{"text": text_msg}]}],
                                 turn_complete=True
@@ -1758,20 +1759,23 @@ def alex_concierge(ws):
                     app.logger.info(f"Text send loop closed: {e}")
 
             async def receive_from_gemini():
-                """Task: Receive Audio bytes from Gemini and push to browser"""
+                """Task: Forward full Gemini response to browser"""
                 try:
-                    async for response in session:
-                        if response.server_content and response.server_content.model_turn:
-                            for part in response.server_content.model_turn.parts:
-                                if part.inline_data:
-                                    # Send raw PCM bytes directly to the browser
-                                    ws.send(part.inline_data.data)
+                    # session.receive() is an async generator for the Live API
+                    async for response in session.receive():
+                        # We send the full JSON so JS can handle animations/text
+                        ws.send(response.model_dump_json())
                 except Exception as e:
                     app.logger.info(f"Audio receive loop closed: {e}")
 
+            # Run both tasks concurrently
             await asyncio.gather(send_to_gemini(), receive_from_gemini())
 
-    asyncio.run(start_live_session())
+    # Start the async loop from the synchronous Flask-Sock route
+    try:
+        asyncio.run(start_live_session())
+    except Exception as e:
+        app.logger.error(f"WebSocket Session Error: {e}")
 
 @app.route('/ai-apps')
 def all_ai_apps():
