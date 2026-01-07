@@ -1720,15 +1720,20 @@ sock = Sock(app, ping_interval=None)
 
 gemini_live_client = gemma_genai.Client(http_options={'api_version': 'v1alpha'})
 
+import json
+import asyncio
+from google.genai import types as gemma_types
+
 @sock.route('/ws/alex-concierge')
 def alex_concierge(ws):
     model_id = "gemini-2.5-flash-native-audio-preview-12-2025"
     SUPPORT_INSTRUCTION = (
-         "You are a professional British Concierge. Always respond with voice. Your goal is to provide fast, empathetic, and technically accurate assistance.Do not provide medical, legal, or financial advice. Be brief and elegant & Maintain memory of this conversation. "
+        "You are a professional British Concierge. Always respond with voice. "
+        "Your goal is to provide fast, empathetic, and technically accurate assistance. "
+        "Do not provide medical, legal, or financial advice. Be brief and elegant."
     )
 
     async def start_live_session():
-        # Establishing the connection
         async with gemini_live_client.aio.live.connect(
             model=model_id,
             config=gemma_types.LiveConnectConfig(
@@ -1743,37 +1748,44 @@ def alex_concierge(ws):
         ) as session:
             
             async def send_to_gemini():
-                """Task: Receive TEXT from browser and push to Gemini"""
+                """Task: Receive TEXT from browser, filter PINGs, and push to Gemini"""
                 try:
                     while True:
-                        # Use to_thread to prevent ws.receive() from blocking Alex's voice
-                        text_msg = await asyncio.to_thread(ws.receive)
-                        if text_msg:
+                        # Non-blocking receive from the browser
+                        message = await asyncio.to_thread(ws.receive)
+                        if message:
+                            try:
+                                # Logic to catch the heartbeat ping
+                                data = json.loads(message)
+                                if data.get('type') == 'ping':
+                                    continue
+                            except (json.JSONDecodeError, TypeError, AttributeError):
+                                pass
+
+                            # Send actual query to Gemini
                             await session.send_client_content(
-                                turns=[{"role": "user", "parts": [{"text": text_msg}]}],
+                                turns=[{"role": "user", "parts": [{"text": message}]}],
                                 turn_complete=True
                             )
                 except Exception as e:
                     app.logger.info(f"Text send loop closed: {e}")
 
             async def receive_from_gemini():
-                """Task: Forward full Gemini response to browser"""
+                """Task: Forward full Gemini response (JSON) to browser"""
                 try:
-                    # session.receive() is an async generator for the Live API
                     async for response in session.receive():
-                        # We send the full JSON so JS can handle animations/text
+                        # Sends the full Gemini JSON including Base64 audio
                         ws.send(response.model_dump_json())
                 except Exception as e:
                     app.logger.info(f"Audio receive loop closed: {e}")
 
-            # Run both tasks concurrently
+            # Run both async loops side-by-side
             await asyncio.gather(send_to_gemini(), receive_from_gemini())
 
-    # Start the async loop from the synchronous Flask-Sock route
     try:
         asyncio.run(start_live_session())
     except Exception as e:
-        app.logger.error(f"WebSocket Session Error: {e}")
+        app.logger.error(f"WebSocket session died: {e}")
 
 @app.route('/ai-apps')
 def all_ai_apps():
