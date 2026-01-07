@@ -364,90 +364,118 @@ body {
 </noscript>
 <script>
 
-// 1. Data Ingestion from Python/Jinja
 const allPrompts = [
     {% for p in prompts %}
-    {
-        id: "{{ p.id }}",
-        // Masked ID: User# and the last 4 digits of the DB ID
-        maskedUser: "User#{{ (p.id | string)[-4:] if (p.id | string)|length >= 4 else (p.id | string).zfill(4) }}",
-        // Clean Title: Removes "Community:" prefix
-        title: "{{ p.title.replace('Community: ', '').replace('User Sub: ', '') }}",
-        category: {{ p.description | tojson }}.match(/\[PROMPT\]\[(.*?)\]/) ? {{ p.description | tojson }}.match(/\[PROMPT\]\[(.*?)\]/)[1] : "General",
-        visibility: {{ p.description | tojson }}.match(/\[PROMPT\]\[.*?\]\[(.*?)\]/) ? {{ p.description | tojson }}.match(/\[PROMPT\]\[.*?\]\[(.*?)\]/)[1] : "OPEN",
-        content: {{ p.description | tojson }}.replace(/\[PROMPT\]\[.*?\]\[.*?\]/, "").trim()
-    },
+    (() => {
+        const rawDesc = {{ p.description | tojson }};
+        // Regex to extract [CAT] and [VIS]
+        const tagMatch = rawDesc.match(/\[PROMPT\]\[(.*?)\]\[(.*?)\]/);
+        
+        return {
+            id: "{{ p.id }}",
+            maskedUser: "User#{{ (p.id | string).zfill(4) }}",
+            title: "{{ p.title.replace('Community: ', '').replace('User Sub: ', '') }}",
+            category: tagMatch ? tagMatch[1] : "General",
+            visibility: tagMatch ? tagMatch[2] : "OPEN",
+            content: rawDesc.replace(/\[PROMPT\]\[.*?\]\[.*?\]/, "").trim()
+        };
+    })(),
+    {% endfor %}
+];
+<script>
+// 1. Safe Data Ingestion
+const allPrompts = [
+    {% for p in prompts %}
+    (() => {
+        const rawDesc = {{ p.description | tojson }};
+        // Regex to extract [CAT] and [VIS]
+        const tagMatch = rawDesc.match(/\[PROMPT\]\[(.*?)\]\[(.*?)\]/);
+        
+        return {
+            id: "{{ p.id }}",
+            maskedUser: "User#{{ (p.id | string).zfill(4) }}",
+            title: "{{ p.title.replace('Community: ', '').replace('User Sub: ', '') }}",
+            category: tagMatch ? tagMatch[1] : "General",
+            visibility: tagMatch ? tagMatch[2] : "OPEN",
+            content: rawDesc.replace(/\[PROMPT\]\[.*?\]\[.*?\]/, "").trim()
+        };
+    })(),
     {% endfor %}
 ];
 
 // 2. Main Filter & Render Function
 function filterByLetter(letter, element) {
-    // UI Feedback: Set active state
+    // UI Feedback
     document.querySelectorAll('.letter-btn').forEach(btn => btn.classList.remove('active'));
-    if (element) element.classList.add('active');
+    if (element) {
+        element.classList.add('active');
+    } else {
+        // Fallback to highlight 'ALL' on first load
+        const allBtn = Array.from(document.querySelectorAll('.letter-btn')).find(b => b.innerText === 'ALL');
+        if (allBtn) allBtn.classList.add('active');
+    }
 
     const container = document.getElementById('dynamic-prompts-container');
     container.innerHTML = "";
 
-    // Filtering logic: handles 'ALL', '#', and A-Z
-    let matches = (letter === 'ALL') ? allPrompts :
-                  (letter === 'OTHER') ? allPrompts.filter(p => !/^[a-zA-Z]/.test(p.title.trim())) :
-                  allPrompts.filter(p => p.title.trim().toUpperCase().startsWith(letter));
+    // Filter Logic
+    let matches = allPrompts;
+    if (letter !== 'ALL') {
+        if (letter === 'OTHER') {
+            matches = allPrompts.filter(p => !/^[a-zA-Z]/.test(p.title.trim()));
+        } else {
+            matches = allPrompts.filter(p => p.title.trim().toUpperCase().startsWith(letter));
+        }
+    }
 
     if (matches.length === 0) {
-        container.innerHTML = `<div class="text-center py-5 text-muted"><i class="fas fa-search fa-3x mb-3"></i><br>No prompts found for "${letter}"</div>`;
+        container.innerHTML = `<div class="text-center py-5 text-muted"><i class="fas fa-search fa-3x mb-3"></i><br>No results for "${letter}"</div>`;
         return;
     }
 
+    // Grouping by Category
     const grouped = matches.reduce((acc, p) => {
         acc[p.category] = acc[p.category] || [];
         acc[p.category].push(p);
         return acc;
     }, {});
 
+    // Rendering
     for (const [category, prompts] of Object.entries(grouped)) {
         let section = `<h3 class="category-header">${category}</h3><div class="brick-grid">`;
-        
+
         prompts.forEach(p => {
             const isLocked = p.visibility === "LOCKED";
-            
             section += `
-                <div class="prompt-card premium-style">
+                <div class="prompt-card">
                     <div class="d-flex justify-content-between align-items-center mb-2">
-                        <span class="masked-id"><i class="fas fa-user-shield"></i> ${p.maskedUser}</span>
-                        <span class="badge badge-pill badge-light border">${category}</span>
+                        <span class="masked-user-id"><i class="fas fa-user-shield"></i> ${p.maskedUser}</span>
+                        <span class="badge-soft-primary">${category}</span>
                     </div>
-                    
-                    <h5 class="prompt-title">${p.title}</h5>
-                    
-                    <div class="prompt-text-area ${isLocked ? 'content-blurred' : ''}" id="prompt-${p.id}">
+
+                    <h5 class="prompt-subject">${p.title}</h5>
+
+                    <div class="prompt-text-area ${isLocked ? 'content-blurred' : ''}">
                         ${isLocked ? "Premium prompt. Support the community to unlock." : p.content}
                     </div>
 
                     <div class="engagement-bar d-flex align-items-center my-3">
-        <span class="stat" onclick="handleStat(this)"><i class="far fa-heart text-danger"></i> <small>0</small></span>
-        <span class="stat ml-3" onclick="handleStat(this)"><i class="far fa-thumbs-up text-primary"></i> <small>0</small></span>
+                        <span class="social-stat" onclick="handleStat(this)"><i class="far fa-heart text-danger"></i> <small>0</small></span>
+                        <span class="social-stat ml-3" onclick="handleStat(this)"><i class="far fa-thumbs-up text-primary"></i> <small>0</small></span>
 
-        <div class="ml-auto share-group">
-            <a href="https://twitter.com/intent/tweet?text=Check out this AI prompt: ${p.title}&url=${encodeURIComponent(window.location.href)}" 
-               target="_blank" class="share-link">
-               <i class="fab fa-x-twitter"></i>
-            </a>
-            
-            <a href="https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(window.location.href)}" 
-               target="_blank" class="share-link ml-2">
-               <i class="fab fa-linkedin"></i>
-            </a>
-        </div>
-    </div>`;
+                        <div class="ml-auto share-group">
+                            <a href="https://twitter.com/intent/tweet?text=Check out this AI prompt by ${p.maskedUser}&url=${encodeURIComponent(window.location.href)}" target="_blank"><i class="fab fa-x-twitter"></i></a>
+                            <a href="https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(window.location.href)}" target="_blank" class="ml-2"><i class="fab fa-linkedin"></i></a>
+                        </div>
+                    </div>
 
                     <div class="mt-auto">
                         ${!isLocked ? `
-                            <button class="btn btn-block btn-outline-success btn-copy-premium" onclick="copyToClipboard('${p.id}')">
+                            <button class="btn btn-block btn-copy-premium" onclick="copyToClipboard('${p.id}')">
                                 <i class="fas fa-copy"></i> Copy Prompt
                             </button>
                         ` : `
-                            <a href="/donate" class="btn btn-block btn-primary-gradient"><i class="fas fa-unlock"></i> Unlock Now</a>
+                            <a href="/donate" class="btn btn-block btn-primary-premium"><i class="fas fa-unlock"></i> Unlock Now</a>
                         `}
                     </div>
                 </div>`;
@@ -461,25 +489,15 @@ function filterByLetter(letter, element) {
 function handleStat(el) {
     const icon = el.querySelector('i');
     const small = el.querySelector('small');
-    let count = parseInt(small.innerText);
-    small.innerText = count + 1;
+    small.innerText = parseInt(small.innerText) + 1;
     icon.classList.replace('far', 'fas');
-    icon.classList.add('fa-beat');
-    setTimeout(() => icon.classList.remove('fa-beat'), 500);
 }
 
 function copyToClipboard(id) {
     const data = allPrompts.find(p => p.id == id);
     if (data && data.visibility !== "LOCKED") {
         navigator.clipboard.writeText(data.content).then(() => {
-            const btn = window.event.target.closest('button');
-            const original = btn.innerHTML;
-            btn.innerHTML = '<i class="fas fa-check"></i> Copied!';
-            btn.classList.replace('btn-outline-success', 'btn-success');
-            setTimeout(() => {
-                btn.innerHTML = original;
-                btn.classList.replace('btn-success', 'btn-outline-success');
-            }, 2000);
+            alert("Prompt copied to clipboard!");
         });
     }
 }
