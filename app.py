@@ -1718,11 +1718,9 @@ def generate_audio(post_id):
 
 sock = Sock(app, ping_interval=None)
 
-gemini_live_client = gemma_genai.Client(http_options={'api_version': 'v1alpha'})
+app.config['SOCK_PING_INTERVAL'] = None
 
-import json
-import asyncio
-from google.genai import types as gemma_types
+gemini_live_client = gemma_genai.Client(http_options={'api_version': 'v1alpha'})
 
 @sock.route('/ws/alex-concierge')
 def alex_concierge(ws):
