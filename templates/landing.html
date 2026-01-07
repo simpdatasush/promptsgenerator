@@ -654,6 +654,14 @@ const audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sample
 function connectAlex() {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     socket = new WebSocket(`${protocol}//${window.location.host}/ws/alex-concierge`);
+
+    // HEARTBEAT: Keeps Render from killing the connection during silence
+    const heartbeat = setInterval(() => {
+        if (socket && socket.readyState === WebSocket.OPEN) {
+            // We send a JSON string that the backend will catch
+            socket.send(JSON.stringify({ type: 'ping' }));
+        }
+    }, 30000);
     
     socket.onmessage = async (event) => {
         try {
