@@ -428,12 +428,16 @@ function filterByLetter(letter, element) {
                         
                         <div class="ml-auto">
                             <a href="/donate" class="btn btn-outline-primary btn-sm mr-3">Donate!</a>
-                            <a href="https://x.com/intent/post?text=Check out this AI prompt by ${p.maskedUser}" target="_blank" class="share-link"><i class="fa-brands fa-x-twitter"></i></a>
-                            <a href="https://www.linkedin.com/sharing/share-offsite/?url=${window.location.href}" target="_blank" class="share-link ml-2"><i class="fab fa-linkedin"></i></a>
-                        </div>
+                            <a href="https://x.com/intent/post?text=${encodeURIComponent('Check out this AI prompt: ' + p.title + ' \n\n' + p.content.substring(0, 100) + '...')}&url=${encodeURIComponent(window.location.href)}" 
+       target="_blank" class="share-link">
+       <i class="fa-brands fa-x-twitter"></i>
+    </a>
+    <a href="https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(window.location.href)}" 
+       target="_blank" class="share-link ml-2">
+       <i class="fa-brands fa-linkedin"></i>
+    </a>
                     </div>
-                    
-
+                    </div>
                     <div class="mt-auto">
                         ${!isLocked ? `
                             <button class="btn btn-block btn-outline-success btn-copy-premium" onclick="copyToClipboard('${p.id}')">
@@ -525,10 +529,21 @@ function animateStat(id) {
     setTimeout(() => icon.classList.remove('fa-beat'), 500);
 }
 
-</script>
-            
+function handleStat(el, promptId, type) {
+    const icon = el.querySelector('i');
+    const small = el.querySelector('small');
+    
+    // Immediate UI feedback
+    let count = parseInt(small.innerText);
+    small.innerText = count + 1;
+    icon.classList.replace('far', 'fas');
 
-   
+    // Save to Database via Python
+    fetch(`/update_stat/${promptId}/${type}`, { method: 'POST' })
+    .catch(err => console.error("Could not save like:", err));
+}
+
+</script>
 <footer class="footer">
        <div class="footer-content">
            &copy; 2026 Prompts Marketplace &nbsp; | &nbsp; 
