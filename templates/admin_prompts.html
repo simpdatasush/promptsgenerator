@@ -211,35 +211,110 @@ body {
 </div>
 
 <script>
-/ Use Event Delegation to handle the click
-document.addEventListener('click', function(e) {
+
+   document.addEventListener('click', function(e) {
     const btn = e.target.closest('.edit-prompt-btn');
     if (btn) {
+        // 1. Extract data from button attributes
         const id = btn.dataset.id;
         const title = btn.dataset.title;
-        // The description is stored as a JSON string, so we parse it safely
-        const fullDesc = JSON.parse(btn.dataset.fullDesc);
+        let fullDesc = "";
+        
+        try {
+            fullDesc = JSON.parse(btn.dataset.fullDesc);
+        } catch(err) {
+            console.error("Parsing error:", err);
+            fullDesc = btn.dataset.fullDesc; // fallback
+        }
 
-        // Parsing logic for [PROMPT][CATEGORY][VISIBILITY]
+        // 2. Parsing logic for [PROMPT][CATEGORY][VISIBILITY]
         const catMatch = fullDesc.match(/\[PROMPT\]\[(.*?)\]/);
         const visMatch = fullDesc.match(/\[PROMPT\]\[.*?\]\[(.*?)\]/);
         
         const category = catMatch ? catMatch[1] : "Coding";
         const visibility = visMatch ? visMatch[1] : "OPEN";
+        // Remove the tags to show only the prompt text in the textarea
         const cleanContent = fullDesc.replace(/\[PROMPT\]\[.*?\]\[.*?\]/, "").trim();
 
+        // 3. Fill the Modal fields
+        // Important: Update the form action URL to your Flask route
         document.getElementById('editPromptForm').action = "/admin/prompts/edit/" + id;
         document.getElementById('editPromptTitle').value = title;
         document.getElementById('editPromptCategory').value = category;
         document.getElementById('editPromptVisibility').value = visibility;
         document.getElementById('editPromptContent').value = cleanContent;
 
+        // 4. Trigger the Modal
         $('#editPromptModal').modal('show');
     }
 });
+
+function copyPromptText(id) {
+    // Find the original content from our JS array instead of the DOM
+    const target = allPrompts.find(item => item.id == id);
+    if (target && target.visibility !== "LOCKED") {
+        navigator.clipboard.writeText(target.content).then(() => {
+            alert("✨ Prompt copied to clipboard!");
+        }).catch(err => {
+            console.error('Could not copy text: ', err);
+        });
+    }
+}
 </script>
 
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.3/dist/js/bootstrap.bundle.min.js"></script>
+
+<div class="modal fade" id="editPromptModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-dark text-white">
+                <h5 class="modal-title">Edit Marketplace Prompt</h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form id="editPromptForm" method="POST">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label>Title</label>
+                        <input type="text" id="editPromptTitle" name="title" class="form-control" required>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>Category</label>
+                                <select id="editPromptCategory" name="category" class="form-control">
+                                    <option value="Coding">Coding</option>
+                                    <option value="Writing">Writing</option>
+                                    <option value="Marketing">Marketing</option>
+                                    <option value="Image Gen">Image Gen</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>Visibility</label>
+                                <select id="editPromptVisibility" name="visibility" class="form-control">
+                                    <option value="OPEN">OPEN</option>
+                                    <option value="LOCKED">LOCKED</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Prompt Content</label>
+                        <textarea id="editPromptContent" name="content" class="form-control" rows="8" required></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 </body>
 </html>
