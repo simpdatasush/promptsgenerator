@@ -659,7 +659,7 @@ function connectAlex() {
     // Heartbeat to keep the connection alive on Render
     const heartbeat = setInterval(() => {
         if (socket && socket.readyState === WebSocket.OPEN) {
-            socket.send(json.stringify({ type: 'ping' }));
+            socket.send(JSON.stringify({ type: 'ping' }));
         }
     }, 30000);
 
