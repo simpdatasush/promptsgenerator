@@ -423,9 +423,6 @@ function filterByLetter(letter, element) {
                     </div>
 
                     <div class="engagement-bar d-flex align-items-center my-3">
-                        <span class="stat" onclick="handleStat(this)"><i class="far fa-heart text-danger"></i> <small>0</small></span>
-                        <span class="stat ml-3" onclick="handleStat(this)"><i class="far fa-thumbs-up text-primary"></i> <small>0</small></span>
-                        
                         <div class="ml-auto">
                             <a href="/donate" class="btn btn-outline-primary btn-sm mr-3">Donate!</a>
                             <a href="https://x.com/intent/post?text=${encodeURIComponent('Check out this AI prompt: ' + p.title + ' \n\n' + p.content.substring(0, 100) + '...')}&url=${encodeURIComponent(window.location.href)}" 
@@ -454,42 +451,7 @@ function filterByLetter(letter, element) {
     }
 }
 
-// 3. Social & Copy Helpers
-function handleStat(el) {
-    const icon = el.querySelector('i');
-    const small = el.querySelector('small');
-    let count = parseInt(small.innerText);
-    small.innerText = count + 1;
-    icon.classList.replace('far', 'fas');
-    icon.classList.add('fa-beat');
-    setTimeout(() => icon.classList.remove('fa-beat'), 500);
-}
-
-function copyToClipboard(id) {
-    const data = allPrompts.find(p => p.id == id);
-    if (data && data.visibility !== "LOCKED") {
-        navigator.clipboard.writeText(data.content).then(() => {
-            const btn = window.event.target.closest('button');
-            const original = btn.innerHTML;
-            btn.innerHTML = '<i class="fas fa-check"></i> Copied!';
-            btn.classList.replace('btn-outline-success', 'btn-success');
-            setTimeout(() => {
-                btn.innerHTML = original;
-                btn.classList.replace('btn-success', 'btn-outline-success');
-            }, 2000);
-        });
-    }
-}
-
 document.addEventListener("DOMContentLoaded", () => filterByLetter('ALL'));
-
-// 3. Social & Copy Helpers
-function handleStat(el) {
-    const icon = el.querySelector('i');
-    const small = el.querySelector('small');
-    small.innerText = parseInt(small.innerText) + 1;
-    icon.classList.replace('far', 'fas');
-}
 
 function copyToClipboard(id) {
     // Find the prompt data by ID from our global array
@@ -517,31 +479,6 @@ function copyToClipboard(id) {
         });
     }
 }
-   
-function animateStat(id) {
-    const el = document.getElementById(id);
-    let val = parseInt(el.innerText);
-    el.innerText = val + 1;
-    
-    // Animate the icon
-    const icon = el.previousElementSibling;
-    icon.classList.add('fa-beat'); // FontAwesome animation
-    setTimeout(() => icon.classList.remove('fa-beat'), 500);
-}
-
-function handleStat(el, promptId, type) {
-    const icon = el.querySelector('i');
-    const small = el.querySelector('small');
-    
-    // Immediate UI feedback
-    let count = parseInt(small.innerText);
-    small.innerText = count + 1;
-    icon.classList.replace('far', 'fas');
-
-    // Save to Database via Python
-    fetch(`/update_stat/${promptId}/${type}`, { method: 'POST' })
-    .catch(err => console.error("Could not save like:", err));
-}
 
 </script>
 <footer class="footer">
@@ -553,4 +490,3 @@ function handleStat(el, promptId, type) {
 
 </body>
 </html>
-
