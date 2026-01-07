@@ -273,13 +273,12 @@ body {
            border-top: 1px solid #dee2e6;
            margin-top: auto;
        }
-
-/* --- Alphabet Navigation Styling --- */
+/* --- Modern Alphabet Navigation --- */
 .alphabet-nav {
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
-    gap: 8px;
+    gap: 10px;
     margin-bottom: 40px;
     padding: 10px;
 }
@@ -288,35 +287,36 @@ body {
     background: #ffffff;
     color: #475569;
     border: 1px solid #e2e8f0;
-    width: 42px;
-    height: 42px;
+    width: 44px;
+    height: 44px;
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 10px; /* Modern rounded corners */
+    border-radius: 12px; /* Smooth rounded corners */
     font-weight: 700;
-    font-size: 0.9rem;
+    font-size: 0.95rem;
     cursor: pointer;
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
-/* Wide buttons for 'ALL' and '#' */
+/* Specific styling for 'ALL' and '#' buttons */
 .letter-btn:first-child, 
 .letter-btn:last-child {
     width: auto;
-    padding: 0 15px;
+    padding: 0 18px;
+    text-transform: uppercase;
 }
 
 .letter-btn:hover {
     background: #f8fafc;
     border-color: #cbd5e1;
     transform: translateY(-2px);
-    color: #1d4ed8;
+    color: #2563eb;
 }
 
 .letter-btn.active {
-    background: #2563eb; /* Primary Blue from your UI */
+    background: #2563eb; /* Primary Branding Blue */
     color: #ffffff;
     border-color: #2563eb;
     box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
@@ -363,6 +363,7 @@ body {
     </div>
 </noscript>
 <script>
+
 // 1. Data Ingestion from Python/Jinja
 const allPrompts = [
     {% for p in prompts %}
@@ -381,25 +382,22 @@ const allPrompts = [
 
 // 2. Main Filter & Render Function
 function filterByLetter(letter, element) {
+    // UI Feedback: Set active state
     document.querySelectorAll('.letter-btn').forEach(btn => btn.classList.remove('active'));
     if (element) element.classList.add('active');
 
     const container = document.getElementById('dynamic-prompts-container');
     container.innerHTML = "";
 
-    // 2. Logic: Filter prompts (ignoring "Community:" prefix for sorting)
-    let matches = allPrompts;
-    if (letter !== 'ALL') {
-        if (letter === 'OTHER') {
-            matches = allPrompts.filter(p => !/^[a-zA-Z]/.test(p.title.replace('Community: ', '').trim()));
-        } else {
-            matches = allPrompts.filter(p => p.title.replace('Community: ', '').trim().toUpperCase().startsWith(letter));
-        }
-    }
+    // Filtering logic: handles 'ALL', '#', and A-Z
+    let matches = (letter === 'ALL') ? allPrompts :
+                  (letter === 'OTHER') ? allPrompts.filter(p => !/^[a-zA-Z]/.test(p.title.trim())) :
+                  allPrompts.filter(p => p.title.trim().toUpperCase().startsWith(letter));
 
-   // 3. Render: Call your card generation logic here
-    renderPrompts(matches); 
-}
+    if (matches.length === 0) {
+        container.innerHTML = `<div class="text-center py-5 text-muted"><i class="fas fa-search fa-3x mb-3"></i><br>No prompts found for "${letter}"</div>`;
+        return;
+    }
 
     const grouped = matches.reduce((acc, p) => {
         acc[p.category] = acc[p.category] || [];
@@ -427,23 +425,21 @@ function filterByLetter(letter, element) {
                     </div>
 
                     <div class="engagement-bar d-flex align-items-center my-3">
-                        <span class="stat" onclick="handleStat(this)"><i class="far fa-heart text-danger"></i> <small>0</small></span>
-                        <span class="stat ml-3" onclick="handleStat(this)"><i class="far fa-thumbs-up text-primary"></i> <small>0</small></span>
-                        
-                        // ... inside your section string ...
-<div class="share-actions">
-    <a href="https://x.com/intent/post?text=Check out this AI Prompt: ${p.title}&url=${encodeURIComponent(window.location.href)}" 
-       target="_blank" 
-       class="share-btn x-share">
-       <i class="fab fa-x-"></i>
-    </a>
+        <span class="stat" onclick="handleStat(this)"><i class="far fa-heart text-danger"></i> <small>0</small></span>
+        <span class="stat ml-3" onclick="handleStat(this)"><i class="far fa-thumbs-up text-primary"></i> <small>0</small></span>
 
-    <a href="https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(window.location.href)}" 
-       target="_blank" 
-       class="share-btn linkedin-share">
-       <i class="fab fa-linkedin"></i>
-    </a>
-</div>
+        <div class="ml-auto share-group">
+            <a href="https://twitter.com/intent/tweet?text=Check out this AI prompt: ${p.title}&url=${encodeURIComponent(window.location.href)}" 
+               target="_blank" class="share-link">
+               <i class="fab fa-x-twitter"></i>
+            </a>
+            
+            <a href="https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(window.location.href)}" 
+               target="_blank" class="share-link ml-2">
+               <i class="fab fa-linkedin"></i>
+            </a>
+        </div>
+    </div>`;
 
                     <div class="mt-auto">
                         ${!isLocked ? `
@@ -502,3 +498,4 @@ document.addEventListener("DOMContentLoaded", () => filterByLetter('ALL'));
 
 </body>
 </html>
+
