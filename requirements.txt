@@ -13,6 +13,7 @@ requests # NEW: Added for Imagen API calls
 nest-asyncio
 Flask-Mail
 google-genai
+flask-sock
 
 ##Flask==2.3.2
 ##google-generativeai==0.7.0
