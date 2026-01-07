@@ -1753,7 +1753,7 @@ def alex_concierge(ws):
     """
     # 1. INITIALIZATION (Similar to your route setup)
     client = genai.Client(api_key="YOUR_API_KEY")
-    model_id = "gemini-2.5-flash-native-audio-preview-12-2025" Recommended for Live API
+    model_id = "gemini-2.5-flash-native-audio-preview-12-2025" #Recommended for Live API
 
     async def start_live_session():
         # 2. ESTABLISH LIVE CONNECTION (Equivalent to your 'gemma_client' call)
