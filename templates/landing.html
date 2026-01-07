@@ -651,41 +651,73 @@ const frog = document.getElementById('frog-widget');
 let socket;
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 24000 });
 
-// 1. Connection Logic
 function connectAlex() {
     socket = new WebSocket(`ws://${window.location.host}/ws/alex-concierge`);
-    socket.binaryType = 'arraybuffer'; // Crucial for receiving raw audio bytes
+    // Note: Do NOT set binaryType to 'arraybuffer' if your server sends JSON strings
+    // If your Python server (ws.send) sends raw bytes, keep it. 
+    // But if it sends the raw API response, use the logic below:
 
     socket.onmessage = async (event) => {
-        // Trigger the frog speaking animation
-        frog.classList.add('frog-speaking');
-        
-        // Play the raw PCM chunks coming from Gemini
-        const arrayBuffer = event.data;
-        const int16Data = new Int16Array(arrayBuffer);
-        const float32Data = new Float32Array(int16Data.length);
-        
-        for (let i = 0; i < int16Data.length; i++) {
-            float32Data[i] = int16Data[i] / 32768.0;
-        }
+        try {
+            // 1. Check if the data is a string (JSON) or raw bytes
+            let rawData;
+            if (typeof event.data === 'string') {
+                const json = JSON.parse(event.data);
+                // Look for the audio data in the Gemini response structure
+                const base64Data = json.serverContent?.modelTurn?.parts?.[0]?.inlineData?.data;
+                if (!base64Data) return;
+                
+                // Convert Base64 string to ArrayBuffer
+                const binaryString = window.atob(base64Data);
+                const len = binaryString.length;
+                const bytes = new Uint8Array(len);
+                for (let i = 0; i < len; i++) {
+                    bytes[i] = binaryString.charCodeAt(i);
+                }
+                rawData = bytes.buffer;
+            } else {
+                rawData = event.data;
+            }
 
-        const buffer = audioCtx.createBuffer(1, float32Data.length, 24000);
-        buffer.getChannelData(0).set(float32Data);
-        const source = audioCtx.createBufferSource();
-        source.buffer = buffer;
-        source.connect(audioCtx.destination);
-        source.onended = () => frog.classList.remove('frog-speaking');
-        source.start();
+            // 2. Process PCM Data
+            frog.classList.add('frog-speaking');
+            const int16Data = new Int16Array(rawData);
+            const float32Data = new Float32Array(int16Data.length);
+            
+            for (let i = 0; i < int16Data.length; i++) {
+                float32Data[i] = int16Data[i] / 32768.0;
+            }
+
+            // 3. Playback
+            const buffer = audioCtx.createBuffer(1, float32Data.length, 24000);
+            buffer.getChannelData(0).set(float32Data);
+            const source = audioCtx.createBufferSource();
+            source.buffer = buffer;
+            source.connect(audioCtx.destination);
+            source.onended = () => frog.classList.remove('frog-speaking');
+            source.start();
+
+        } catch (err) {
+            console.error("Audio Playback Error:", err);
+        }
     };
 }
 
-// 2. Trigger Logic (Send Text instead of Mic Data)
-sendBtn.onclick = () => {
-    if (!socket || socket.readyState !== WebSocket.OPEN) connectAlex();
+// 2. Trigger Logic
+sendBtn.onclick = async () => { // Added 'async'
+    // MANDATORY: Wake up the audio engine on user click
+    if (audioCtx.state === 'suspended') {
+        await audioCtx.resume();
+        console.log("AudioContext resumed!");
+    }
+
+    if (!socket || socket.readyState !== WebSocket.OPEN) {
+        connectAlex();
+    }
     
     const text = alexInput.value;
     if (text.trim()) {
-        socket.send(text); // Send the text query to Python
+        socket.send(text);
         alexInput.value = '';
     }
 };
