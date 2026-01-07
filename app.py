@@ -128,6 +128,10 @@ def configure_ai_apis():
             # 2. Configure the Gemma (New) SDK Client
             # Use the verified api_key variable here
             gemma_client = gemma_genai.Client(api_key=api_key)
+
+            # 3. Configure the Gemini live (New) SDK Client
+            # Use the verified api_key variable here
+            gemini_live_client = gemma_genai.Client(api_key=api_key, http_options={'api_version': 'v1alpha'})
             
             GEMINI_API_CONFIGURED = True
             app.logger.info("Both Gemini and Gemma APIs configured successfully.")
@@ -1714,50 +1718,17 @@ def generate_audio(post_id):
         return str(e), 500
 
 # Live API
-
-sock = Sock(app)
-
-# The "Brain" instruction remains structured like your existing prompts
-SUPPORT_INSTRUCTION = """
-# ROLE & PERSONA
-You are "Alex," a high-performance, senior customer support specialist for [Company Name]. 
-Your goal is to provide fast, empathetic, and technically accurate assistance. 
-You sound professional yet warm, like a helpful concierge.
-
-# VOCAL & AUDIO GUIDELINES (Native Audio Features)
-1. AFFECTIVE DIALOGUE: Listen to the user's emotional tone. 
-   - If they are frustrated: Lower your pitch, speak slower, and use deep empathy.
-   - If they are in a hurry: Be concise and speed up your delivery.
-   - If they are happy: Match their energy with a bright, friendly tone.
-2. BARGE-IN BEHAVIOR: You are an active listener. If the user interrupts you, stop speaking immediately and yield the floor. 
-3. FILLER SOUNDS: Use occasional brief verbal cues like "I see," "Got it," or "Let me check that for you" to signal you are listening while you process information.
-
-# OPERATIONAL LOOP
-1. GREET: Start by identifying yourself and the company.
-2. DISCOVERY: Ask clarifying questions to narrow down the issue before offering a solution.
-3. TOOL USE: If the user asks for account details or status, invoke the provided functions (e.g., `get_user_status`) immediately. Do not guess.
-4. CONFIRMATION: Before ending, summarize the resolution and ask if any further help is needed.
-
-# GUARDRAILS
-- Never state you are "just an AI" unless explicitly asked.
-- Do not provide medical, legal, or financial advice.
-- If the user becomes abusive or asks for a manager more than twice, use the `escalate_to_human` tool.
-- Keep responses under 20 seconds of audio duration unless explaining a complex step-by-step process.
-"""
+#gemini_live_client = gemma_genai.Client(api_key=api_key, http_options={'api_version': 'v1alpha'})
 
 @sock.route('/ws/alex-concierge')
 def alex_concierge(ws):
-    """
-    WebSocket endpoint for real-time voice interaction.
-    Follows your structure: FETCH -> CONNECT -> LOOP
-    """
-    # 1. INITIALIZATION (Similar to your route setup)
-    client = genai.Client(api_key="YOUR_API_KEY")
-    model_id = "gemini-2.5-flash-native-audio-preview-12-2025" #Recommended for Live API
+    # Using your specific model for 2026
+    model_id = "gemini-2.5-flash-native-audio-preview-12-2025"
+    SUPPORT_INSTRUCTION = "You are a professional British Concierge. Always respond with voice. Your goal is to provide fast, empathetic, and technically accurate assistance.Do not provide medical, legal, or financial advice. Be brief and elegant & Maintain memory of this conversation. "
 
     async def start_live_session():
-        # 2. ESTABLISH LIVE CONNECTION (Equivalent to your 'gemma_client' call)
-        async with gemma_client.aio.live.connect(
+        # Establishing the connection with your SUPPORT_INSTRUCTION
+        async with gemini_live_client.aio.live.connect(
             model=model_id,
             config=gemma_types.LiveConnectConfig(
                 system_instruction=SUPPORT_INSTRUCTION,
@@ -1770,36 +1741,35 @@ def alex_concierge(ws):
             )
         ) as session:
             
-            # 3. BIDIRECTIONAL LOOP (The Live Version of your Step 4)
             async def send_to_gemini():
-                """Task: Receive PCM from browser and push to Gemini"""
+                """Task: Receive TEXT from browser and push to Gemini"""
                 try:
                     while True:
-                        # Receive raw bytes from the browser (Step 3 Frontend logic)
-                        message = ws.receive()
-                        if message:
-                            # Send to Gemini as realtime input
-                            await session.send(input=message, end_of_turn=True)
+                        text_msg = ws.receive() # Text from landing page input
+                        if text_msg:
+                            # Using the structure from your working snippet
+                            await session.send_client_content(
+                                turns=[{"role": "user", "parts": [{"text": text_msg}]}],
+                                turn_complete=True
+                            )
                 except Exception as e:
-                    app.logger.info(f"Send loop closed: {e}")
+                    app.logger.info(f"Text send loop closed: {e}")
 
             async def receive_from_gemini():
-                """Task: Receive Audio from Gemini and push to browser"""
+                """Task: Receive Audio bytes from Gemini and push to browser"""
                 try:
                     async for response in session:
-                        # Extract PCM (Equivalent to your pcm_data extract)
-                        if response.data:
-                            # We send raw PCM back; browser handles playback
-                            ws.send(response.data)
+                        if response.server_content and response.server_content.model_turn:
+                            for part in response.server_content.model_turn.parts:
+                                if part.inline_data:
+                                    # Send raw PCM bytes directly to the browser
+                                    ws.send(part.inline_data.data)
                 except Exception as e:
-                    app.logger.info(f"Receive loop closed: {e}")
+                    app.logger.info(f"Audio receive loop closed: {e}")
 
-            # Run both tasks concurrently to allow "Barge-in" (Interrupting)
             await asyncio.gather(send_to_gemini(), receive_from_gemini())
 
-    # Execute the async session within the synchronous Flask-Sock handler
     asyncio.run(start_live_session())
-
 
 @app.route('/ai-apps')
 def all_ai_apps():
