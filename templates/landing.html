@@ -659,14 +659,21 @@ const alexChatWindow = document.getElementById('alex-chat-window');
 
 async function handleAlexChat() {
     const text = alexInput.value.trim();
-    if (!text) return;
+    console.log("Input text:", text); // Debug 1
+    
+    if (!text) {
+        console.log("No text entered.");
+        return;
+    }
 
     alexChatWindow.style.display = 'flex';
-    appendBubble('user', text); // User is instant
+    appendBubble('user', text);
     alexInput.value = '';
 
     alexStatus.style.display = 'block';
     alexStatus.innerText = "Lexi is thinking...";
+
+    console.log("Sending fetch request to /ask-lexi..."); // Debug 2
 
     try {
         const response = await fetch('/ask-lexi', {
@@ -674,16 +681,17 @@ async function handleAlexChat() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ message: text })
         });
+        
+        console.log("Response received from server:", response.status); // Debug 3
         const data = await response.json();
+        console.log("Data parsed:", data); // Debug 4
         
         alexStatus.style.display = 'none';
-        
-        // Create an empty Lexi bubble first
         const lexiBubble = appendBubble('lexi', ""); 
-        // Start the typewriter effect
         typeWriter(lexiBubble, data.reply, 0);
 
     } catch (err) {
+        console.error("FETCH ERROR:", err);
         alexStatus.innerText = "Service unavailable.";
     }
 }
@@ -726,6 +734,26 @@ function appendBubble(sender, text) {
     alexMessages.appendChild(div);
     alexMessages.scrollTop = alexMessages.scrollHeight;
     return div; // Return the element so typeWriter can fill it
+}
+
+// Add these at the bottom of your script file
+if (sendBtn) {
+    sendBtn.onclick = function(e) {
+        e.preventDefault(); // Prevent page refresh
+        console.log("Send button clicked"); 
+        handleAlexChat();
+    };
+} else {
+    console.error("ALEX ERROR: Button with ID 'alex-send' not found!");
+}
+
+if (alexInput) {
+    alexInput.onkeypress = function(e) {
+        if (e.key === 'Enter') {
+            console.log("Enter key pressed");
+            handleAlexChat();
+        }
+    };
 }
     
   if ('serviceWorker' in navigator) {
