@@ -1713,92 +1713,46 @@ def generate_audio(post_id):
         app.logger.error(f"Integrated TTS Error for post {post_id}: {e}")
         return str(e), 500
 
-# Live API
-#gemini_live_client = gemma_genai.Client(api_key=api_key, http_options={'api_version': 'v1alpha'})
 
-gemini_live_client = gemma_genai.Client(http_options={'api_version': 'v1alpha'})
+# gemma based alex
 
-sock = Sock(app)
+def save_log(user_text, lexi_text):
+    """Temporary local log for debugging"""
+    timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    with open("lexi_chat_history.txt", "a", encoding="utf-8") as f:
+        f.write(f"[{timestamp}] USER: {user_text} | LEXI: {lexi_text}\n")
 
-@sock.route('/ws/alex-concierge')
-def alex_concierge(ws):
-    # Using the standardized Live API model ID
-    model_id = "gemini-2.5-flash-native-audio-preview-12-2025" 
-    
-    SUPPORT_INSTRUCTION = (
+@app.route('/ask-lexi', methods=['POST'])
+def ask_lexi():
+    data = request.get_json()
+    user_input = data.get('message', '')
+
+    # Lexi's Identity and Rules
+    system_instruction = (
         "You are Lexi, a professional British Concierge. "
-        "Provide fast, empathetic, and technically accurate text-based assistance. "
-        "Be brief, elegant, and avoid markdown (like asterisks or bolding)."
+        "Provide elegant, brief, and technically accurate text assistance. "
+        "Do not use markdown (no **bolding** or *italics*). "
+        "Maintain a helpful, sophisticated tone."
     )
 
-    async def start_live_session():
-        # CLEAN CONFIG: No speech_config allowed when response_modalities is ["TEXT"]
-        config = gemma_types.LiveConnectConfig(
-            system_instruction=SUPPORT_INSTRUCTION,
-            response_modalities=["TEXT"]
-        )
-
-        try:
-            async with gemini_live_client.aio.live.connect(model=model_id, config=config) as session:
-                
-                async def send_to_gemini():
-                    try:
-                        while True:
-                            message = await asyncio.to_thread(ws.receive)
-                            if not message: 
-                                break
-                            
-                            # Improved Ping detection
-                            try:
-                                if '"type":"ping"' in message.replace(" ", ""):
-                                    continue
-                            except:
-                                pass
-
-                            await session.send_client_content(
-                                turns=[{"role": "user", "parts": [{"text": message}]}],
-                                turn_complete=True
-                            )
-                    except Exception as e:
-                        app.logger.info(f"Send loop closed: {e}")
-
-                async def receive_from_gemini():
-                    try:
-                        full_reply = []
-                        async for response in session.receive():
-                            # Extract text from the model turn
-                            if response.server_content and response.server_content.model_turn:
-                                for part in response.server_content.model_turn.parts:
-                                    if part.text:
-                                        chunk = part.text
-                                        full_reply.append(chunk)
-                                        # Send text chunk to frontend
-                                        ws.send(json.dumps({"text": chunk}))
-
-                            # Handle turn completion
-                            if response.server_content and response.server_content.turn_complete:
-                                lexi_final_text = "".join(full_reply)
-                                # Ensure save_log is defined globally or imported
-                                try:
-                                    save_log("Web User", lexi_final_text)
-                                except NameError:
-                                    app.logger.warning("save_log function not found.")
-                                
-                                full_reply = []
-                                ws.send(json.dumps({"done": True}))
-                    except Exception as e:
-                        app.logger.info(f"Receive loop closed: {e}")
-
-                await asyncio.gather(send_to_gemini(), receive_from_gemini())
-        except Exception as e:
-            app.logger.error(f"Live API Connection Error: {e}")
-            ws.send(json.dumps({"text": "I'm sorry, I'm having trouble connecting right now."}))
+    # Simple prompt structure for Gemma 3
+    prompt = f"{system_instruction}\n\nUser: {user_input}\nLexi:"
 
     try:
-        asyncio.run(start_live_session())
-    except Exception as e:
-        app.logger.error(f"WebSocket execution error: {e}")
+        # Requesting response from Gemma 3
+        response = gemma_client.models.generate_content(
+            model='gemma-3-4b-it', 
+            contents=prompt
+        )
+        
+        reply = response.text.strip()
+        save_log(user_input, reply)
+        
+        return jsonify({"reply": reply})
 
+    except Exception as e:
+        print(f"Gemma Error: {e}")
+        return jsonify({"reply": "I apologize, sir/madam, but I am momentarily unavailable."}), 500
 
 
 @app.route('/ai-apps')
