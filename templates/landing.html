@@ -533,12 +533,19 @@
     <i class="fas fa-bullhorn"></i> <strong>Latest Update:</strong> {{ status_message }}
 </div>
 
-<div id="alex-widget-container" style="position: fixed; bottom: 20px; right: 20px; z-index: 1000; display: flex; flex-direction: column; align-items: flex-end;">
-    <div id="alex-status" style="background: rgba(0,0,0,0.7); color: white; padding: 5px 10px; border-radius: 10px; margin-bottom: 5px; font-size: 12px; display: none;">lexi is speaking...</div>
-    <div style="display: flex; gap: 10px; background: white; padding: 10px; border-radius: 30px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); border: 1px solid #eee;">
-        <input type="text" id="alex-input" placeholder="Ask lexi anything..." style="border: none; outline: none; padding: 5px 15px; width: 200px; font-family: 'Playfair Display', serif;">
-        <button id="alex-send" style="background: #1a1a1a; color: white; border: none; border-radius: 50%; width: 35px; height: 35px; cursor: pointer;">
-            <i class="fas fa-paper-plane"></i>
+<div id="alex-widget-container" style="position: fixed; bottom: 20px; right: 20px; z-index: 1000; display: flex; flex-direction: column; align-items: flex-end; font-family: 'Playfair Display', serif;">
+    <div id="alex-chat-window" style="display: none; width: 300px; max-height: 400px; background: white; border-radius: 15px; box-shadow: 0 5px 25px rgba(0,0,0,0.2); margin-bottom: 15px; flex-direction: column; overflow: hidden; border: 1px solid #eee;">
+        <div style="background: #1a1a1a; color: white; padding: 10px 15px; font-size: 14px; font-weight: bold;">Lexi Concierge</div>
+        <div id="alex-messages" style="flex: 1; padding: 15px; overflow-y: auto; font-size: 13px; display: flex; flex-direction: column; gap: 10px; background: #fdfdfd;">
+            </div>
+    </div>
+
+    <div id="alex-status" style="background: rgba(0,0,0,0.7); color: white; padding: 5px 12px; border-radius: 20px; margin-bottom: 8px; font-size: 11px; display: none; transition: all 0.3s ease;">Lexi is thinking...</div>
+    
+    <div style="display: flex; gap: 10px; background: white; padding: 10px; border-radius: 30px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); border: 1px solid #eee;">
+        <input type="text" id="alex-input" placeholder="Ask Lexi anything..." style="border: none; outline: none; padding: 5px 15px; width: 220px; font-family: inherit; font-size: 14px;">
+        <button id="alex-send" style="background: #1a1a1a; color: white; border: none; border-radius: 50%; width: 35px; height: 35px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+            <i class="fas fa-paper-plane" style="font-size: 14px;"></i>
         </button>
     </div>
 </div>       
@@ -647,106 +654,104 @@
 const alexInput = document.getElementById('alex-input');
 const sendBtn = document.getElementById('alex-send');
 const alexStatus = document.getElementById('alex-status');
-const frog = document.getElementById('frog-widget'); // Keeping this for mascot animations
+const alexMessages = document.getElementById('alex-messages');
+const alexChatWindow = document.getElementById('alex-chat-window');
 
 let socket;
-const audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 24000 });
+let currentLexiBubble = null;
 
 function connectAlex() {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     socket = new WebSocket(`${protocol}//${window.location.host}/ws/alex-concierge`);
-    
-    // Heartbeat to keep the connection alive on Render
+
+    // Heartbeat for Render
     const heartbeat = setInterval(() => {
-        if (socket && socket.readyState === WebSocket.OPEN) {
+        if (socket.readyState === WebSocket.OPEN) {
             socket.send(JSON.stringify({ type: 'ping' }));
         }
     }, 30000);
 
-    socket.onmessage = async (event) => {
-        try {
-            let rawData;
-            if (typeof event.data === 'string') {
-                const json = JSON.parse(event.data);
-                const base64Data = json.serverContent?.modelTurn?.parts?.[0]?.inlineData?.data;
-                if (!base64Data) return;
-                
-                // Decode Base64
-                const binaryString = window.atob(base64Data);
-                const bytes = new Uint8Array(binaryString.length);
-                for (let i = 0; i < binaryString.length; i++) {
-                    bytes[i] = binaryString.charCodeAt(i);
-                }
-                rawData = bytes.buffer;
-            } else {
-                rawData = event.data;
+    socket.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+
+        // If backend sends text chunk
+        if (data.text) {
+            if (!currentLexiBubble) {
+                currentLexiBubble = createChatBubble('lexi');
+                alexStatus.innerText = "Lexi is typing...";
             }
+            currentLexiBubble.innerText += data.text;
+            alexMessages.scrollTop = alexMessages.scrollHeight;
+        }
 
-            if (rawData.byteLength > 0) {
-                // SHOW STATUS BUBBLE
-                alexStatus.style.display = 'block';
-                frog?.classList.add('frog-speaking');
-
-                const int16Data = new Int16Array(rawData);
-                const float32Data = new Float32Array(int16Data.length);
-                for (let i = 0; i < int16Data.length; i++) {
-                    float32Data[i] = int16Data[i] / 32768.0;
-                }
-
-                const buffer = audioCtx.createBuffer(1, float32Data.length, 24000);
-                buffer.getChannelData(0).set(float32Data);
-                const source = audioCtx.createBufferSource();
-                source.buffer = buffer;
-                source.connect(audioCtx.destination);
-                
-                source.onended = () => {
-                    // HIDE STATUS BUBBLE WHEN DONE
-                    alexStatus.style.display = 'none';
-                    frog?.classList.remove('frog-speaking');
-                };
-                source.start();
-            }
-        } catch (err) {
-            console.error("Playback Error:", err);
+        // If backend says turn is done
+        if (data.done) {
+            currentLexiBubble = null;
+            alexStatus.style.display = 'none';
         }
     };
 
     socket.onclose = () => {
         clearInterval(heartbeat);
-        alexStatus.innerText = "Lexi is offline";
-        alexStatus.style.display = 'block';
+        console.log("Lexi Offline");
     };
 }
 
-// Smart send function to prevent "Still in CONNECTING state" error
-function sendMessage(text) {
-    if (!socket || socket.readyState === WebSocket.CLOSED) {
-        connectAlex();
-        socket.addEventListener('open', () => socket.send(text), { once: true });
-    } else if (socket.readyState === WebSocket.CONNECTING) {
-        socket.addEventListener('open', () => socket.send(text), { once: true });
+function createChatBubble(sender) {
+    alexChatWindow.style.display = 'flex'; // Show window on first message
+    const div = document.createElement('div');
+    div.style.padding = '8px 12px';
+    div.style.borderRadius = '15px';
+    div.style.maxWidth = '85%';
+    div.style.lineHeight = '1.4';
+    
+    if (sender === 'user') {
+        div.style.alignSelf = 'flex-end';
+        div.style.background = '#1a1a1a';
+        div.style.color = 'white';
+        div.style.borderBottomRightRadius = '2px';
     } else {
-        socket.send(text);
+        div.style.alignSelf = 'flex-start';
+        div.style.background = '#f0f0f0';
+        div.style.color = '#333';
+        div.style.borderBottomLeftRadius = '2px';
     }
+    
+    alexMessages.appendChild(div);
+    alexMessages.scrollTop = alexMessages.scrollHeight;
+    return div;
 }
 
-sendBtn.onclick = async () => {
-    if (audioCtx.state === 'suspended') await audioCtx.resume();
-    
-    const text = alexInput.value;
-    if (text.trim()) {
-        sendMessage(text);
+function sendMessage() {
+    const text = alexInput.value.trim();
+    if (!text) return;
+
+    // Ensure connection
+    if (!socket || socket.readyState !== WebSocket.OPEN) {
+        connectAlex();
+    }
+
+    const deliver = () => {
+        createChatBubble('user').innerText = text;
+        socket.send(text);
         alexInput.value = '';
         alexStatus.innerText = "Lexi is thinking...";
         alexStatus.style.display = 'block';
+    };
+
+    if (socket.readyState === WebSocket.CONNECTING) {
+        socket.addEventListener('open', deliver, { once: true });
+    } else {
+        deliver();
     }
+}
+
+// Event Listeners
+sendBtn.onclick = sendMessage;
+
+alexInput.onkeypress = (e) => {
+    if (e.key === 'Enter') sendMessage();
 };
-
-// Also allow pressing "Enter" to send
-alexInput.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') sendBtn.click();
-});
-
 
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
