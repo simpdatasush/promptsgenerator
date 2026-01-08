@@ -1721,30 +1721,20 @@ def ask_lexi():
     data = request.get_json()
     user_msg = data.get('message', '')
 
-    # Lexi's System Instruction
-    instruction = (
-        "You are Lexi, a professional British Concierge. "
-        "Provide elegant, brief, and technically accurate text assistance. "
-        "Do not use markdown like bolding or asterisks."
-    )
-
+    instruction = "You are Lexi, a professional British Concierge. Be brief and elegant."
     prompt = f"{instruction}\n\nUser: {user_msg}\nLexi:"
 
     try:
-        # Using Gemma 3 model
+        # Check if client exists
         response = gemma_client.models.generate_content(
             model='gemma-3-4b-it', 
             contents=prompt
         )
-        
-        reply = response.text.strip()
-        
-        # Simple logging
-        with open("lexi_chat_history.txt", "a") as f:
-            f.write(f"[{datetime.datetime.now()}] {user_msg} -> {reply}\n")
+        return jsonify({"reply": response.text.strip()})
 
-        return jsonify({"reply": reply})
     except Exception as e:
+        # THIS LINE IS CRITICAL: Check your Render/Terminal logs for this output
+        print(f"!!! GEMMA SYSTEM ERROR: {str(e)}") 
         return jsonify({"reply": "I apologize, but I've encountered an error."}), 500
 
 
