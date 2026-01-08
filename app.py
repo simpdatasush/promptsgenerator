@@ -1557,42 +1557,51 @@ def analyze_post(post_id):
     summary = ask_gemini_for_prompt(prompt)
     return jsonify({"summary": summary})
 
-# 2. POLL GENERATOR: Using Gemini 3 Flash
+def get_lexi_response(prompt, model_id='gemini-3-flash-preview', max_output_tokens=1024 ):
+    """
+    Central function to call Gemini 3 Flash. 
+    Ensures consistent formatting and error handling.
+    """
+    try:
+        generation_config = {
+            "max_output_tokens": max_output_tokens,
+            "temperature": 0.1
+        }
+        response = gemma_client.models.generate_content(
+            model=model_id,
+            contents=prompt,
+            generation_config=generation_config   
+        )
+        # Clean up text: strip whitespace and remove any markdown asterisks
+        return response.text.strip().replace("*", "")
+    except Exception as e:
+        app.logger.error(f"SuperPrompter AI is overloaded, please take poll after some time.")
+        return None
+
+# 2. POLL GENERATOR: Using the unified function
 @app.route('/api/generate-blog-poll/<int:post_id>')
 def generate_blog_poll(post_id):
     post = News.query.get_or_404(post_id)
-    
-    # Lexi-style system context for cleaner generation
     prompt = (
         f"Context: {post.title}\n"
-        "Task: Create 1 sophisticated poll question and 3 distinct options.\n"
-        "Constraint: No markdown. Format: Question | Opt1 | Opt2 | Opt3"
+        "Task: Create 1 poll question and 3 options.\n"
+        "Format: Question | Opt1 | Opt2 | Opt3"
     )
     
-    try:
-        # Switching to Gemini 3 Flash
-        response = gemma_client.models.generate_content(
-            model='gemini-3-flash-preview',
-            contents=prompt
-        )
-        
-        raw_text = response.text.strip()
-        parts = [p.strip() for p in raw_text.split('|')]
-        
-        # Fallback if splitting fails
-        if len(parts) < 4:
-            return jsonify({"question": "What is your view on this?", "options": ["Agree", "Disagree", "Neutral"]})
+    response_text = get_lexi_response(prompt)
+    
+    if not response_text:
+        return jsonify({"error": "Service unavailable"}), 500
 
-        return jsonify({
-            "question": parts[0], 
-            "options": parts[1:4],
-            "status": "Published" # Ensures the 'None' issue is fixed at the source
-        })
-    except Exception as e:
-        app.logger.error(f"Poll Gen Error: {e}")
-        return jsonify({"error": "Failed to generate poll"}), 500
+    parts = [p.strip() for p in response_text.split('|')]
+    
+    return jsonify({
+        "question": parts[0] if len(parts) > 0 else "What is your opinion?",
+        "options": parts[1:4] if len(parts) >= 4 else ["Agree", "Disagree", "Neutral"],
+        "status": "Published"  # Fixes the 'None' card issue
+    })
 
-# 3. SMART ANSWER: Using Gemini 3 Flash
+# 3. SMART ANSWER: Using the unified function
 @app.route('/api/poll-review')
 def poll_review():
     choice = request.args.get('choice')
@@ -1601,27 +1610,21 @@ def poll_review():
     prompt = f"""
     The user was asked: '{question}'
     The user chose: '{choice}'
-    Task: Provide a 2-sentence review. 
-    Sentence 1: Estimate what % of people agree with this choice based on current trends.
-    Sentence 2: Briefly analyze why this choice is logical or controversial.
+    Task: Provide a 2-sentence review.
+    Sentence 1: Estimate what % of people agree with this choice.
+    Sentence 2: Analyze why this is logical or controversial.
     Format: You are on the [Side] side (Approx [X]%). [Analysis].
-    Constraint: No markdown formatting.
     """
     
-    try:
-        response = gemma_client.models.generate_content(
-            model='gemini-3-flash-preview',
-            contents=prompt
-        )
-        
-        review = response.text.strip()
-        return jsonify({
-            "review": review,
-            "status": "Published" # Corrects the card badge
-        })
-    except Exception as e:
-        app.logger.error(f"Poll Review Error: {e}")
-        return jsonify({"review": "I apologize, but I cannot assess the consensus right now."}), 500
+    review = get_lexi_response(prompt)
+    
+    if not review:
+        review = "I apologize, but I cannot assess the consensus right now."
+
+    return jsonify({
+        "review": review,
+        "status": "Published"  # Fixes the 'None' card issue
+    })
 
 
 def process_toy_response(raw_text):
