@@ -657,101 +657,63 @@ const alexStatus = document.getElementById('alex-status');
 const alexMessages = document.getElementById('alex-messages');
 const alexChatWindow = document.getElementById('alex-chat-window');
 
-let socket;
-let currentLexiBubble = null;
+async function handleAlexChat() {
+    const text = alexInput.value.trim();
+    if (!text) return;
 
-function connectAlex() {
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    socket = new WebSocket(`${protocol}//${window.location.host}/ws/alex-concierge`);
+    // Show Chat Window and User Message
+    alexChatWindow.style.display = 'flex';
+    appendBubble('user', text);
+    alexInput.value = '';
 
-    // Heartbeat for Render
-    const heartbeat = setInterval(() => {
-        if (socket.readyState === WebSocket.OPEN) {
-            socket.send(JSON.stringify({ type: 'ping' }));
-        }
-    }, 30000);
+    // Show Thinking Status
+    alexStatus.style.display = 'block';
+    alexStatus.innerText = "Lexi is thinking...";
 
-    socket.onmessage = (event) => {
-        const data = JSON.parse(event.data);
+    try {
+        const response = await fetch('/ask-lexi', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message: text })
+        });
 
-        // If backend sends text chunk
-        if (data.text) {
-            if (!currentLexiBubble) {
-                currentLexiBubble = createChatBubble('lexi');
-                alexStatus.innerText = "Lexi is typing...";
-            }
-            currentLexiBubble.innerText += data.text;
-            alexMessages.scrollTop = alexMessages.scrollHeight;
-        }
+        const data = await response.json();
+        
+        // Hide Status and Show Lexi Message
+        alexStatus.style.display = 'none';
+        appendBubble('lexi', data.reply);
 
-        // If backend says turn is done
-        if (data.done) {
-            currentLexiBubble = null;
-            alexStatus.style.display = 'none';
-        }
-    };
-
-    socket.onclose = () => {
-        clearInterval(heartbeat);
-        console.log("Lexi Offline");
-    };
+    } catch (err) {
+        alexStatus.innerText = "Service unavailable.";
+    }
 }
 
-function createChatBubble(sender) {
-    alexChatWindow.style.display = 'flex'; // Show window on first message
+function appendBubble(sender, text) {
     const div = document.createElement('div');
+    div.innerText = text;
     div.style.padding = '8px 12px';
     div.style.borderRadius = '15px';
     div.style.maxWidth = '85%';
-    div.style.lineHeight = '1.4';
     
     if (sender === 'user') {
         div.style.alignSelf = 'flex-end';
         div.style.background = '#1a1a1a';
         div.style.color = 'white';
-        div.style.borderBottomRightRadius = '2px';
     } else {
         div.style.alignSelf = 'flex-start';
         div.style.background = '#f0f0f0';
         div.style.color = '#333';
-        div.style.borderBottomLeftRadius = '2px';
     }
-    
+
     alexMessages.appendChild(div);
     alexMessages.scrollTop = alexMessages.scrollHeight;
-    return div;
-}
-
-function sendMessage() {
-    const text = alexInput.value.trim();
-    if (!text) return;
-
-    // Ensure connection
-    if (!socket || socket.readyState !== WebSocket.OPEN) {
-        connectAlex();
-    }
-
-    const deliver = () => {
-        createChatBubble('user').innerText = text;
-        socket.send(text);
-        alexInput.value = '';
-        alexStatus.innerText = "Lexi is thinking...";
-        alexStatus.style.display = 'block';
-    };
-
-    if (socket.readyState === WebSocket.CONNECTING) {
-        socket.addEventListener('open', deliver, { once: true });
-    } else {
-        deliver();
-    }
 }
 
 // Event Listeners
-sendBtn.onclick = sendMessage;
-
-alexInput.onkeypress = (e) => {
-    if (e.key === 'Enter') sendMessage();
-};
+sendBtn.onclick = handleAlexChat;
+alexInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') handleAlexChat();
+});
 
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
