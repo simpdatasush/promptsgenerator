@@ -1565,7 +1565,9 @@ def get_lexi_response(prompt, model_id='gemini-3-flash-preview', max_output_toke
     try:
         generation_config = {
             "max_output_tokens": max_output_tokens,
-            "temperature": 0.1
+            "temperature": 0.1,
+            "top_p": 0.5,
+            "top_k": 32
         }
         response = gemma_client.models.generate_content(
             model=model_id,
