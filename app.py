@@ -1716,6 +1716,8 @@ def generate_audio(post_id):
 # Live API
 #gemini_live_client = gemma_genai.Client(api_key=api_key, http_options={'api_version': 'v1alpha'})
 
+gemini_live_client = gemma_genai.Client(http_options={'api_version': 'v1alpha'})
+
 sock = Sock(app)
 
 @sock.route('/ws/alex-concierge')
