@@ -1557,7 +1557,7 @@ def analyze_post(post_id):
     summary = ask_gemini_for_prompt(prompt)
     return jsonify({"summary": summary})
 
-def get_lexi_response(prompt, model_id='gemini-3-flash-preview', max_output_tokens=1024 ):
+def get_lexi_response(prompt, model_id='gemini-3-flash-preview', max_output_tokens=3072 ):
     """
     Central function to call Gemini 3 Flash. 
     Ensures consistent formatting and error handling.
@@ -1565,9 +1565,7 @@ def get_lexi_response(prompt, model_id='gemini-3-flash-preview', max_output_toke
     try:
         generation_config = {
             "max_output_tokens": max_output_tokens,
-            "temperature": 0.1,
-            "top_p": 0.5,
-            "top_k": 32
+            "temperature": 0.1
         }
         response = gemma_client.models.generate_content(
             model=model_id,
