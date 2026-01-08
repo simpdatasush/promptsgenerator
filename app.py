@@ -1716,43 +1716,36 @@ def generate_audio(post_id):
 
 # gemma based alex
 
-def save_log(user_text, lexi_text):
-    """Temporary local log for debugging"""
-    timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    with open("lexi_chat_history.txt", "a", encoding="utf-8") as f:
-        f.write(f"[{timestamp}] USER: {user_text} | LEXI: {lexi_text}\n")
-
 @app.route('/ask-lexi', methods=['POST'])
 def ask_lexi():
     data = request.get_json()
-    user_input = data.get('message', '')
+    user_msg = data.get('message', '')
 
-    # Lexi's Identity and Rules
-    system_instruction = (
+    # Lexi's System Instruction
+    instruction = (
         "You are Lexi, a professional British Concierge. "
         "Provide elegant, brief, and technically accurate text assistance. "
-        "Do not use markdown (no **bolding** or *italics*). "
-        "Maintain a helpful, sophisticated tone."
+        "Do not use markdown like bolding or asterisks."
     )
 
-    # Simple prompt structure for Gemma 3
-    prompt = f"{system_instruction}\n\nUser: {user_input}\nLexi:"
+    prompt = f"{instruction}\n\nUser: {user_msg}\nLexi:"
 
     try:
-        # Requesting response from Gemma 3
+        # Using Gemma 3 model
         response = gemma_client.models.generate_content(
             model='gemma-3-4b-it', 
             contents=prompt
         )
         
         reply = response.text.strip()
-        save_log(user_input, reply)
         
-        return jsonify({"reply": reply})
+        # Simple logging
+        with open("lexi_chat_history.txt", "a") as f:
+            f.write(f"[{datetime.datetime.now()}] {user_msg} -> {reply}\n")
 
+        return jsonify({"reply": reply})
     except Exception as e:
-        print(f"Gemma Error: {e}")
-        return jsonify({"reply": "I apologize, sir/madam, but I am momentarily unavailable."}), 500
+        return jsonify({"reply": "I apologize, but I've encountered an error."}), 500
 
 
 @app.route('/ai-apps')
