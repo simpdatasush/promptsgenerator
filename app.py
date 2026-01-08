@@ -1716,77 +1716,86 @@ def generate_audio(post_id):
 # Live API
 #gemini_live_client = gemma_genai.Client(api_key=api_key, http_options={'api_version': 'v1alpha'})
 
-app.config['SOCK_PING_INTERVAL'] = None
-
-sock = Sock(app)
-
-gemini_live_client = gemma_genai.Client(http_options={'api_version': 'v1alpha'})
-
 @sock.route('/ws/alex-concierge')
 def alex_concierge(ws):
-    model_id = "gemini-2.5-flash-native-audio-preview-12-2025" # Using the latest stable text-friendly model
+    # Using the standardized Live API model ID
+    model_id = "gemini-2.5-flash-native-audio-preview-12-2025" 
+    
     SUPPORT_INSTRUCTION = (
         "You are Lexi, a professional British Concierge. "
-        "Your goal is to provide fast, empathetic, and technically accurate text-based assistance. "
-        "Do not provide medical, legal, or financial advice. Be brief, elegant, and do not use markdown."
+        "Provide fast, empathetic, and technically accurate text-based assistance. "
+        "Be brief, elegant, and avoid markdown (like asterisks or bolding)."
     )
 
     async def start_live_session():
-        # IMPORTANT: Modality changed to TEXT. Audio config removed.
+        # CLEAN CONFIG: No speech_config allowed when response_modalities is ["TEXT"]
         config = gemma_types.LiveConnectConfig(
             system_instruction=SUPPORT_INSTRUCTION,
-            response_modalities=["TEXT"] 
+            response_modalities=["TEXT"]
         )
 
-        async with gemini_live_client.aio.live.connect(model=model_id, config=config) as session:
-            
-            async def send_to_gemini():
-                """Receives user text from browser and forwards to Gemini"""
-                try:
-                    while True:
-                        message = await asyncio.to_thread(ws.receive)
-                        if not message: break
-                        
-                        # Catch heartbeat pings
-                        try:
-                            data = json.loads(message)
-                            if data.get('type') == 'ping': continue
-                        except: pass
+        try:
+            async with gemini_live_client.aio.live.connect(model=model_id, config=config) as session:
+                
+                async def send_to_gemini():
+                    try:
+                        while True:
+                            message = await asyncio.to_thread(ws.receive)
+                            if not message: 
+                                break
+                            
+                            # Improved Ping detection
+                            try:
+                                if '"type":"ping"' in message.replace(" ", ""):
+                                    continue
+                            except:
+                                pass
 
-                        await session.send_client_content(
-                            turns=[{"role": "user", "parts": [{"text": message}]}],
-                            turn_complete=True
-                        )
-                except Exception as e:
-                    app.logger.info(f"Send loop closed: {e}")
+                            await session.send_client_content(
+                                turns=[{"role": "user", "parts": [{"text": message}]}],
+                                turn_complete=True
+                            )
+                    except Exception as e:
+                        app.logger.info(f"Send loop closed: {e}")
 
-            async def receive_from_gemini():
-                """Collects streaming text chunks and forwards to browser"""
-                try:
-                    full_reply = []
-                    async for response in session.receive():
-                        if response.server_content and response.server_content.model_turn:
-                            for part in response.server_content.model_turn.parts:
-                                if part.text:
-                                    # Send text chunk immediately for 'streaming' feel
-                                    ws.send(json.dumps({"text": part.text}))
-                                    full_reply.append(part.text)
+                async def receive_from_gemini():
+                    try:
+                        full_reply = []
+                        async for response in session.receive():
+                            # Extract text from the model turn
+                            if response.server_content and response.server_content.model_turn:
+                                for part in response.server_content.model_turn.parts:
+                                    if part.text:
+                                        chunk = part.text
+                                        full_reply.append(chunk)
+                                        # Send text chunk to frontend
+                                        ws.send(json.dumps({"text": chunk}))
 
-                        # When the turn is finished, log the full conversation
-                        if response.server_content and response.server_content.turn_complete:
-                            lexi_final_text = "".join(full_reply)
-                            save_log("User", lexi_final_text) # Reusing your logging function
-                            full_reply = [] # Clear for next turn
-                            ws.send(json.dumps({"done": True})) # Signal UI to stop 'typing' animation
-                except Exception as e:
-                    app.logger.info(f"Receive loop closed: {e}")
+                            # Handle turn completion
+                            if response.server_content and response.server_content.turn_complete:
+                                lexi_final_text = "".join(full_reply)
+                                # Ensure save_log is defined globally or imported
+                                try:
+                                    save_log("Web User", lexi_final_text)
+                                except NameError:
+                                    app.logger.warning("save_log function not found.")
+                                
+                                full_reply = []
+                                ws.send(json.dumps({"done": True}))
+                    except Exception as e:
+                        app.logger.info(f"Receive loop closed: {e}")
 
-            await asyncio.gather(send_to_gemini(), receive_from_gemini())
+                await asyncio.gather(send_to_gemini(), receive_from_gemini())
+        except Exception as e:
+            app.logger.error(f"Live API Connection Error: {e}")
+            ws.send(json.dumps({"text": "I'm sorry, I'm having trouble connecting right now."}))
 
     try:
         asyncio.run(start_live_session())
     except Exception as e:
-        app.logger.error(f"Session died: {e}")
+        app.logger.error(f"WebSocket execution error: {e}")
+
+
 
 @app.route('/ai-apps')
 def all_ai_apps():
