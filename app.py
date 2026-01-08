@@ -1557,32 +1557,71 @@ def analyze_post(post_id):
     summary = ask_gemini_for_prompt(prompt)
     return jsonify({"summary": summary})
 
-# 2. POLL GENERATOR: Creates the question
+# 2. POLL GENERATOR: Using Gemini 3 Flash
 @app.route('/api/generate-blog-poll/<int:post_id>')
 def generate_blog_poll(post_id):
     post = News.query.get_or_404(post_id)
-    prompt = f"Based on '{post.title}', create 1 poll question and 3 options. Format: Question | Opt1 | Opt2 | Opt3"
-    response = ask_gemini_for_prompt(prompt)
-    parts = [p.strip() for p in response.split('|')]
-    return jsonify({"question": parts[0], "options": parts[1:]})
+    
+    # Lexi-style system context for cleaner generation
+    prompt = (
+        f"Context: {post.title}\n"
+        "Task: Create 1 sophisticated poll question and 3 distinct options.\n"
+        "Constraint: No markdown. Format: Question | Opt1 | Opt2 | Opt3"
+    )
+    
+    try:
+        # Switching to Gemini 3 Flash
+        response = gemma_client.models.generate_content(
+            model='gemini-3-flash-preview',
+            contents=prompt
+        )
+        
+        raw_text = response.text.strip()
+        parts = [p.strip() for p in raw_text.split('|')]
+        
+        # Fallback if splitting fails
+        if len(parts) < 4:
+            return jsonify({"question": "What is your view on this?", "options": ["Agree", "Disagree", "Neutral"]})
 
-# 3. SMART ANSWER: Reviews the user's choice
+        return jsonify({
+            "question": parts[0], 
+            "options": parts[1:4],
+            "status": "Published" # Ensures the 'None' issue is fixed at the source
+        })
+    except Exception as e:
+        app.logger.error(f"Poll Gen Error: {e}")
+        return jsonify({"error": "Failed to generate poll"}), 500
+
+# 3. SMART ANSWER: Using Gemini 3 Flash
 @app.route('/api/poll-review')
 def poll_review():
     choice = request.args.get('choice')
     question = request.args.get('question')
     
-    # Prompting AI to simulate consensus and provide a review
     prompt = f"""
     The user was asked: '{question}'
     The user chose: '{choice}'
     Task: Provide a 2-sentence review. 
-    Sentence 1: Estimate what % of people agree with this choice based on current AI trends.
+    Sentence 1: Estimate what % of people agree with this choice based on current trends.
     Sentence 2: Briefly analyze why this choice is logical or controversial.
     Format: You are on the [Side] side (Approx [X]%). [Analysis].
+    Constraint: No markdown formatting.
     """
-    review = ask_gemini_for_prompt(prompt)
-    return jsonify({"review": review})
+    
+    try:
+        response = gemma_client.models.generate_content(
+            model='gemini-3-flash-preview',
+            contents=prompt
+        )
+        
+        review = response.text.strip()
+        return jsonify({
+            "review": review,
+            "status": "Published" # Corrects the card badge
+        })
+    except Exception as e:
+        app.logger.error(f"Poll Review Error: {e}")
+        return jsonify({"review": "I apologize, but I cannot assess the consensus right now."}), 500
 
 
 def process_toy_response(raw_text):
