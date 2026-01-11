@@ -9,35 +9,69 @@
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
     <link rel="apple-touch-icon" href="{{ url_for('static', filename='favicon.png') }}">
     <style>
-        :root {
-            --color-primary: #007bff;
-            --color-dark-bg: #343a40;
-            --color-bg-light: #f0f2f5;
-            --color-text-dark: #2c3e50;
-        }
+              :root {
+    --color-primary: #007bff;     /* Landing Page Blue */
+    --color-dark-bg: #343a40;     /* Landing Page Charcoal */
+    --color-accent: #C3497C;      /* Keeping Pink ONLY for AI Summary */
+    --color-bg-light: #f0f2f5;
+    --color-text-dark: #2c3e50;
+    --shadow-standard: 0 4px 15px rgba(0, 0, 0, 0.1);
+    --radius-standard: 10px;
+}
 
-        body {
-            font-family: 'Segoe UI', sans-serif;
-            padding-top: 100px;
-            background-color: var(--color-bg-light);
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-        }
+*, *::before, *::after { box-sizing: border-box; }
 
-        /* --- Unified Header --- */
-        .app-header {
-            background-color: var(--color-dark-bg);
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    margin: 0;
+    padding-top: 100px; /* Unified gap for fixed header */
+    background-color: var(--color-bg-light);
+    color: var(--color-text-dark);
+    line-height: 1.6;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+/* =========================================
+   2. UNIFIED HEADER (Stable on all pages)
+========================================= */
+.app-header {
+    background-color: var(--color-dark-bg);
+    color: #ffffff;
+    padding: 15px 30px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    width: 100%;
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 1000;
+}
+
+.app-header .logo-section { display: flex; align-items: center; }
+.app-header .app-logo { height: 40px; margin-right: 15px; border-radius: 5px; }
+
+.app-header h1.header-title {
+            margin: 0;
+            font-size: 1.8rem;
             color: #ffffff;
-            padding: 15px 30px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            position: fixed;
-            top: 0; width: 100%; z-index: 1000;
+            text-align: left;
         }
 
-        .container { max-width: 1100px; margin-bottom: 50px; }
+.app-header .auth-section { display: flex; align-items: center; }
+.app-header .auth-section a {
+    color: #ffffff;
+    margin-left: 20px;
+    text-decoration: none;
+    transition: color 0.2s ease;
+    white-space: nowrap;
+}
+
+.app-header .auth-section a:hover { color: var(--color-primary); }
+
 
         /* --- Alphabet Nav --- */
         .letter-btn {
