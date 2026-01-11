@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SuperPrompter - AI Discovery Hub</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <style>
+        :root {
+            --color-primary: #007bff;
+            --color-dark-bg: #343a40;
+            --color-bg-light: #f0f2f5;
+            --color-text-dark: #2c3e50;
+        }
+
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            padding-top: 100px;
+            background-color: var(--color-bg-light);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* --- Unified Header --- */
+        .app-header {
+            background-color: var(--color-dark-bg);
+            color: #ffffff;
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: fixed;
+            top: 0; width: 100%; z-index: 1000;
+        }
+
+        .container { max-width: 1100px; margin-bottom: 50px; }
+
+        /* --- Alphabet Nav --- */
+        .letter-btn {
+            border: 1px solid #dee2e6;
+            background: white;
+            width: 38px;
+            height: 38px;
+            margin: 4px;
+            border-radius: 6px;
+            font-weight: bold;
+            color: var(--color-primary);
+            transition: all 0.2s ease;
+        }
+
+        .letter-btn:hover { background: #f8f9fa; border-color: var(--color-primary); }
+        .letter-btn.active {
+            background-color: var(--color-primary) !important;
+            color: white !important;
+            transform: scale(1.1);
+        }
+
+        /* --- Topic Header --- */
+        .category-header {
+            width: 100%;
+            border-bottom: 2px solid var(--color-primary);
+            padding-bottom: 8px;
+            margin: 40px 0 20px 0;
+            font-weight: 800;
+            text-transform: uppercase;
+            font-size: 1.1rem;
+            letter-spacing: 1px;
+        }
+
+        /* --- Brick Grid --- */
+        .brick-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .brick-card {
+            background: #ffffff;
+            border-left: 4px solid var(--color-primary);
+            border-radius: 8px;
+            padding: 20px;
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            height: 220px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+
+        .brick-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 15px rgba(0,0,0,0.1);
+        }
+
+        .brick-title { font-size: 1.2rem; font-weight: 700; color: var(--color-text-dark); }
+        .brick-desc {
+            font-size: 0.9rem;
+            color: #6c757d;
+            margin-top: 8px;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .brick-link {
+            margin-top: auto;
+            font-weight: 600;
+            text-decoration: none !important;
+            color: var(--color-primary);
+        }
+
+        .footer { padding: 20px; text-align: center; background: #fff; border-top: 1px solid #dee2e6; margin-top: auto; }
+    </style>
+</head>
+<body>
+
+    <header class="app-header">
+        <div class="logo-section">
+            <h1 class="h4 mb-0">SuperPrompter Hub</h1>
+        </div>
+        <div class="nav-section">
+            <a href="/" class="text-white">Home</a>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="text-center mb-5">
+            <h2 class="font-weight-bold">AI Discovery Hub</h2>
+            <p class="text-muted">Curated websites, newsletters, books, and podcasts.</p>
+        </div>
+
+        <div class="alphabet-nav d-flex flex-wrap justify-content-center mb-5">
+            {% for char in "ABCDEFGHIJKLMNOPQRSTUVWXYZ" %}
+                <button class="letter-btn" onclick="filterByLetter('{{ char }}', this)">{{ char }}</button>
+            {% endfor %}
+        </div>
+
+        <div id="dynamic-hub-container"></div>
+    </div>
+
+    <footer class="footer">
+        &copy; 2026 SuperPrompter AI Discovery Hub
+    </footer>
+
+    <script>
+        // 1. Prepare Data from Python
+        const allResources = [
+            {% for app in ai_apps %}
+            {
+                title: "{{ app.title }}",
+                url: "{{ app.url }}",
+                category: {{ app.description | tojson }}.match(/\[AI_HUB\]\[(.*?)\]/) 
+                          ? {{ app.description | tojson }}.match(/\[AI_HUB\]\[(.*?)\]/)[1] 
+                          : "Website",
+                desc: {{ app.description | tojson }}.replace(/\[AI_HUB\](\[.*?\])?/, "").trim()
+            },
+            {% endfor %}
+        ];
+
+        function filterByLetter(letter, element) {
+            // UI Logic: Set Active State
+            document.querySelectorAll('.letter-btn').forEach(btn => btn.classList.remove('active'));
+            if (element) element.classList.add('active');
+
+            const container = document.getElementById('dynamic-hub-container');
+            container.innerHTML = "";
+
+            // Filter logic
+            const matches = allResources.filter(res => res.title.toUpperCase().startsWith(letter));
+
+            if (matches.length === 0) {
+                container.innerHTML = `<div class="text-center py-5 text-muted">No resources found starting with "${letter}".</div>`;
+                return;
+            }
+
+            // Group by Topic Category
+            const grouped = matches.reduce((acc, res) => {
+                acc[res.category] = acc[res.category] || [];
+                acc[res.category].push(res);
+                return acc;
+            }, {});
+
+            // Render Bricks
+            for (const [category, resources] of Object.entries(grouped)) {
+                let section = `<h3 class="category-header">${category}</h3><div class="brick-grid">`;
+                
+                resources.forEach(res => {
+                    let icon = "fa-globe";
+                    if(res.category === "Newsletter") icon = "fa-envelope-open-text";
+                    if(res.category === "Podcast") icon = "fa-microphone-alt";
+                    if(res.category === "Book") icon = "fa-book";
+                    if(res.category === "Channel") icon = "fa-play-circle";
+
+                    section += `
+                        <div class="brick-card">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div class="brick-title">${res.title}</div>
+                                <i class="fas ${icon} text-primary" style="opacity: 0.2; font-size: 1.5rem;"></i>
+                            </div>
+                            <div class="brick-desc">${res.desc}</div>
+                            <a href="${res.url}" target="_blank" class="brick-link">
+                                Explore Resource <i class="fas fa-arrow-right ml-1"></i>
+                            </a>
+                        </div>`;
+                });
+                section += `</div>`;
+                container.insertAdjacentHTML('beforeend', section);
+            }
+        }
+
+        // Initialize with 'A'
+        document.addEventListener("DOMContentLoaded", () => {
+            const firstBtn = document.querySelector('.letter-btn');
+            filterByLetter('A', firstBtn);
+        });
+    </script>
+</body>
+</html>
