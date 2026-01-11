@@ -1008,7 +1008,8 @@ def all_news():
         News.description.isnot(None), 
         ~News.description.like('[AI_APP]%'),
         ~News.description.like('[APP_LOG]%'),
-        ~News.description.like('[PROMPT]%')
+        ~News.description.like('[PROMPT]%'),
+        ~News.description.like('[AI_HUB]%')
     ).order_by(News.timestamp.desc())
 
     # 2. ADD SEARCH FILTERS (If search_query exists)
@@ -1919,6 +1920,79 @@ def delete_prompt(prompt_id):
     db.session.commit()
     flash('Prompt deleted successfully.', 'success')
     return redirect(request.referrer or url_for('index'))
+
+@app.route('/ai-hub')
+def ai_hub():
+    # Fetch only entries tagged with [AI_HUB] in the description
+    # Filter(News.description.isnot(None)) ensures we don't hit null errors
+    hub_resources = News.query.filter(
+        News.description.isnot(None),
+        News.description.like('[AI_HUB]%')
+    ).order_by(News.title.asc()).all()
+    
+    return render_template('ai_hub.html', ai_apps=hub_resources)
+
+@app.route('/admin/ai-hub')
+@login_required
+@admin_required
+def admin_ai_hub():
+    # Show all hub items in the admin management table
+    hub_resources = News.query.filter(News.description.like('[AI_HUB]%')).order_by(News.timestamp.desc()).all()
+    return render_template('admin_ai_hub.html', ai_apps=hub_resources)
+
+@app.route('/admin/ai-hub/add', methods=['POST'])
+@login_required
+@admin_required
+def add_hub_resource():
+    title = request.form.get('title')
+    url = request.form.get('url')
+    category = request.form.get('category')  # Dropdown: Newsletter, Podcast, Book, etc.
+    raw_desc = request.form.get('description')
+    
+    # Store with the specific Hub tag: [AI_HUB][Category] Description
+    description = f"[AI_HUB][{category}] {raw_desc}"
+    
+    new_resource = News(
+        title=title, 
+        url=url, 
+        description=description, 
+        user_id=current_user.id
+    )
+    db.session.add(new_resource)
+    db.session.commit()
+    flash(f'"{title}" added to Discovery Hub successfully!', 'success')
+    return redirect(url_for('admin_ai_hub'))
+
+@app.route('/admin/ai-hub/edit/<int:app_id>', methods=['POST'])
+@login_required
+@admin_required
+def edit_hub_resource(app_id):
+    resource = News.query.get_or_404(app_id)
+    
+    # Update core details
+    resource.title = request.form.get('title')
+    resource.url = request.form.get('url')
+    
+    # Re-build the tagged description
+    category = request.form.get('category')
+    raw_desc = request.form.get('description')
+    resource.description = f"[AI_HUB][{category}] {raw_desc}"
+    
+    db.session.commit()
+    flash(f'Updated {resource.title} successfully!', 'info')
+    return redirect(url_for('admin_ai_hub'))
+
+@app.route('/admin/ai-hub/delete/<int:app_id>', methods=['POST'])
+@login_required
+@admin_required
+def delete_hub_resource(app_id):
+    resource = News.query.get_or_404(app_id)
+    title = resource.title
+    
+    db.session.delete(resource)
+    db.session.commit()
+    flash(f'"{title}" removed from the Hub.', 'warning')
+    return redirect(url_for('admin_ai_hub'))
 
     
 # --- NEW: Change Password Route ---
