@@ -229,6 +229,10 @@ body {
                     if(res.category === "Podcast") icon = "fa-microphone-alt";
                     if(res.category === "Book") icon = "fa-book";
                     if(res.category === "Channel") icon = "fa-play-circle";
+                    // New Categories
+                    if(res.category === "Research Papers")   icon = "fa-file-alt";      // For Research Papers
+                    if(res.category === "Repos.")       icon = "fa-code-branch";   // For Github/HuggingFace Repos
+                    if(res.category === "IP")         icon = "fa-fingerprint";   // For Intellectual Property/Patents
 
                     section += `
                         <div class="brick-card">
