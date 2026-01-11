@@ -49,7 +49,7 @@ app = Flask(__name__)
 # --- NEW: Flask-SQLAlchemy Configuration ---
 # Configure SQLite database. This file will be created in your project directory.
 # On Render, this database file will be ephemeral unless you attach a persistent disk.
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////var/data/site.db' # 'sqlite:////var/data/site.db' #'sqlite:///site.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///site.db' # 'sqlite:////var/data/site.db' #'sqlite:///site.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False # Suppress a warning
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'a_very_secret_key_that_should_be_in_env') # Needed for Flask-Login sessions
 db = SQLAlchemy(app)
@@ -567,7 +567,7 @@ def landing():
     has_new_jobs = False
 
     # 1. Fetch latest 6 news items
-    raw_news_items = News.query.filter(~News.description.like('[AI_APP]%'),~News.description.like('[APP_LOG]%'),~News.description.like('[PROMPT]%')).order_by(News.timestamp.desc()).limit(6).all()
+    raw_news_items = News.query.filter(~News.description.like('[AI_APP]%'),~News.description.like('[APP_LOG]%'),~News.description.like('[PROMPT]%'),~News.description.like('[AI_HUB]%')).order_by(News.timestamp.desc()).limit(6).all()
     
     # Process news items to clean the description for the summary view
     cleaned_news_items = []
