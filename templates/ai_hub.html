@@ -106,55 +106,48 @@ body {
         }
 
         /* --- Brick Grid --- */
-.brick-card {
-    background: #ffffff;
-    border-left: 4px solid var(--color-primary);
-    border-radius: 8px;
-    padding: 20px;
-    transition: all 0.3s ease;
-    display: flex;
-    flex-direction: column;
-    /* Changed height to min-height to prevent compression */
-    min-height: 240px; 
-    height: auto; 
-    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-}
+    .brick-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        .brick-card {
+            background: #ffffff;
+            border-left: 4px solid var(--color-primary);
+            border-radius: 8px;
+            padding: 20px;
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            min-height: 240px; 
+            height: auto; 
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        .brick-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 15px rgba(0,0,0,0.1);
+        }
+        .brick-title { font-size: 1.2rem; font-weight: 700; color: var(--color-text-dark); }
+        .brick-desc {
+            font-size: 0.9rem;
+            color: #6c757d;
+            margin-top: 8px;
+            margin-bottom: 15px;
+            max-height: 100px;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: auto;
+            padding-right: 5px;
+            line-height: 1.5;
+        }
+        .brick-link {
+            margin-top: auto;
+            font-weight: 600;
+            text-decoration: none !important;
+            color: var(--color-primary);
+        }
 
-.brick-desc {
-    font-size: 0.9rem;
-    color: #6c757d;
-    margin-top: 10px;
-    margin-bottom: 15px;
-    
-    /* Scrollable Area Logic */
-    max-height: 100px; /* Limits the text area height */
-    overflow-y: auto;  /* Adds vertical scrollbar if text is long */
-    padding-right: 5px;
-    line-height: 1.5;
-}
-
-/* Custom Scrollbar Styling (Webkit) */
-.brick-desc::-webkit-scrollbar {
-    width: 4px;
-}
-.brick-desc::-webkit-scrollbar-track {
-    background: #f1f1f1;
-}
-.brick-desc::-webkit-scrollbar-thumb {
-    background: #ccc;
-    border-radius: 10px;
-}
-.brick-desc::-webkit-scrollbar-thumb:hover {
-    background: var(--color-primary);
-}
-
-.brick-link {
-    margin-top: auto; /* Pushes link to the bottom regardless of text length */
-    padding-top: 10px;
-    font-weight: 600;
-    text-decoration: none !important;
-    color: var(--color-primary);
-}
         .footer { padding: 20px; text-align: center; background: #fff; border-top: 1px solid #dee2e6; margin-top: auto; }
     </style>
 </head>
