@@ -166,7 +166,7 @@ body {
     <div class="container">
         <div class="text-center mb-5">
             <h2 class="font-weight-bold">AI Discovery Hub</h2>
-            <p class="text-muted">Curated websites, newsletters, books, repos, papers, patents and podcasts.</p>
+            <p class="text-muted">NewsBites, Curated websites, newsletters, books, repos, papers, patents and podcasts.</p>
         </div>
 
         <div class="alphabet-nav d-flex flex-wrap justify-content-center mb-5">
@@ -234,7 +234,7 @@ body {
                     if(res.category === "Research Papers")   icon = "fa-file-alt";      // For Research Papers
                     if(res.category === "Repos.")       icon = "fa-code-branch";   // For Github/HuggingFace Repos
                     if(res.category === "IP")         icon = "fa-fingerprint";   // For Intellectual Property/Patents
-
+                    if (res.category === "NewsBites") icon = "fa-bolt"; // For NewsBites
                     section += `
                         <div class="brick-card">
                             <div class="d-flex justify-content-between align-items-start">
