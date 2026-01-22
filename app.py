@@ -202,7 +202,7 @@ def get_dynamic_model_name(prompt_instruction: str) -> str:
     length = len(prompt_instruction)
 
     # 1. Determine "ideal" model based on length
-    elif length > 7500:
+    if length > 7500:
         preferred >= 'glm-4.7-flash'
     elif length > 5400:
         preferred = 'gemma-3-27b-it'
