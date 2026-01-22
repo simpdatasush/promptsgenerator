@@ -21,8 +21,7 @@ import random # NEW: For generating random username suggestions
 import string # NEW: For string manipulation in username generation
 from google import genai as gemma_genai
 from google.genai import types as gemma_types   # Required for GenerateContentConfig
-from zhipuai import ZhipuAI
-
+from zai import ZaiClient as ZhipuAI
 
 # --- NEW IMPORTS FOR AUTHENTICATION ---
 from flask_sqlalchemy import SQLAlchemy
@@ -50,7 +49,7 @@ app = Flask(__name__)
 # --- NEW: Flask-SQLAlchemy Configuration ---
 # Configure SQLite database. This file will be created in your project directory.
 # On Render, this database file will be ephemeral unless you attach a persistent disk.
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///site.db' # 'sqlite:////var/data/site.db' #'sqlite:///site.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////var/data/site.db' # 'sqlite:////var/data/site.db' #'sqlite:///site.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False # Suppress a warning
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'a_very_secret_key_that_should_be_in_env') # Needed for Flask-Login sessions
 db = SQLAlchemy(app)
