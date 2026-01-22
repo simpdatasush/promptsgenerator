@@ -113,6 +113,7 @@ LANGUAGE_MAP = {
 
 # --- Gemini API Key and Configuration ---
 GEMINI_API_CONFIGURED = False
+ZAIPU_API_CONFIGURED = False
 GEMINI_API_KEY = None
 gemma_client = None  # Start as 
 # Updated Configuration
@@ -144,12 +145,13 @@ def configure_ai_apis():
         try:
             # Initialize GLM client alongside Gemini
             zai_client = ZhipuAI(api_key=zai_api_key)
-            app.logger.info("GLM-Flash-4.7 configured successfully.")
+            app.logger.info(" glm-flash-4.7 configured successfully.")
         except Exception as e:
             app.logger.error(f"GLM Config Error: {e}")
+            ZAIPU_API_CONFIGURED = False
     
     else:
-        app.logger.warning("GEMINI_API_KEY not found. AI features disabled.")
+        app.logger.warning("API_KEY not found. AI features disabled.")
 
 # Call the consolidated function
 configure_ai_apis()
@@ -161,8 +163,7 @@ class ModelUsageTracker:
             'gemma-3-1b-it': 0,
             'gemma-3-4b-it': 0,
             'gemma-3-12b-it': 0,
-            'gemma-3-27b-it': 0,
-            'glm-4.7-flash':0
+            'gemma-3-27b-it': 0
         }
         self.limit = 12000
         self.last_reset = datetime.now().date()
@@ -186,7 +187,7 @@ class ModelUsageTracker:
                 return preferred_model
             
             # Fallback Logic: If preferred is full, try the next smallest model
-            fallbacks = ['gemma-3-12b-it', 'gemma-3-4b-it', 'gemma-3-1b-it', 'glm-4.7-flash']
+            fallbacks = ['gemma-3-12b-it', 'gemma-3-4b-it', 'gemma-3-1b-it']
             for model in fallbacks:
                 if self.counts[model] < self.limit:
                     self.counts[model] += 1
@@ -216,7 +217,7 @@ def get_dynamic_model_name(prompt_instruction: str) -> str:
     final_model = usage_tracker.get_and_increment(preferred)
     
     if not final_model:
-        raise Exception("Daily quota exceeded for all Gemma models.")
+        raise Exception("Daily quota exceeded for all models.")
         
     return final_model
 
