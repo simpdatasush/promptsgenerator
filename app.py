@@ -21,6 +21,7 @@ import random # NEW: For generating random username suggestions
 import string # NEW: For string manipulation in username generation
 from google import genai as gemma_genai
 from google.genai import types as gemma_types   # Required for GenerateContentConfig
+from zhipuai import ZhipuAI
 
 
 # --- NEW IMPORTS FOR AUTHENTICATION ---
@@ -49,7 +50,7 @@ app = Flask(__name__)
 # --- NEW: Flask-SQLAlchemy Configuration ---
 # Configure SQLite database. This file will be created in your project directory.
 # On Render, this database file will be ephemeral unless you attach a persistent disk.
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////var/data/site.db' # 'sqlite:////var/data/site.db' #'sqlite:///site.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///site.db' # 'sqlite:////var/data/site.db' #'sqlite:///site.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False # Suppress a warning
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'a_very_secret_key_that_should_be_in_env') # Needed for Flask-Login sessions
 db = SQLAlchemy(app)
@@ -114,26 +115,40 @@ LANGUAGE_MAP = {
 # --- Gemini API Key and Configuration ---
 GEMINI_API_CONFIGURED = False
 GEMINI_API_KEY = None
-gemma_client = None  # Start as None
+gemma_client = None  # Start as 
+# Updated Configuration
+zai_client = None
 
 def configure_ai_apis():
-    global GEMINI_API_CONFIGURED, gemma_client
-    api_key = os.getenv("GEMINI_API_KEY")
+    global GEMINI_API_CONFIGURED, gemma_client, zai_client
+    # Existing Gemini Keys
+    gemini_key = os.getenv("GEMINI_API_KEY")
+    # New Z.ai Key
+    zai_api_key = os.getenv("ZAI_API_KEY")
 
-    if api_key:
+    if gemini_key:
         try:
             # 1. Configure the Gemini (Legacy) SDK
-            genai.configure(api_key=api_key)
+            genai.configure(api_key=gemini_key)
             
             # 2. Configure the Gemma (New) SDK Client
             # Use the verified api_key variable here
-            gemma_client = gemma_genai.Client(api_key=api_key)
+            gemma_client = gemma_genai.Client(api_key=gemini_key)
             
             GEMINI_API_CONFIGURED = True
             app.logger.info("Both Gemini and Gemma APIs configured successfully.")
         except Exception as e:
             app.logger.error(f"ERROR: AI Configuration failed: {e}")
             GEMINI_API_CONFIGURED = False
+      
+    elif zai_api_key:
+        try:
+            # Initialize GLM client alongside Gemini
+            zai_client = ZhipuAI(api_key=zai_api_key)
+            app.logger.info("GLM-Flash-4.7 configured successfully.")
+        except Exception as e:
+            app.logger.error(f"GLM Config Error: {e}")
+    
     else:
         app.logger.warning("GEMINI_API_KEY not found. AI features disabled.")
 
@@ -147,7 +162,8 @@ class ModelUsageTracker:
             'gemma-3-1b-it': 0,
             'gemma-3-4b-it': 0,
             'gemma-3-12b-it': 0,
-            'gemma-3-27b-it': 0
+            'gemma-3-27b-it': 0,
+            'glm-4.7-flash':0
         }
         self.limit = 12000
         self.last_reset = datetime.now().date()
@@ -171,7 +187,7 @@ class ModelUsageTracker:
                 return preferred_model
             
             # Fallback Logic: If preferred is full, try the next smallest model
-            fallbacks = ['gemma-3-12b-it', 'gemma-3-4b-it', 'gemma-3-1b-it']
+            fallbacks = ['gemma-3-12b-it', 'gemma-3-4b-it', 'gemma-3-1b-it', 'glm-4.7-flash']
             for model in fallbacks:
                 if self.counts[model] < self.limit:
                     self.counts[model] += 1
@@ -186,7 +202,9 @@ def get_dynamic_model_name(prompt_instruction: str) -> str:
     length = len(prompt_instruction)
 
     # 1. Determine "ideal" model based on length
-    if length > 5400:
+    elif length > 7500:
+        preferred >= 'glm-4.7-flash'
+    elif length > 5400:
         preferred = 'gemma-3-27b-it'
     elif length >= 2700:
         preferred = 'gemma-3-12b-it'
@@ -402,23 +420,38 @@ def filter_gemini_response(text):
 # --- Gemini API interaction function (NOW SYNCHRONOUS) ---
 
 def ask_gemini_for_prompt(prompt_instruction, max_output_tokens=1024):
+    """
+    Consolidated function that replaces ask_gemini_for_prompt.
+    It routes to the correct SDK based on the model name.
+    """
     try:
         # This now handles both length-based tiering AND the 12k RPD check
         selected_model = get_dynamic_model_name(prompt_instruction)
-        
-        response = gemma_client.models.generate_content(
-            model=selected_model,
-            contents=prompt_instruction,
-            config={
-                "max_output_tokens": max_output_tokens,
-                "temperature": 0.1
-            }
-        )
+
+        # --- Route 1: GLM Model (ZhipuAI SDK) ---
+        if "glm" in selected_model:
+            response = zai_client.chat.completions.create(
+                model=selected_model,
+                messages=[{"role": "user", "content": prompt_instruction}],
+                max_tokens=max_output_tokens
+            )
+            return response.choices[0].message.content.strip()
+
+      
+        else:
+            response = gemma_client.models.generate_content(
+                model=selected_model,
+                contents=prompt_instruction,
+                config={
+                    "max_output_tokens": max_output_tokens,
+                    "temperature": 0.1
+                }
+            )
         return filter_gemini_response(response.text).strip()
+      
     except Exception as e:
         app.logger.error(f"Gemma Routing Error: {e}")
         return "SuperPrompter AI Service temporarily unavailable due to high demand."
-
 
 # --- NEW: Gemini API for Image Understanding ---
 def ask_gemini_for_image_text(image_data_bytes):
@@ -2499,6 +2532,3 @@ if __name__ == '__main__':
   # you can use `nest_asyncio.apply()` (install with `pip install nest-asyncio`), but this is
   # generally not recommended for production as it can hide underlying architectural issues.
   app.run(debug=True)
-
-
-
