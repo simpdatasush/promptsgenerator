@@ -222,12 +222,25 @@ def get_dynamic_model_name(prompt_instruction: str) -> str:
     return final_model
 
 
+with app.app_context():
+    # Use raw SQL to add the columns to the existing 'user' table
+    db.engine.execute('ALTER TABLE user ADD COLUMN api_key VARCHAR(100) UNIQUE')
+    db.engine.execute('ALTER TABLE user ADD COLUMN is_locked BOOLEAN DEFAULT FALSE')
+    print("Database columns added successfully.")
+
+
 # --- UPDATED: User Model for SQLAlchemy and Flask-Login ---
 class User(db.Model, UserMixin):
   id = db.Column(db.Integer, primary_key=True)
   username = db.Column(db.String(80), unique=True, nullable=False)
   password_hash = db.Column(db.String(128), nullable=False)
   is_admin = db.Column(db.Boolean, default=False)
+
+  # --- ADD THESE NEW FIELDS ---
+  api_key = db.Column(db.String(100), unique=True, nullable=True) # For API Authentication
+  is_locked = db.Column(db.Boolean, default=False) # To disable API access if needed
+  # ----------------------------
+  
   last_prompt_request = db.Column(db.DateTime, nullable=True) # For cooldown
   daily_prompt_count = db.Column(db.Integer, default=0, nullable=False) # NEW: Daily prompt count
   last_count_reset_date = db.Column(db.Date, nullable=True) # NEW: Date when count was last reset
@@ -891,6 +904,154 @@ async def reverse_prompt_endpoint():
         # LOG THE ERROR
         log_app_event(user.id, f"Reverse Prompt Error: {str(e)[:50]}", "danger")
         return jsonify({"error": str(e)}), 500
+
+
+@app.route('/admin/users')
+@admin_required
+def admin_users():
+    """
+    Renders the admin dashboard to manage users and their API keys.
+    """
+    users = User.query.all()
+    users_data = []
+    
+    for user in users:
+        users_data.append({
+            'id': user.id,
+            'username': user.username,
+            'email': user.email,
+            'api_key': user.api_key, # New field from supporting code
+            'is_admin': user.is_admin,
+            'is_locked': getattr(user, 'is_locked', False), # Safety check for field
+            'daily_limit': getattr(user, 'daily_limit', 0)
+        })
+
+    return render_template('admin_users.html', users=users_data, current_user=current_user)
+
+import secrets
+from flask import flash, redirect, url_for
+from .models import db, User # Adjust based on your file structure
+
+@app.route('/admin/users/generate_api_key/<int:user_id>', methods=['POST'])
+@admin_required
+def generate_api_key(user_id):
+    """
+    Generates a secure random API key for a specific user.
+    """
+    user = User.query.get_or_404(user_id)
+    
+    # Generate a cryptographically secure random 64-character hex string
+    # 'sp_live_' prefix helps identify your app's keys in logs/code
+    random_key = f"sp_live_{secrets.token_hex(32)}"
+    
+    try:
+        user.api_key = random_key
+        db.session.commit()
+        flash(f"New API key generated for {user.username}.", "success")
+    except Exception as e:
+        db.session.rollback()
+        flash(f"Error generating API key: {str(e)}", "danger")
+        
+    return redirect(url_for('admin_users'))
+
+@app.route('/admin/users/toggle_access/<int:user_id>', methods=['POST'])
+@admin_required
+def toggle_user_access(user_id):
+    """
+    Locks or unlocks a user account to control API access.
+    """
+    user = User.query.get_or_404(user_id)
+    
+    # Toggle the boolean status
+    user.is_locked = not user.is_locked
+    
+    status = "locked" if user.is_locked else "unlocked"
+    db.session.commit()
+    flash(f"User {user.username} has been {status}.", "info")
+    
+    return redirect(url_for('admin_users'))
+
+#step 4 
+from flask import request, jsonify
+from datetime import datetime
+# Assuming News and ApiRequestLog models are imported
+
+@app.route('/api/v1/news/search', methods=['GET'])
+@api_key_required
+def api_search_news(user):
+    """
+    Search endpoint for the News database.
+    Excludes system logs and requires an 'X-API-KEY' header. [cite: 18, 55-56]
+    """
+    start_time = datetime.utcnow()
+    status_code = 200
+    
+    try:
+        # 1. Retrieve the search query from URL parameters
+        query = request.args.get('q', '').strip()
+        limit = min(int(request.args.get('limit', 10)), 50) # Default 10, max 50
+
+        if not query:
+            status_code = 400
+            return jsonify({"error": "Please provide a search query using the 'q' parameter."}), status_code
+
+        # 2. Query the existing News database model
+        # We filter by title and description to find relevant news
+        search_results = News.query.filter(
+            (News.title.ilike(f'%{query}%')) | 
+            (News.description.ilike(f'%{query}%'))
+        ).order_by(News.published_date.desc()).limit(limit).all()
+
+        # 3. Format the data for JSON response
+        results = [{
+            "id": news.id,
+            "title": news.title,
+            "url": news.url,
+            "description": news.description,
+            "published_at": news.published_date.isoformat() if news.published_date else None
+        } for news in search_results]
+
+        return jsonify({
+            "status": "success",
+            "count": len(results),
+            "data": results
+        }), status_code
+
+    except Exception as e:
+        app.logger.error(f"Error in Web Search API: {str(e)}")
+        status_code = 500
+        return jsonify({"error": "An internal server error occurred."}), status_code
+
+    finally:
+        # 4. Log the request for the Performance Dashboard [cite: 151-165]
+        end_time = datetime.utcnow()
+        latency_ms = (end_time - start_time).total_seconds() * 1000
+        
+        log_entry = ApiRequestLog(
+            user_id=user.id,
+            endpoint='/api/v1/news/search',
+            request_timestamp=start_time,
+            latency_ms=latency_ms,
+            status_code=status_code,
+            raw_input=f"Query: {query}" # Log the search term
+        )
+        db.session.add(log_entry)
+        db.session.commit()
+
+#step 5: 
+@app.route('/admin/api-performance')
+@admin_required
+def admin_api_performance():
+    """
+    Renders the API Performance Dashboard with the latest request logs.
+    """
+    # Fetch the 100 most recent logs to keep the dashboard snappy
+    logs = ApiRequestLog.query.order_by(ApiRequestLog.request_timestamp.desc()).limit(100).all()
+    
+    # Create a lookup map for usernames to avoid multiple DB queries in the template
+    users = {user.id: user for user in User.query.all()}
+    
+    return render_template('admin_api_performance.html', api_logs=logs, users=users)
       
 
 @app.route('/process_image_prompt', methods=['POST'])
