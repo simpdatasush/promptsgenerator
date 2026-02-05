@@ -354,16 +354,6 @@ with app.app_context():
             if 'is_locked' not in existing_columns:
                 app.logger.info("Patching: Adding is_locked to user table.")
                 conn.execute(text('ALTER TABLE "user" ADD COLUMN is_locked BOOLEAN DEFAULT FALSE'))
-
-            # --- PATCH API_REQUEST_LOG TABLE ---
-            log_cols = [col['name'] for col in inspector.get_columns('api_request_log')]
-            if 'method' not in log_cols:
-                app.logger.info("Patching: Adding method to api_request_log.")
-                conn.execute(text('ALTER TABLE api_request_log ADD COLUMN method VARCHAR(10)'))
-            
-            if 'raw_input' not in log_cols:
-                app.logger.info("Patching: Adding raw_input to api_request_log.")
-                conn.execute(text('ALTER TABLE api_request_log ADD COLUMN raw_input TEXT'))
             
             conn.commit()
             app.logger.info("Database patching completed.")
