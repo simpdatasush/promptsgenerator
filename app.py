@@ -255,10 +255,6 @@ class User(db.Model, UserMixin):
   def __repr__(self):
       return f'<User {self.username}>'
 
-with db.engine.connect() as connection:
-    connection.execute(text('ALTER TABLE user ADD COLUMN api_key VARCHAR(100) UNIQUE'))
-    connection.commit() # Important: explicitly commit changes in 2.0
-
 
 # --- NEW: RawPrompt Model for storing user's raw input requests ---
 class RawPrompt(db.Model):
@@ -322,6 +318,25 @@ blog_id_tracker = []
 with app.app_context():
     try:
         db.create_all()
+
+        # 2. PATCH: Check for missing columns in 'user' table
+        inspector = inspect(db.engine)
+        existing_columns = [col['name'] for col in inspector.get_columns('user')]
+        
+        with db.engine.connect() as conn:
+            # Check api_key
+            if 'api_key' not in existing_columns:
+                app.logger.info("Patching: Adding api_key to user table.")
+                conn.execute(text('ALTER TABLE "user" ADD COLUMN api_key VARCHAR(100) UNIQUE'))
+            
+            # Check is_locked
+            if 'is_locked' not in existing_columns:
+                app.logger.info("Patching: Adding is_locked to user table.")
+                conn.execute(text('ALTER TABLE "user" ADD COLUMN is_locked BOOLEAN DEFAULT FALSE'))
+            
+            # Important: SQLAlchemy 2.0 commit
+            conn.commit()
+        
         # Using .ilike for more flexible matching (handles cases/slashes better)
         internal_blogs = News.query.filter(News.url.ilike('%blog_content%')).all()
         blog_id_tracker = [b.id for b in internal_blogs]
