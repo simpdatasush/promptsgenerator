@@ -1631,7 +1631,19 @@ def edit_blog_post(post_id):
 
     return redirect(url_for('admin_blogs'))
 
-
+@app.route('/admin/api-performance')
+@admin_required
+def admin_api_performance():
+    """
+    Renders the API Performance Dashboard with the latest request logs.
+    """
+    # Fetch the 100 most recent logs to keep the dashboard snappy
+    logs = ApiRequestLog.query.order_by(ApiRequestLog.request_timestamp.desc()).limit(100).all()
+    
+    # Create a lookup map for usernames to avoid multiple DB queries in the template
+    users = {user.id: user for user in User.query.all()}
+    
+    return render_template('admin_api_performance.html', api_logs=logs, users=users)
 
 @app.route('/blog_content/<uuid:blog_uuid>')
 def view_blog_content(blog_uuid):
