@@ -315,6 +315,18 @@ class Job(db.Model):
        return f'<Job {self.title} at {self.company}>'
 # --- END UPDATED: Job Model ---
 
+# --- ADD THIS NOW ---
+class ApiRequestLog(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+    endpoint = db.Column(db.String(255), nullable=False)
+    method = db.Column(db.String(10), nullable=False)
+    status_code = db.Column(db.Integer)
+    response_time = db.Column(db.Float) 
+    request_timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+
+    user = db.relationship('User', backref=db.backref('api_logs', lazy=True))
+
 # Initialize variable
 blog_id_tracker = []
 
@@ -945,27 +957,48 @@ def admin_users():
 
     return render_template('admin_users.html', users=users_data, current_user=current_user)
 
+
 def api_key_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
+        start_time = time.time() # Start the timer
+        
         # 1. Get the key from the header
         api_key = request.headers.get('X-API-KEY')
         
         if not api_key:
             return jsonify({"error": "API Key is missing"}), 401
         
-        # 2. Look up the user by API Key
+        # 2. Authenticate User
         user = User.query.filter_by(api_key=api_key).first()
         
-        if not user:
-            return jsonify({"error": "Invalid API Key"}), 401
+        if not user or user.is_locked:
+            status = 403 if user and user.is_locked else 401
+            return jsonify({"error": "Unauthorized or Locked"}), status
+
+        # 3. Execute the actual route function
+        response = f(user, *args, **kwargs)
+
+        # 4. LOGGING LOGIC: Save the request details
+        try:
+            duration = time.time() - start_time
+            # Determine status code (handles both tuple and response object)
+            status_code = response[1] if isinstance(response, tuple) else response.status_code
             
-        # 3. Check if the account is locked (using our new column!)
-        if user.is_locked:
-            return jsonify({"error": "This API key has been disabled"}), 403
-            
-        # Pass the user object to the route in case we need it
-        return f(user, *args, **kwargs)
+            new_log = ApiRequestLog(
+                user_id=user.id,
+                endpoint=request.path,
+                method=request.method,
+                status_code=status_code,
+                response_time=round(duration, 4)
+            )
+            db.session.add(new_log)
+            db.session.commit()
+        except Exception as e:
+            db.session.rollback()
+            app.logger.error(f"Failed to log API request: {e}")
+
+        return response
     return decorated_function
 
 @app.route('/admin/users/generate_api_key/<int:user_id>', methods=['POST'])
@@ -1068,6 +1101,20 @@ def api_search_news(user):
         )
         db.session.add(log_entry)
         db.session.commit()
+
+@app.route('/admin/api-performance')
+@admin_required
+def admin_api_performance():
+    """
+    Renders the API Performance Dashboard with the latest request logs.
+    """
+    # Fetch the 100 most recent logs to keep the dashboard snappy
+    logs = ApiRequestLog.query.order_by(ApiRequestLog.request_timestamp.desc()).limit(100).all()
+    
+    # Create a lookup map for usernames to avoid multiple DB queries in the template
+    users = {user.id: user for user in User.query.all()}
+    
+    return render_template('admin_api_performance.html', api_logs=logs, users=users)
       
 
 @app.route('/process_image_prompt', methods=['POST'])
@@ -1630,20 +1677,6 @@ def edit_blog_post(post_id):
         flash(f'Error updating blog: {e}', 'danger')
 
     return redirect(url_for('admin_blogs'))
-
-@app.route('/admin/api-performance')
-@admin_required
-def admin_api_performance():
-    """
-    Renders the API Performance Dashboard with the latest request logs.
-    """
-    # Fetch the 100 most recent logs to keep the dashboard snappy
-    logs = ApiRequestLog.query.order_by(ApiRequestLog.request_timestamp.desc()).limit(100).all()
-    
-    # Create a lookup map for usernames to avoid multiple DB queries in the template
-    users = {user.id: user for user in User.query.all()}
-    
-    return render_template('admin_api_performance.html', api_logs=logs, users=users)
 
 @app.route('/blog_content/<uuid:blog_uuid>')
 def view_blog_content(blog_uuid):
