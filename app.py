@@ -23,7 +23,6 @@ from google import genai as gemma_genai
 from google.genai import types as gemma_types   # Required for GenerateContentConfig
 from zai import ZaiClient as ZhipuAI
 # 1. Use absolute import
-from models import db, User
 import secrets
 from datetime import datetime
 # Assuming News and ApiRequestLog models are imported
@@ -319,35 +318,36 @@ class Job(db.Model):
 # Initialize variable
 blog_id_tracker = []
 
-# RUNS ON STARTUP: Rebuilds tracker from the /var/data/site.db file
 with app.app_context():
     try:
+        # 1. Create tables that don't exist yet
         db.create_all()
 
-        # 2. PATCH: Check for missing columns in 'user' table
+        # 2. Patch existing 'user' table (For Render/Production)
+        from sqlalchemy import text, inspect
         inspector = inspect(db.engine)
         existing_columns = [col['name'] for col in inspector.get_columns('user')]
         
         with db.engine.connect() as conn:
-            # Check api_key
+            # Add api_key if missing
             if 'api_key' not in existing_columns:
                 app.logger.info("Patching: Adding api_key to user table.")
                 conn.execute(text('ALTER TABLE "user" ADD COLUMN api_key VARCHAR(100) UNIQUE'))
             
-            # Check is_locked
+            # Add is_locked if missing
             if 'is_locked' not in existing_columns:
                 app.logger.info("Patching: Adding is_locked to user table.")
                 conn.execute(text('ALTER TABLE "user" ADD COLUMN is_locked BOOLEAN DEFAULT FALSE'))
             
-            # Important: SQLAlchemy 2.0 commit
             conn.commit()
-        
-        # Using .ilike for more flexible matching (handles cases/slashes better)
+
+        # 3. Load the tracker (News is already in this file, so no import needed!)
         internal_blogs = News.query.filter(News.url.ilike('%blog_content%')).all()
         blog_id_tracker = [b.id for b in internal_blogs]
         app.logger.info(f"Startup: Loaded {len(blog_id_tracker)} blogs into tracker.")
+
     except Exception as e:
-        app.logger.error(f"Startup recovery failed: {e}")
+        app.logger.error(f"Startup failed: {e}")
 
 # RUNS ON EVERY REQUEST: Keeps the list fresh if a new blog is added or deleted
 @app.before_request
