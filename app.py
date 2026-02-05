@@ -925,6 +925,116 @@ def admin_users():
         })
 
     return render_template('admin_users.html', users=users_data, current_user=current_user)
+
+import secrets
+from flask import flash, redirect, url_for
+from .models import db, User # Adjust based on your file structure
+
+@app.route('/admin/users/generate_api_key/<int:user_id>', methods=['POST'])
+@admin_required
+def generate_api_key(user_id):
+    """
+    Generates a secure random API key for a specific user.
+    """
+    user = User.query.get_or_404(user_id)
+    
+    # Generate a cryptographically secure random 64-character hex string
+    # 'sp_live_' prefix helps identify your app's keys in logs/code
+    random_key = f"sp_live_{secrets.token_hex(32)}"
+    
+    try:
+        user.api_key = random_key
+        db.session.commit()
+        flash(f"New API key generated for {user.username}.", "success")
+    except Exception as e:
+        db.session.rollback()
+        flash(f"Error generating API key: {str(e)}", "danger")
+        
+    return redirect(url_for('admin_users'))
+
+@app.route('/admin/users/toggle_access/<int:user_id>', methods=['POST'])
+@admin_required
+def toggle_user_access(user_id):
+    """
+    Locks or unlocks a user account to control API access.
+    """
+    user = User.query.get_or_404(user_id)
+    
+    # Toggle the boolean status
+    user.is_locked = not user.is_locked
+    
+    status = "locked" if user.is_locked else "unlocked"
+    db.session.commit()
+    flash(f"User {user.username} has been {status}.", "info")
+    
+    return redirect(url_for('admin_users'))
+
+
+from flask import request, jsonify
+from datetime import datetime
+# Assuming News and ApiRequestLog models are imported
+
+@app.route('/api/v1/news/search', methods=['GET'])
+@api_key_required
+def api_search_news(user):
+    """
+    Search endpoint for the News database.
+    Excludes system logs and requires an 'X-API-KEY' header. [cite: 18, 55-56]
+    """
+    start_time = datetime.utcnow()
+    status_code = 200
+    
+    try:
+        # 1. Retrieve the search query from URL parameters
+        query = request.args.get('q', '').strip()
+        limit = min(int(request.args.get('limit', 10)), 50) # Default 10, max 50
+
+        if not query:
+            status_code = 400
+            return jsonify({"error": "Please provide a search query using the 'q' parameter."}), status_code
+
+        # 2. Query the existing News database model
+        # We filter by title and description to find relevant news
+        search_results = News.query.filter(
+            (News.title.ilike(f'%{query}%')) | 
+            (News.description.ilike(f'%{query}%'))
+        ).order_by(News.published_date.desc()).limit(limit).all()
+
+        # 3. Format the data for JSON response
+        results = [{
+            "id": news.id,
+            "title": news.title,
+            "url": news.url,
+            "description": news.description,
+            "published_at": news.published_date.isoformat() if news.published_date else None
+        } for news in search_results]
+
+        return jsonify({
+            "status": "success",
+            "count": len(results),
+            "data": results
+        }), status_code
+
+    except Exception as e:
+        app.logger.error(f"Error in Web Search API: {str(e)}")
+        status_code = 500
+        return jsonify({"error": "An internal server error occurred."}), status_code
+
+    finally:
+        # 4. Log the request for the Performance Dashboard [cite: 151-165]
+        end_time = datetime.utcnow()
+        latency_ms = (end_time - start_time).total_seconds() * 1000
+        
+        log_entry = ApiRequestLog(
+            user_id=user.id,
+            endpoint='/api/v1/news/search',
+            request_timestamp=start_time,
+            latency_ms=latency_ms,
+            status_code=status_code,
+            raw_input=f"Query: {query}" # Log the search term
+        )
+        db.session.add(log_entry)
+        db.session.commit()
       
 
 @app.route('/process_image_prompt', methods=['POST'])
