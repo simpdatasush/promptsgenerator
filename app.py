@@ -945,6 +945,28 @@ def admin_users():
 
     return render_template('admin_users.html', users=users_data, current_user=current_user)
 
+def api_key_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        # 1. Get the key from the header
+        api_key = request.headers.get('X-API-KEY')
+        
+        if not api_key:
+            return jsonify({"error": "API Key is missing"}), 401
+        
+        # 2. Look up the user by API Key
+        user = User.query.filter_by(api_key=api_key).first()
+        
+        if not user:
+            return jsonify({"error": "Invalid API Key"}), 401
+            
+        # 3. Check if the account is locked (using our new column!)
+        if user.is_locked:
+            return jsonify({"error": "This API key has been disabled"}), 403
+            
+        # Pass the user object to the route in case we need it
+        return f(user, *args, **kwargs)
+    return decorated_function
 
 @app.route('/admin/users/generate_api_key/<int:user_id>', methods=['POST'])
 @admin_required
