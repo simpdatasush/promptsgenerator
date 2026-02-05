@@ -27,6 +27,7 @@ from zai import ZaiClient as ZhipuAI
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
+from sqlalchemy import text
 # --- END NEW IMPORTS ---
 
 
@@ -254,11 +255,9 @@ class User(db.Model, UserMixin):
   def __repr__(self):
       return f'<User {self.username}>'
 
-with app.app_context():
-    # Use raw SQL to add the columns to the existing 'user' table
-    db.engine.execute('ALTER TABLE user ADD COLUMN api_key VARCHAR(100) UNIQUE')
-    db.engine.execute('ALTER TABLE user ADD COLUMN is_locked BOOLEAN DEFAULT FALSE')
-    print("Database columns added successfully.")
+with db.engine.connect() as connection:
+    connection.execute(text('ALTER TABLE user ADD COLUMN api_key VARCHAR(100) UNIQUE'))
+    connection.commit() # Important: explicitly commit changes in 2.0
 
 
 # --- NEW: RawPrompt Model for storing user's raw input requests ---
