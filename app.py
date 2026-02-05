@@ -227,7 +227,11 @@ class User(db.Model, UserMixin):
   id = db.Column(db.Integer, primary_key=True)
   username = db.Column(db.String(80), unique=True, nullable=False)
   password_hash = db.Column(db.String(128), nullable=False)
-  is_admin = db.Column(db.Boolean, default=False)  
+  is_admin = db.Column(db.Boolean, default=False)
+  # --- ADD THESE NEW FIELDS ---
+  api_key = db.Column(db.String(100), unique=True, nullable=True) # For API Authentication
+  is_locked = db.Column(db.Boolean, default=False) # To disable API access if needed
+  # ----------------------------
   last_prompt_request = db.Column(db.DateTime, nullable=True) # For cooldown
   daily_prompt_count = db.Column(db.Integer, default=0, nullable=False) # NEW: Daily prompt count
   last_count_reset_date = db.Column(db.Date, nullable=True) # NEW: Date when count was last reset
@@ -249,6 +253,12 @@ class User(db.Model, UserMixin):
 
   def __repr__(self):
       return f'<User {self.username}>'
+
+with app.app_context():
+    # Use raw SQL to add the columns to the existing 'user' table
+    db.engine.execute('ALTER TABLE user ADD COLUMN api_key VARCHAR(100) UNIQUE')
+    db.engine.execute('ALTER TABLE user ADD COLUMN is_locked BOOLEAN DEFAULT FALSE')
+    print("Database columns added successfully.")
 
 
 # --- NEW: RawPrompt Model for storing user's raw input requests ---
@@ -891,6 +901,30 @@ async def reverse_prompt_endpoint():
         # LOG THE ERROR
         log_app_event(user.id, f"Reverse Prompt Error: {str(e)[:50]}", "danger")
         return jsonify({"error": str(e)}), 500
+
+
+
+@app.route('/admin/users')
+@admin_required
+def admin_users():
+    """
+    Renders the admin dashboard to manage users and their API keys.
+    """
+    users = User.query.all()
+    users_data = []
+    
+    for user in users:
+        users_data.append({
+            'id': user.id,
+            'username': user.username,
+            'email': user.email,
+            'api_key': user.api_key, # New field from supporting code
+            'is_admin': user.is_admin,
+            'is_locked': getattr(user, 'is_locked', False), # Safety check for field
+            'daily_limit': getattr(user, 'daily_limit', 0)
+        })
+
+    return render_template('admin_users.html', users=users_data, current_user=current_user)
       
 
 @app.route('/process_image_prompt', methods=['POST'])
