@@ -22,6 +22,11 @@ import string # NEW: For string manipulation in username generation
 from google import genai as gemma_genai
 from google.genai import types as gemma_types   # Required for GenerateContentConfig
 from zai import ZaiClient as ZhipuAI
+# 1. Use absolute import
+from models import db, User
+import secrets
+from datetime import datetime
+# Assuming News and ApiRequestLog models are imported
 
 # --- NEW IMPORTS FOR AUTHENTICATION ---
 from flask_sqlalchemy import SQLAlchemy
@@ -940,9 +945,6 @@ def admin_users():
 
     return render_template('admin_users.html', users=users_data, current_user=current_user)
 
-import secrets
-from flask import flash, redirect, url_for
-from .models import db, User # Adjust based on your file structure
 
 @app.route('/admin/users/generate_api_key/<int:user_id>', methods=['POST'])
 @admin_required
@@ -982,11 +984,6 @@ def toggle_user_access(user_id):
     flash(f"User {user.username} has been {status}.", "info")
     
     return redirect(url_for('admin_users'))
-
-
-from flask import request, jsonify
-from datetime import datetime
-# Assuming News and ApiRequestLog models are imported
 
 @app.route('/api/v1/news/search', methods=['GET'])
 @api_key_required
