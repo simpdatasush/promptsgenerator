@@ -1101,7 +1101,7 @@ def api_search_news(user):
             user_id=user.id,
             endpoint='/api/v1/news/search',
             request_timestamp=start_time,
-            response_time=duration_ms,
+            response_time=latency_ms,
             status_code=status_code,
             raw_input=f"Query: {query}" # Log the search term
         )
