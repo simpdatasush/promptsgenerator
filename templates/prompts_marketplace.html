@@ -442,38 +442,35 @@ function filterByLetter(letter, element) {
                     </div>
 
                     <div class="engagement-bar d-flex align-items-center my-3">
-                    <div class="llm-shortcuts d-flex gap-2">
-                       <button class="btn btn-sm btn-light border mr-1" title="Copy & Open ChatGPT" 
-                        onclick="copyAndLaunch('${p.id}', 'https://chatgpt.com',event)">
-                        <i class="fa-solid fa-robot text-success"></i> GPT
-                    </button>
-                       <button class="btn btn-sm btn-light border mr-2" title="Copy & Open Gemini" 
-                      onclick="copyAndLaunch('${p.id}', 'https://gemini.google.com',event)">
-                     <i class="fa-solid fa-stars text-primary"></i> Gemini
-                    </button>
-                   </div>
-                        <div class="ml-auto">
-                            <a href="/donate" class="btn btn-outline-primary btn-sm mr-3">Donate!</a>
-                            <a href="https://x.com/intent/post?text=${encodeURIComponent('Check out this AI prompt: ' + p.title + ' \n\n' + p.content.substring(0, 100) + '...')}&url=${encodeURIComponent(window.location.href)}" 
-       target="_blank" class="share-link">
-       <i class="fa-brands fa-x-twitter"></i>
-    </a>
-    <a href="https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(window.location.href)}" 
-       target="_blank" class="share-link ml-2">
-       <i class="fa-brands fa-linkedin"></i>
-    </a>
-                    </div>
-                    </div>
-                    <div class="mt-auto">
-                        ${!isLocked ? `
-                            <button class="btn btn-block btn-outline-success btn-copy-premium" onclick = "copyToClipboard('${p.id}', event)">
-                                <i class="fas fa-copy"></i> Copy Prompt
-                            </button>
-                        ` : `
-                            <a href="/donate" class="btn btn-block btn-primary-gradient"><i class="fas fa-unlock"></i> Unlock Now</a>
-                        `}
-                    </div>
-                </div>`;
+    <button class="btn btn-sm btn-outline-success mr-2" onclick="copyToClipboard('${p.id}', this)">
+        <i class="fas fa-copy"></i> Copy Prompt
+    </button>
+    
+    <div class="ml-auto d-flex align-items-center">
+        <a href="/donate" class="btn btn-outline-primary btn-sm mr-3">Donate!</a>
+        <a href="https://x.com/intent/post?text=${encodeURIComponent('Check out this AI prompt: ' + p.title)}" target="_blank" class="share-link mr-2">
+            <i class="fa-brands fa-x-twitter"></i>
+        </a>
+        <a href="https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(window.location.href)}" target="_blank" class="share-link">
+            <i class="fa-brands fa-linkedin"></i>
+        </a>
+    </div>
+</div>
+
+<div class="mt-auto d-flex gap-2">
+    ${!isLocked ? `
+        <button class="btn btn-primary-premium flex-grow-1 mr-1" onclick="copyAndLaunch('${p.id}', 'https://chatgpt.com', this)">
+            <i class="fa-solid fa-robot"></i> ChatGPT
+        </button>
+        <button class="btn btn-primary-premium flex-grow-1" onclick="copyAndLaunch('${p.id}', 'https://gemini.google.com', this)">
+            <i class="fa-solid fa-stars"></i> Gemini
+        </button>
+    ` : `
+        <a href="/donate" class="btn btn-block btn-primary-premium"><i class="fas fa-unlock"></i> Unlock Now</a>
+    `}
+</div>
+</div>`; // End of prompt-card
+           
         });
         section += `</div>`;
         container.insertAdjacentHTML('beforeend', section);
