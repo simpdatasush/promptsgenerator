@@ -444,11 +444,11 @@ function filterByLetter(letter, element) {
                     <div class="engagement-bar d-flex align-items-center my-3">
                     <div class="llm-shortcuts d-flex gap-2">
                        <button class="btn btn-sm btn-light border mr-1" title="Copy & Open ChatGPT" 
-                        onclick="copyAndLaunch('${p.id}', 'https://chatgpt.com')">
+                        onclick="copyAndLaunch('${p.id}', 'https://chatgpt.com',event)">
                         <i class="fa-solid fa-robot text-success"></i> GPT
                     </button>
                        <button class="btn btn-sm btn-light border mr-2" title="Copy & Open Gemini" 
-                      onclick="copyAndLaunch('${p.id}', 'https://gemini.google.com')">
+                      onclick="copyAndLaunch('${p.id}', 'https://gemini.google.com',event)">
                      <i class="fa-solid fa-stars text-primary"></i> Gemini
                     </button>
                    </div>
@@ -482,55 +482,48 @@ function filterByLetter(letter, element) {
 
 document.addEventListener("DOMContentLoaded", () => filterByLetter('ALL'));
 
-function copyToClipboard(id,event) {
-    // Find the prompt data by ID from our global array
+function copyToClipboard(id, event) {
     const promptData = allPrompts.find(p => String(p.id) === String(id));
     
     if (promptData && promptData.visibility !== "LOCKED") {
-        const textToCopy = promptData.content;
+        const textToCopy = promptData.content; 
         
         navigator.clipboard.writeText(textToCopy).then(() => {
-            // UI Feedback: Target the button that was clicked
-            const btn = event.currentTarget;
+            // UI Feedback Fix
+            const btn = event.currentTarget; 
             const originalHTML = btn.innerHTML;
             
             btn.innerHTML = '<i class="fas fa-check"></i> Copied!';
             btn.classList.add('btn-success');
-            btn.classList.remove('btn-outline-success');
             
             setTimeout(() => {
                 btn.innerHTML = originalHTML;
                 btn.classList.remove('btn-success');
-                btn.classList.add('btn-outline-success');
             }, 2000);
-        }).catch(err => {
-            console.error('Failed to copy: ', err);
         });
     }
 }
 
-// In your filterByLetter loop:
-section += `
-    <button class="btn btn-sm btn-light border mr-1" 
-            onclick="copyAndLaunch('${p.id}', 'https://chatgpt.com', event)">
-        <i class="fa-solid fa-robot"></i> GPT
-    </button>
-`;
-
-// The supporting function:
 function copyAndLaunch(id, url, event) {
     const promptData = allPrompts.find(p => String(p.id) === String(id));
+    
     if (promptData && promptData.visibility !== "LOCKED") {
         navigator.clipboard.writeText(promptData.content).then(() => {
+            // Provide visual feedback on the small button
             const btn = event.currentTarget;
             const originalHTML = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-check"></i>';
             
-            // Visual feedback even on the shortcut button
-            btn.innerHTML = '<i class="fas fa-check"></i>'; 
-            setTimeout(() => { btn.innerHTML = originalHTML; }, 1500);
-            
+            setTimeout(() => { btn.innerHTML = originalHTML; }, 1000);
+
+            // Open the LLM in a new tab
+            window.open(url, '_blank');
+        }).catch(() => {
+            // Fallback: If clipboard fails, still open the site
             window.open(url, '_blank');
         });
+    } else {
+        alert("This prompt is locked!");
     }
 }
 
