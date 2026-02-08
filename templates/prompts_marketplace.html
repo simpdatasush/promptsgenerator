@@ -443,11 +443,11 @@ function filterByLetter(letter, element) {
 
                     <div class="llm-shortcuts d-flex">
         <button class="btn btn-sm btn-light border mr-1" 
-                onclick="copyAndLaunch('${p.id}', 'https://chatgpt.com', this, event)">
+                onclick="copyAndLaunch('${p.id}', 'https://chatgpt.com', event)">
             <i class="fa-solid fa-robot"></i> GPT
         </button>
         <button class="btn btn-sm btn-light border mr-2" 
-                onclick="copyAndLaunch('${p.id}', 'https://gemini.google.com', this, event)">
+                onclick="copyAndLaunch('${p.id}', 'https://gemini.google.com', event)">
             <i class="fa-solid fa-stars"></i> Gemini
         </button>
     </div>
@@ -486,32 +486,29 @@ function filterByLetter(letter, element) {
     }
 }
 
-document.addEventListener("DOMContentLoaded", () => filterByLetter('ALL'));
-
-function copyToClipboard(id, btn) { // 'btn' is passed directly via 'this'
-    const promptData = allPrompts.find(p => String(p.id) === String(id)); [cite: 404]
+function copyToClipboard(id, event) {
+    const promptData = allPrompts.find(p => String(p.id) === String(id));
     
-    if (promptData && promptData.visibility !== "LOCKED") { [cite: 405]
-        const textToCopy = promptData.content; [cite: 406]
+    if (promptData && promptData.visibility !== "LOCKED") {
+        const textToCopy = promptData.content;
         
-        navigator.clipboard.writeText(textToCopy).then(() => { [cite: 407]
-            const originalHTML = btn.innerHTML; [cite: 410]
+        navigator.clipboard.writeText(textToCopy).then(() => {
+            // UI Feedback Fix
+            const btn = event.currentTarget; 
+            const originalHTML = btn.innerHTML;
             
-            // Apply Visual Change
-            btn.innerHTML = '<i class="fas fa-check"></i> Copied!'; [cite: 411]
-            btn.classList.add('btn-success'); [cite: 412]
-            btn.classList.remove('btn-outline-success'); [cite: 413]
+            btn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+            btn.classList.add('btn-success');
             
             setTimeout(() => {
-                btn.innerHTML = originalHTML; [cite: 415]
-                btn.classList.remove('btn-success'); [cite: 416]
-                btn.classList.add('btn-outline-success'); [cite: 417]
-            }, 2000); [cite: 418]
+                btn.innerHTML = originalHTML;
+                btn.classList.remove('btn-success');
+            }, 2000);
         });
     }
 }
 
-function copyAndLaunch(id, url, btn, event) {
+function copyAndLaunch(id, url, event) {
     const promptData = allPrompts.find(p => String(p.id) === String(id));
     
     if (promptData && promptData.visibility !== "LOCKED") {
