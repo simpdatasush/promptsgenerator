@@ -166,7 +166,7 @@ body {
     <div class="container">
         <div class="text-center mb-5">
             <h2 class="font-weight-bold">AI Discovery Hub</h2>
-            <p class="text-muted">NewsBites, Curated websites, newsletters, books, repos, papers, patents and podcasts.</p>
+            <p class="text-muted">NewsBites, Newsletters, Curated Websites, Books, Podcasts, Repos, Papers, Patents, Workshops, Seminars & Educational Courses</p>
         </div>
 
         <div class="alphabet-nav d-flex flex-wrap justify-content-center mb-5">
@@ -227,7 +227,7 @@ body {
                 resources.forEach(res => {
                     let icon = "fa-globe";
                     if(res.category === "Newsletter") icon = "fa-envelope-open-text";
-                    if(res.category === "Podcast") icon = "fa-microphone-alt";
+                    if(res.category === "Seminars & Podcast") icon = "fa-microphone-alt";
                     if(res.category === "Book") icon = "fa-book";
                     if(res.category === "Channel") icon = "fa-play-circle";
                     // New Categories
@@ -235,6 +235,8 @@ body {
                     if(res.category === "Repos.")       icon = "fa-code-branch";   // For Github/HuggingFace Repos
                     if(res.category === "IP")         icon = "fa-fingerprint";   // For Intellectual Property/Patents
                     if (res.category === "NewsBites") icon = "fa-bolt"; // For NewsBites
+                    // New Categories
+                    if (res.category === "Workshops" || res.category === "Education") icon = "fa-chalkboard-user"; // For Workshops & Education
                     section += `
                         <div class="brick-card">
                             <div class="d-flex justify-content-between align-items-start">
