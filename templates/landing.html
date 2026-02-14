@@ -304,15 +304,17 @@
 
 /* --- Modern Dark Footer Styles --- */
 .modern-footer {
-    background-color: #1a1a1a; /* Dark professional background */
+    background-color: #1a1a1a;
     color: #ffffff;
-    padding: 60px 0 30px; /* Generous spacing */
+    padding: 60px 0 30px;
     font-size: 0.9rem;
     border-top: 1px solid #334155;
     margin-top: 50px;
+    /* Aesthetic: Rounded Top Corners */
+    border-top-left-radius: 40px;
+    border-top-right-radius: 40px;
 }
 
-/* Titles for Resources/Stay Updated */
 .modern-footer h5 {
     color: #ffffff;
     font-weight: 700;
@@ -322,13 +324,11 @@
     letter-spacing: 1px;
 }
 
-/* Brand Text and Column Text */
 .footer-brand-text {
-    color: #94a3b8; /* Muted grey-blue for readability */
+    color: #94a3b8;
     line-height: 1.8;
 }
 
-/* Resource Links */
 .footer-links {
     list-style: none;
     padding: 0;
@@ -345,11 +345,10 @@
 }
 
 .footer-links a:hover {
-    color: #007bff; /* Brands your link blue on hover */
-    padding-left: 5px; /* Subtle movement effect */
+    color: #007bff;
+    padding-left: 5px;
 }
 
-/* Social Icon (X/Twitter) */
 .footer-social-icons a {
     width: 40px;
     height: 40px;
@@ -363,13 +362,12 @@
 }
 
 .footer-social-icons a:hover {
-    background: #000000; /* X Black */
+    background: #000000;
     transform: translateY(-3px);
     color: white;
     text-decoration: none;
 }
 
-/* Newsletter Button Styling */
 .newsletter-cta .btn-primary {
     background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
     border: none;
@@ -381,19 +379,30 @@
     box-shadow: 0 5px 15px rgba(0, 123, 255, 0.4);
 }
 
-/* Bottom Bar (Copyright area) */
+/* --- Bottom Bar Alignment Fixes --- */
 .footer-bottom {
     border-top: 1px solid #334155;
     margin-top: 50px;
     padding-top: 30px;
 }
 
+.footer-bottom p {
+    margin-bottom: 0;
+    line-height: 1.6;
+}
+
 .footer-bottom .text-muted {
     color: #64748b !important;
 }
 
-.footer-bottom a.text-muted:hover {
-    color: #ffffff !important;
+.footer-bottom a {
+    color: #007bff;
+    font-weight: 500;
+    text-decoration: none;
+}
+
+.footer-bottom a:hover {
+    text-decoration: underline;
 }
 
 #voice-assistant-container {
@@ -678,7 +687,7 @@
     <div class="container">
         <div class="row">
             <div class="col-lg-4 mb-4 mb-lg-0">
-                <img src="{{ url_for('static', filename='favicon.png') }}" alt="SuperPrompter Logo" style="height: 40px; margin-bottom: 20px; border-radius: 5px;">
+                <img src="{{ url_for('static', filename='favicon.png') }}" alt="Logo" style="height: 40px; margin-bottom: 20px; border-radius: 5px;">
                 <p class="footer-brand-text">
                     SuperPrompter AI is your ultimate hub for prompt engineering, 
                     AI-driven automation, and the latest news in generative technology. 
@@ -705,35 +714,36 @@
             </div>
 
             <div class="col-lg-5">
-    <h5>Stay Updated</h5>
-    <p class="footer-brand-text mb-4">Join 5,000+ enthusiasts getting weekly AI insights, prompt tips, and feature updates.</p>
-    
-    <div class="newsletter-cta">
-        <a href="https://flow.cleverreach.com/fl/f1b39182-4b74-4664-9c1d-c175cb3a670c/" 
-           target="_blank" 
-           class="btn btn-primary btn-block d-flex align-items-center justify-content-center" 
-           style="height: 50px; font-weight: 600; font-size: 16px; border-radius: 8px;">
-            <i class="fas fa-paper-plane mr-2"></i> Subscribe to Newsletter
-        </a>
-    </div>
-    
-    <small class="text-muted d-block mt-3">
-        <i class="fas fa-lock mr-1"></i> Your privacy is our priority. No spam, ever.
-    </small>
-</div>
+                <h5>Stay Updated</h5>
+                <p class="footer-brand-text mb-4">Join 5,000+ enthusiasts getting weekly AI insights, prompt tips, and feature updates.</p>
+                <div class="newsletter-cta">
+                    <a href="https://flow.cleverreach.com/fl/f1b39182-4b74-4664-9c1d-c175cb3a670c/" 
+                       target="_blank" 
+                       class="btn btn-primary btn-block d-flex align-items-center justify-content-center" 
+                       style="height: 50px; font-weight: 600; font-size: 16px; border-radius: 8px;">
+                        <i class="fas fa-paper-plane mr-2"></i> Subscribe to Newsletter
+                    </a>
+                </div>
+                <small class="text-muted d-block mt-3">
+                    <i class="fas fa-lock mr-1"></i> Your privacy is our priority. No spam, ever.
+                </small>
+            </div>
+        </div>
 
         <div class="footer-bottom d-flex flex-column flex-md-row justify-content-between align-items-center">
-            <div class="text-muted">
-                <p class="mb-1">&copy; 2025 SuperPrompter AI. All Rights Reserved.</p>
-                <p class="small mb-0">Developed by Sushrut Kulkarni</p>
+            <div class="footer-info-block text-center text-md-left mb-3 mb-md-0">
+                <p class="text-muted">© 2026 <strong>SuperPrompter AI</strong>. All Rights Reserved.</p>
+                <p class="small text-muted">Developed by <span style="color: #ffffff;">Sushrut Kulkarni</span></p>
             </div>
-            <div class="footer-legal-links mt-3 mt-md-0">
-                <span class="text-muted">Email: <a href="mailto:info@promptsgenerator.ai" class="text-muted">info@promptsgenerator.ai</a></span>
+            <div class="footer-contact-block">
+                <p class="text-muted">
+                    Email: <a href="mailto:info@promptsgenerator.ai">info@promptsgenerator.ai</a>
+                </p>
             </div>
         </div>
     </div>
 </footer>
-        
+
 
     <!-- Bootstrap JS and its dependencies -->
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
