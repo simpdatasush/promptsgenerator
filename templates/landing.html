@@ -348,32 +348,32 @@
     padding-left: 5px;
 }
 
-/* Social Icon (X/Twitter) Fix */
+/* Update for PNG Social Icons */
 .footer-social-icons a {
-    width: 40px;
-    height: 40px;
-    background: #334155; /* Dark blue-grey circle */
+    width: 45px;
+    height: 45px;
+    background: #334155; /* Circle background */
     display: inline-flex;
     align-items: center;
     justify-content: center;
     border-radius: 50%;
-    color: #ffffff !important; /* Forces the X icon to be WHITE */
-    font-size: 1.1rem;
-    transition: transform 0.3s ease, background 0.3s ease;
+    transition: all 0.3s ease;
     text-decoration: none;
 }
 
 .footer-social-icons a:hover {
-    background: #000000; /* Changes circle to black on hover */
+    background: #000000; /* Turns circle black on hover */
     transform: translateY(-3px);
-    color: #ffffff !important; /* Keeps X white */
-    text-decoration: none;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
 }
 
-/* Specific fix for Font Awesome brand icons */
-.footer-social-icons a i {
-    color: #ffffff !important;
+.footer-social-icons a img {
+    display: block;
+    transition: transform 0.3s ease;
+}
+
+.footer-social-icons a:hover img {
+    transform: scale(1.1); /* Subtle zoom effect on the icon itself */
 }
 
 .newsletter-cta .btn-primary {
