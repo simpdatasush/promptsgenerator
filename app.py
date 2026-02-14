@@ -2130,7 +2130,7 @@ def edit_prompt(prompt_id):
 @login_required
 @admin_required
 def delete_prompt(prompt_id):
-    prompt = SavedPrompt.query.get_or_404(prompt_id)
+    prompt = News.query.get_or_404(prompt_id)
     # Check if user is owner or admin
     if prompt.user_id != current_user.id and not current_user.is_admin:
         flash('Permission denied.', 'danger')
