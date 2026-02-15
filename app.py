@@ -647,7 +647,7 @@ def landing():
     has_new_jobs = False
 
     # 1. Fetch latest 6 news items
-    raw_news_items = News.query.filter(~News.description.like('[AI_APP]%'),~News.description.like('[APP_LOG]%'),~News.description.like('[PROMPT]%'),~News.description.like('[AI_HUB]%')).order_by(News.timestamp.desc()).limit(6).all()
+    raw_news_items = News.query.filter(~News.description.like('[AI_APP]%'),~News.description.like('[APP_LOG]%'),~News.description.like('[PROMPT]%'),~News.description.like('[AI_HUB]%'),~News.description.like('[AI-FACT]%')).order_by(News.timestamp.desc()).limit(6).all()
     
     # Process news items to clean the description for the summary view
     cleaned_news_items = []
@@ -2225,7 +2225,7 @@ def get_ai_fact():
     # Custom system instructions for the Facts page
     system_instruction = (
         "You are an AI Fact Expert. Respond to the user's question about AI. "
-        "CONSTRAINT: Your response MUST be less than 70 words. "
+        "CONSTRAINT: Your response MUST be less than 25 words. "
         "TONE: Informative, concise, and fascinating."
     )
     
