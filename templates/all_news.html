@@ -228,7 +228,11 @@ body {
 
     {% for article in articles %}
         <div class="article-card">
-            <img src="https://loremflickr.com/100/100/ai,technology?lock={{ loop.index }}" class="article-thumb" alt="">
+            <img src="https://picsum.photos/seed/art{{ loop.index }}/100/100" 
+     class="article-thumb" 
+     alt="Article Thumbnail"
+     onerror="this.onerror=null;this.src='https://placehold.co/100/007bff/ffffff?text=AI';">
+            
             
             <h3 class="article-title">
                 {% if article.id in blog_id_tracker %}
