@@ -9,71 +9,65 @@
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
     <link rel="apple-touch-icon" href="{{ url_for('static', filename='favicon.png') }}">
     <style>
-              :root {
-    --color-primary: #007bff;     /* Landing Page Blue */
-    --color-dark-bg: #343a40;     /* Landing Page Charcoal */
-    --color-accent: #C3497C;      /* Keeping Pink ONLY for AI Summary */
-    --color-bg-light: #f0f2f5;
-    --color-text-dark: #2c3e50;
-    --shadow-standard: 0 4px 15px rgba(0, 0, 0, 0.1);
-    --radius-standard: 10px;
-}
+        :root {
+            --color-primary: #007bff;
+            --color-dark-bg: #343a40;
+            --color-accent: #C3497C;
+            --color-bg-light: #f0f2f5;
+            --color-text-dark: #2c3e50;
+            --shadow-standard: 0 4px 15px rgba(0, 0, 0, 0.1);
+            --radius-standard: 10px;
+        }
 
-*, *::before, *::after { box-sizing: border-box; }
+        *, *::before, *::after { box-sizing: border-box; }
 
-body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    margin: 0;
-    padding-top: 100px; /* Unified gap for fixed header */
-    background-color: var(--color-bg-light);
-    color: var(--color-text-dark);
-    line-height: 1.6;
-    display: flex;
-    flex-direction: column;
-    min-height: 100vh;
-}
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding-top: 100px;
+            background-color: var(--color-bg-light);
+            color: var(--color-text-dark);
+            line-height: 1.6;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
 
-/* =========================================
-   2. UNIFIED HEADER (Stable on all pages)
-========================================= */
-.app-header {
-    background-color: var(--color-dark-bg);
-    color: #ffffff;
-    padding: 15px 30px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-    width: 100%;
-    position: fixed;
-    top: 0;
-    left: 0;
-    z-index: 1000;
-}
+        .app-header {
+            background-color: var(--color-dark-bg);
+            color: #ffffff;
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+            width: 100%;
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 1000;
+        }
 
-.app-header .logo-section { display: flex; align-items: center; }
-.app-header .app-logo { height: 40px; margin-right: 15px; border-radius: 5px; }
+        .app-header .logo-section { display: flex; align-items: center; }
+        .app-header .app-logo { height: 40px; margin-right: 15px; border-radius: 5px; }
 
-.app-header h1.header-title {
+        .app-header h1.header-title {
             margin: 0;
             font-size: 1.8rem;
             color: #ffffff;
             text-align: left;
         }
 
-.app-header .auth-section { display: flex; align-items: center; }
-.app-header .auth-section a {
-    color: #ffffff;
-    margin-left: 20px;
-    text-decoration: none;
-    transition: color 0.2s ease;
-    white-space: nowrap;
-}
+        .app-header .auth-section a {
+            color: #ffffff;
+            margin-left: 20px;
+            text-decoration: none;
+            transition: color 0.2s ease;
+            white-space: nowrap;
+        }
 
-.app-header .auth-section a:hover { color: var(--color-primary); }
+        .app-header .auth-section a:hover { color: var(--color-primary); }
 
-
-        /* --- Alphabet Nav --- */
         .letter-btn {
             border: 1px solid #dee2e6;
             background: white;
@@ -93,150 +87,147 @@ body {
             transform: scale(1.1);
         }
 
+        .fact-card {
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border-radius: 15px;
+            overflow: hidden;
+            background: white;
+        }
+        .fact-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important;
+        }
+        .fact-question {
+            font-size: 1.05rem;
+            font-weight: 600;
+            color: #333;
+        }
+        .typewriter-text {
+            font-family: 'Courier New', Courier, monospace;
+            color: #007bff;
+            font-weight: 700;
+            line-height: 1.6;
+            min-height: 20px;
+        }
+        .filter-btn {
+            border-radius: 20px;
+            min-width: 45px;
+            transition: all 0.2s;
+        }
+        .transition-icon {
+            transition: transform 0.3s ease;
+        }
+        .card.active-card .transition-icon {
+            transform: rotate(180deg);
+        }
+    </style>
+</head>
+<body>
 
-<header class="app-header">
+    <header class="app-header">
         <div class="logo-section">
             <img src="https://placehold.co/40x40/007bff/ffffff?text=AI" alt="SuperPrompter Logo" class="app-logo">
             <h1 class="header-title">SuperPrompter</h1>
-       </div>
+        </div>
         <div class="nav-section">
             <a href="/" class="text-white">Home</a>
         </div>
     </header>
 
+    <div class="container mt-5">
+        <div class="text-center mb-5">
+            <h1 class="display-4 fw-bold" style="color: #1a1a1a;">Interesting AI Facts</h1>
+            <p class="text-muted">Click any question below to let our AI reveal a fascinating fact.</p>
+        </div>
 
-<div class="container mt-5">
-    <div class="text-center mb-5">
-        <h1 class="display-4 fw-bold" style="color: #1a1a1a;">Interesting AI Facts</h1>
-        <p class="text-muted">Click any question below to let our AI reveal a fascinating fact.</p>
-    </div>
+        <div class="d-flex flex-wrap justify-content-center mb-5" id="alpha-filter">
+            <button class="btn btn-primary m-1 shadow-sm filter-btn active" onclick="filterFacts('ALL', this)">All</button>
+            {% for char in "ABCDEFGHIJKLMNOPQRSTUVWXYZ" %}
+            <button class="btn btn-outline-secondary m-1 shadow-sm filter-btn" onclick="filterFacts('{{ char }}', this)">{{ char }}</button>
+            {% endfor %}
+        </div>
 
-    <div class="d-flex flex-wrap justify-content-center mb-5" id="alpha-filter">
-        <button class="btn btn-primary m-1 shadow-sm filter-btn active" onclick="filterFacts('ALL', this)">All</button>
-        {% for char in "ABCDEFGHIJKLMNOPQRSTUVWXYZ" %}
-        <button class="btn btn-outline-secondary m-1 shadow-sm filter-btn" onclick="filterFacts('{{ char }}', this)">{{ char }}</button>
-        {% endfor %}
-    </div>
-
-    <div class="row" id="facts-container">
-        {% for fact in facts %}
-        <div class="col-md-6 mb-4 fact-item" data-title="{{ fact.title }}">
-            <div class="card h-100 shadow-sm border-0 fact-card" onclick="askAIFact(this, '{{ fact.title }}')">
-                <div class="card-body d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0 fact-question">
-                        <i class="fas fa-lightbulb text-warning mr-3"></i>{{ fact.title }}
-                    </h5>
-                    <i class="fas fa-chevron-down text-muted transition-icon"></i>
-                </div>
-                <div class="ai-answer-box p-4" style="display: none; background: #fdfdfd; border-top: 1px solid #eee;">
-                    <div class="typewriter-text"></div>
-                    <div class="mt-3 text-right">
-                        <small class="text-muted" style="font-size: 0.7rem;">Generated by Gemma-3-4b-it</small>
+        <div class="row" id="facts-container">
+            {% for fact in facts %}
+            <div class="col-md-6 mb-4 fact-item" data-title="{{ fact.title }}">
+                <div class="card h-100 shadow-sm border-0 fact-card" onclick="askAIFact(this, '{{ fact.title }}')">
+                    <div class="card-body d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0 fact-question">
+                            <i class="fas fa-lightbulb text-warning mr-3"></i>{{ fact.title }}
+                        </h5>
+                        <i class="fas fa-chevron-down text-muted transition-icon"></i>
+                    </div>
+                    <div class="ai-answer-box p-4" style="display: none; background: #fdfdfd; border-top: 1px solid #eee;">
+                        <div class="typewriter-text"></div>
+                        <div class="mt-3 text-right">
+                            <small class="text-muted" style="font-size: 0.7rem;">Generated by Gemma-3-4b-it</small>
+                        </div>
                     </div>
                 </div>
             </div>
+            {% endfor %}
         </div>
-        {% endfor %}
     </div>
-</div>
 
-<style>
-    .fact-card {
-        cursor: pointer;
-        transition: all 0.3s ease;
-        border-radius: 15px;
-        overflow: hidden;
-    }
-    .fact-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important;
-    }
-    .fact-question {
-        font-size: 1.05rem;
-        font-weight: 600;
-        color: #333;
-    }
-    .typewriter-text {
-        font-family: 'Courier New', Courier, monospace;
-        color: #007bff;
-        font-weight: 700;
-        line-height: 1.6;
-        min-height: 20px;
-    }
-    .filter-btn {
-        border-radius: 20px;
-        min-width: 45px;
-        transition: all 0.2s;
-    }
-    .transition-icon {
-        transition: transform 0.3s ease;
-    }
-    .card.active-card .transition-icon {
-        transform: rotate(180deg);
-    }
-</style>
+    <script>
+    function filterFacts(letter, btn) {
+        document.querySelectorAll('.filter-btn').forEach(b => {
+            b.classList.remove('btn-primary', 'active');
+            b.classList.add('btn-outline-secondary');
+        });
+        btn.classList.add('btn-primary', 'active');
+        btn.classList.remove('btn-outline-secondary');
 
-<script>
-function filterFacts(letter, btn) {
-    // UI Update: Active button
-    document.querySelectorAll('.filter-btn').forEach(b => {
-        b.classList.remove('btn-primary', 'active');
-        b.classList.add('btn-outline-secondary');
-    });
-    btn.classList.add('btn-primary', 'active');
-    btn.classList.remove('btn-outline-secondary');
+        const items = document.querySelectorAll('.fact-item');
+        items.forEach(item => {
+            const title = item.getAttribute('data-title').trim().toUpperCase();
+            if (letter === 'ALL' || title.startsWith(letter)) {
+                item.style.display = 'block';
+            } else {
+                item.style.display = 'none';
+            }
+        });
+    }
 
-    // Logic: Filter items
-    const items = document.querySelectorAll('.fact-item');
-    items.forEach(item => {
-        const title = item.getAttribute('data-title').trim().toUpperCase();
-        if (letter === 'ALL' || title.startsWith(letter)) {
-            item.style.display = 'block';
-        } else {
-            item.style.display = 'none';
+    function askAIFact(card, question) {
+        const answerBox = card.querySelector('.ai-answer-box');
+        const textTarget = card.querySelector('.typewriter-text');
+        
+        if (answerBox.style.display === 'block') {
+            answerBox.style.display = 'none';
+            card.classList.remove('active-card');
+            return;
         }
-    });
-}
 
-function askAIFact(card, question) {
-    const answerBox = card.querySelector('.ai-answer-box');
-    const textTarget = card.querySelector('.typewriter-text');
-    
-    // Toggle Logic
-    if (answerBox.style.display === 'block') {
-        answerBox.style.display = 'none';
-        card.classList.remove('active-card');
-        return;
+        document.querySelectorAll('.ai-answer-box').forEach(box => box.style.display = 'none');
+        document.querySelectorAll('.fact-card').forEach(c => c.classList.remove('active-card'));
+
+        answerBox.style.display = 'block';
+        card.classList.add('active-card');
+        textTarget.innerHTML = "<span class='text-muted'>AI is thinking...</span>";
+
+        fetch('/get_ai_fact', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ question: question })
+        })
+        .then(res => res.json())
+        .then(data => {
+            textTarget.innerHTML = "";
+            typeWriter(data.reply, textTarget, 0);
+        })
+        .catch(err => {
+            textTarget.innerHTML = "Error: My gears are jammed!";
+        });
     }
 
-    // Close other open cards (Optional)
-    document.querySelectorAll('.ai-answer-box').forEach(box => box.style.display = 'none');
-    document.querySelectorAll('.fact-card').forEach(c => c.classList.remove('active-card'));
-
-    answerBox.style.display = 'block';
-    card.classList.add('active-card');
-    textTarget.innerHTML = "<span class='text-muted'>AI is thinking...</span>";
-
-    fetch('/get_ai_fact', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ question: question })
-    })
-    .then(res => res.json())
-    .then(data => {
-        textTarget.innerHTML = "";
-        typeWriter(data.reply, textTarget, 0);
-    })
-    .catch(err => {
-        textTarget.innerHTML = "Error: My gears are jammed!";
-    });
-}
-
-function typeWriter(text, target, i) {
-    if (i < text.length) {
-        target.innerHTML += text.charAt(i);
-        setTimeout(() => typeWriter(text, target, i + 1), 25);
+    function typeWriter(text, target, i) {
+        if (i < text.length) {
+            target.innerHTML += text.charAt(i);
+            setTimeout(() => typeWriter(text, target, i + 1), 25);
+        }
     }
-}
-</script>
-{% endblock %}
+    </script>
+</body>
+</html>
