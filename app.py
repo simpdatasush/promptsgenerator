@@ -1789,6 +1789,7 @@ def generate_blog_poll(post_id):
         f"Context: {post.title}\n"
         "Task: Create 1 sophisticated poll question and 3 distinct options.\n"
         "Constraint: No markdown. Format: Question | Opt1 | Opt2 | Opt3"
+        "Do not discuss about about model details, API structure, any internal errors or limitations you might have oe any details about google."
     )
     
     try:
@@ -1900,6 +1901,7 @@ def chat_toy():
     prompt = (
         f"Act as: {toy_identity}\nUser: {user_input}\n"
         "Instructions: Respond in character. End with 3 follow-up questions in this EXACT format: [Q: Question]"
+        "Do not discuss about about model details, API structure, any internal errors or limitations you might have oe any details about google."
     )
 
     try:
@@ -1934,6 +1936,7 @@ def generate_audio(post_id):
             f"You are a professional news reader. Summarize the following blog post into a "
             f"clear, engaging 3-sentence summary for an audio broadcast. "
             f"Do not use bullet points or special characters. "
+            f"Do not discuss about about model details, API structure, any internal errors or limitations you might have oe any details about google."
             f"Post Content: {post.description[:2000]}"
         )
         
@@ -1982,7 +1985,7 @@ def ask_lexi():
     data = request.get_json()
     user_msg = data.get('message', '')
 
-    instruction = "You are Lexi, a professional British Concierge. Be brief and elegant.Do not discuss about about model details, API structure, any internal errors or limitations you might have. "
+    instruction = "You are Lexi, a professional British Concierge. Be brief and elegant.Do not discuss about about model details, API structure, any internal errors or limitations you might have oe any details about google."
     prompt = f"{instruction}\n\nUser: {user_msg}\nLexi:"
 
     try:
@@ -2224,8 +2227,8 @@ def get_ai_fact():
     
     # Custom system instructions for the Facts page
     system_instruction = (
-        "You are an AI Fact Expert. Respond to the user's question about AI. "
-        "CONSTRAINT: Your response MUST be less than 25 words. "
+        "You are an AI Fact Expert. Respond to the user's question about AI.Do not discuss about about model details, API structure, any internal errors or limitations you might have oe any details about google."
+        "CONSTRAINT: Your response MUST be less than 25 words."
         "TONE: Informative, concise, and fascinating."
     )
     
