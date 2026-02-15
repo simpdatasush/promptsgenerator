@@ -113,53 +113,53 @@
                         </tr>
                     </thead>
                     <tbody>
-                        {% for fact in facts %}
-                        <tr>
-                            <td class="px-4 font-weight-bold text-dark">{{ fact.title }}</td>
-                            <td>
-                                {% set cat = fact.description.split('][')[1].replace(']', '') if '][' in fact.description else 'General' %}
-                                <span class="badge badge-pill badge-light border px-3 py-2">{{ cat }}</span>
-                            </td>
-                            <td class="text-muted small">{{ fact.timestamp.strftime('%Y-%m-%d') if fact.timestamp else 'N/A' }}</td>
-                            <td class="text-right px-4">
-                                <button class="btn btn-sm btn-light border" data-toggle="modal" data-target="#editModal{{ fact.id }}">
-                                    <i class="fas fa-edit text-primary"></i>
-                                </button>
-                                <form action="{{ url_for('delete_ai_fact', fact_id=fact.id) }}" method="POST" class="d-inline ml-1">
-                                    <button type="submit" class="btn btn-sm btn-light border" onclick="return confirm('Permanently delete this fact?')">
-                                        <i class="fas fa-trash-alt text-danger"></i>
-                                    </button>
-                                </form>
-                            </td>
-                        </tr>
-
-                        <div class="modal fade" id="editModal{{ fact.id }}" tabindex="-1" role="dialog" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered" role="document">
-        <form action="{{ url_for('edit_ai_fact', fact_id=fact.id) }}" method="POST" class="modal-content border-0 shadow">
-            <div class="modal-header bg-primary text-white">
-                <h5 class="modal-title">Update AI Fact</h5>
-                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
+    {% for fact in facts %}
+    <tr>
+        <td class="px-4 font-weight-bold text-dark">{{ fact.title }}</td>
+        <td>
+            {% set cat = fact.description.split('][')[1].replace(']', '') if '][' in fact.description else 'General' %}
+            <span class="badge badge-pill badge-light border px-3 py-2">{{ cat }}</span>
+        </td>
+        <td class="text-muted small">{{ fact.timestamp.strftime('%Y-%m-%d') if fact.timestamp else 'N/A' }}</td>
+        <td class="text-right px-4">
+            <button class="btn btn-sm btn-light border" data-toggle="modal" data-target="#editModal{{ fact.id }}">
+                <i class="fas fa-edit text-primary"></i>
+            </button>
+            <form action="{{ url_for('delete_ai_fact', fact_id=fact.id) }}" method="POST" class="d-inline ml-1">
+                <button type="submit" class="btn btn-sm btn-light border" onclick="return confirm('Permanently delete this fact?')">
+                    <i class="fas fa-trash-alt text-danger"></i>
                 </button>
-            </div>
-            <div class="modal-body p-4">
-                <div class="form-group text-left"> <label class="font-weight-bold">The Question</label>
-                    <input type="text" name="question" class="form-control form-control-lg" value="{{ fact.title }}" required>
+            </form>
+        </td>
+    </tr>
+
+    <div class="modal fade" id="editModal{{ fact.id }}" tabindex="-1" role="dialog" aria-hidden="true" style="z-index: 1060;">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <form action="{{ url_for('edit_ai_fact', fact_id=fact.id) }}" method="POST" class="modal-content border-0 shadow">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">Update AI Fact</h5>
+                    <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
                 </div>
-                <div class="form-group text-left">
-                    <label class="font-weight-bold">Category</label>
-                    <input type="text" name="category" class="form-control" value="{{ cat }}">
+                <div class="modal-body p-4 text-left"> <div class="form-group">
+                        <label class="font-weight-bold">The Question</label>
+                        <input type="text" name="question" class="form-control form-control-lg" value="{{ fact.title }}" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="font-weight-bold">Category</label>
+                        <input type="text" name="category" class="form-control" value="{{ cat }}">
+                    </div>
                 </div>
-            </div>
-            <div class="modal-footer bg-light">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-                <button type="submit" class="btn btn-primary px-4">Save Changes</button>
-            </div>
-        </form>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary px-4">Save Changes</button>
+                </div>
+            </form>
+        </div>
     </div>
-</div>
-                        {% endfor %}
-                    </tbody>
+    {% endfor %}
+</tbody>
                 </table>
             </div>
         </div>
