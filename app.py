@@ -1982,7 +1982,7 @@ def ask_lexi():
     data = request.get_json()
     user_msg = data.get('message', '')
 
-    instruction = "You are Lexi, a professional British Concierge. Be brief and elegant."
+    instruction = "You are Lexi, a professional British Concierge. Be brief and elegant.Do not discuss about about model details, API structure, any internal errors or limitations you might have. "
     prompt = f"{instruction}\n\nUser: {user_msg}\nLexi:"
 
     try:
