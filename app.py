@@ -1231,7 +1231,8 @@ def all_news():
         ~News.description.like('[AI_APP]%'),
         ~News.description.like('[APP_LOG]%'),
         ~News.description.like('[PROMPT]%'),
-        ~News.description.like('[AI_HUB]%')
+        ~News.description.like('[AI_HUB]%'),
+        ~News.description.like('[AI-FACT]%')
     ).order_by(News.timestamp.desc())
 
     # 2. ADD SEARCH FILTERS (If search_query exists)
@@ -2213,6 +2214,112 @@ def delete_hub_resource(app_id):
     db.session.commit()
     flash(f'"{title}" removed from the Hub.', 'warning')
     return redirect(url_for('admin_ai_hub'))
+
+# get_ai_fact ( kids / students / learners mode )
+
+@app.route('/get_ai_fact', methods=['POST'])
+def get_ai_fact():
+    data = request.get_json()
+    question = data.get('question')
+    
+    # Custom system instructions for the Facts page
+    system_instruction = (
+        "You are an AI Fact Expert. Respond to the user's question about AI. "
+        "CONSTRAINT: Your response MUST be less than 70 words. "
+        "TONE: Informative, concise, and fascinating."
+    )
+    
+    prompt = f"{system_instruction}\nQuestion: {question}"
+
+    try:
+        response = gemma_client.models.generate_content(
+            model='gemma-3-4b-it', 
+            contents=prompt
+        )
+        reply_text = response.text.strip()
+        
+        # Ensure it's not too long just in case
+        words = reply_text.split()
+        if len(words) > 70:
+            reply_text = " ".join(words[:65]) + "..."
+
+        return jsonify({"reply": reply_text})
+    except Exception as e:
+        return jsonify({"reply": "I'm having trouble retrieving that fact right now!"}), 500
+
+# 1. User View Page
+@app.route('/ai-facts')
+def ai_facts():
+    # Fetch everything tagged with [AI-FACT]
+    facts = News.query.filter(News.description.like('[AI-FACT]%')).all()
+    return render_template('interesting_facts.html', facts=facts)
+
+# 2. Admin Management Page
+@app.route('/admin/ai-facts')
+@login_required
+@admin_required
+def admin_ai_facts():
+    facts = News.query.filter(News.description.like('[AI-FACT]%')).order_by(News.timestamp.desc()).all()
+    return render_template('admin_interesting_facts.html', facts=facts)
+
+# 3. Add Fact
+@app.route('/admin/ai-facts/add', methods=['POST'])
+@login_required
+@admin_required
+def add_ai_fact():
+    title = request.form.get('question') # The Question
+    category = request.form.get('category', 'General')
+    
+    # Store as [AI-FACT][CATEGORY]
+    description = f"[AI-FACT][{category}]"
+    
+    new_fact = News(
+        title=title,
+        description=description,
+        user_id=current_user.id,
+        url="#"
+    )
+    db.session.add(new_fact)
+    db.session.commit()
+    flash('AI Fact added!', 'success')
+    return redirect(url_for('admin_ai_facts'))
+
+# 4. Edit Fact
+@app.route('/admin/ai-facts/edit/<int:fact_id>', methods=['POST'])
+@login_required
+@admin_required
+def edit_ai_fact(fact_id):
+    fact = News.query.get_or_404(fact_id)
+    category = request.form.get('category')
+    fact.title = request.form.get('question')
+    fact.description = f"[AI-FACT][{category}]"
+    db.session.commit()
+    flash('Fact updated!', 'info')
+    return redirect(url_for('admin_ai_facts'))
+
+# 4. Delete Fact
+
+@app.route('/admin/ai-facts/delete/<int:fact_id>', methods=['POST'])
+@login_required
+@admin_required
+def delete_ai_fact(fact_id):
+    # Fetch the record or 404
+    fact = News.query.get_or_404(fact_id)
+    
+    # Optional Security Check: Ensure this is actually a fact and not a news item
+    if not fact.description.startswith('[AI-FACT]'):
+        flash('Error: This is not a valid AI Fact record.', 'danger')
+        return redirect(url_for('admin_ai_facts'))
+
+    try:
+        db.session.delete(fact)
+        db.session.commit()
+        flash('AI Fact deleted successfully!', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error deleting fact: {str(e)}', 'danger')
+        
+    return redirect(url_for('admin_ai_facts'))
 
     
 # --- NEW: Change Password Route ---
