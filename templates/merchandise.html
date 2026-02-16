@@ -6,7 +6,7 @@
     <title>SuperPrompter - Official Merchandise</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
-    <style>
+   <style>
         :root {
             --color-bg-light: #f0f2f5;
             --color-primary: #007bff;
@@ -20,13 +20,13 @@
             padding-top: 80px;
         }
 
-        /* Hero Section */
+        /* Hero Section - Reduced padding */
         .merch-header {
             background: linear-gradient(135deg, #343a40 0%, #212529 100%);
             color: white;
             padding: 40px 0;
-            margin-bottom: 50px;
-            border-radius: 0 0 50px 50px;
+            margin-bottom: 40px;
+            border-radius: 0 0 40px 40px;
         }
 
         /* Product Cards */
@@ -40,17 +40,17 @@
         }
 
         .merch-card:hover {
-            transform: translateY(-10px);
+            transform: translateY(-8px);
             box-shadow: 0 12px 30px rgba(0, 0, 0, 0.1);
         }
 
         .merch-img-wrapper {
             background-color: var(--merch-grey);
-            height: 280px;
+            height: 260px;
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 30px;
+            padding: 25px;
             position: relative;
         }
 
@@ -62,11 +62,11 @@
         }
 
         .merch-card:hover .merch-img-wrapper img {
-            transform: scale(1.1);
+            transform: scale(1.08);
         }
 
         .price-tag {
-            font-size: 1.2rem;
+            font-size: 1.1rem;
             color: var(--color-primary);
             font-weight: 700;
         }
@@ -75,16 +75,17 @@
         .payment-banner {
             background-color: var(--banner-blue);
             border-radius: 15px;
-            padding: 40px;
-            margin-top: 40px;
+            padding: 35px;
+            margin-top: 30px;
             margin-bottom: 60px;
         }
 
         .btn-checkout {
             font-weight: 600;
             text-transform: uppercase;
-            letter-spacing: 1px;
+            letter-spacing: 0.5px;
             border-radius: 50px;
+            font-size: 0.85rem;
         }
     </style>
 </head>
@@ -113,7 +114,7 @@
             <div class="col-lg-4 col-md-6 mb-5">
                 <div class="merch-card shadow-sm d-flex flex-column">
                     <div class="merch-img-wrapper">
-                        <img src="{{ url_for('static', filename='merch/' + item.img) }}" 
+                        <img src="{{ url_for('static', filename= item.img) }}" 
                              alt="{{ item.name }}"
                              onerror="this.src='https://placehold.co/400x400/e9ecef/6c757d?text={{ item.name }}'">
                     </div>
