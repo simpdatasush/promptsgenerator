@@ -7,101 +7,123 @@
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
    <style>
-        :root {
-            --color-bg-light: #f0f2f5;
-            --color-primary: #007bff;
-            --merch-grey: #e9ecef;
-            --banner-blue: #A9D1E1;
-        }
+<style>
+    :root {
+        --color-bg-light: #f0f2f5;
+        --color-primary: #007bff;
+        --merch-grey: #e9ecef;
+        --banner-blue: #A9D1E1;
+    }
 
+    body {
+        background-color: var(--color-bg-light);
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        padding-top: 80px; /* Space for your fixed navbar */
+    }
+
+    /* Hero Section */
+    .merch-header {
+        background: linear-gradient(135deg, #343a40 0%, #212529 100%);
+        color: white;
+        padding: 50px 15px; /* Increased side padding for safety */
+        margin-bottom: 40px;
+        border-radius: 0 0 40px 40px;
+        position: relative;
+        z-index: 1;
+    }
+
+    .merch-header h2 {
+        font-size: 2.5rem; 
+        font-weight: 700;
+        margin-bottom: 5px;
+        transition: all 0.3s ease;
+    }
+
+    /* Product Cards */
+    .merch-card {
+        border: none;
+        border-radius: 15px;
+        overflow: hidden;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        background: white;
+        height: 100%;
+    }
+
+    .merch-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.1);
+    }
+
+    .merch-img-wrapper {
+        background-color: var(--merch-grey);
+        height: 260px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 25px;
+        position: relative;
+    }
+
+    .merch-img-wrapper img {
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: contain;
+        transition: transform 0.5s ease;
+    }
+
+    .merch-card:hover .merch-img-wrapper img {
+        transform: scale(1.08);
+    }
+
+    .price-tag {
+        font-size: 1.1rem;
+        color: var(--color-primary);
+        font-weight: 700;
+    }
+
+    /* Secure Payment Banner */
+    .payment-banner {
+        background-color: var(--banner-blue);
+        border-radius: 15px;
+        padding: 35px;
+        margin-top: 30px;
+        margin-bottom: 60px;
+    }
+
+    .btn-checkout {
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        border-radius: 50px;
+        font-size: 0.85rem;
+    }
+
+    /* --- MOBILE OPTIMIZATIONS --- */
+    @media (max-width: 768px) {
         body {
-            background-color: var(--color-bg-light);
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            padding-top: 80px;
+            padding-top: 100px; /* Push content further down to clear the mobile navbar */
         }
-
-        /* Hero Section - Reduced padding */
+        
         .merch-header {
-            background: linear-gradient(135deg, #343a40 0%, #212529 100%);
-            color: white;
-            padding: 40px 0;
-            margin-bottom: 40px;
-            border-radius: 0 0 40px 40px;
+            padding: 60px 10px !important; /* Extra vertical padding so text isn't hidden */
+            border-radius: 0 0 25px 25px;
         }
 
-        /* Product Cards */
-        .merch-card {
-            border: none;
-            border-radius: 15px;
-            overflow: hidden;
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-            background: white;
-            height: 100%;
+        .merch-header h2 {
+            font-size: 1.5rem !important; /* Significantly smaller for mobile */
+            line-height: 1.2;
         }
 
-        .merch-card:hover {
-            transform: translateY(-8px);
-            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.1);
+        .merch-header p {
+            font-size: 0.85rem;
+            opacity: 0.8;
         }
 
         .merch-img-wrapper {
-            background-color: var(--merch-grey);
-            height: 260px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 25px;
-            position: relative;
+            height: 200px; /* Shorter images on mobile to save vertical space */
         }
-
-        .merch-img-wrapper img {
-            max-width: 100%;
-            max-height: 100%;
-            object-fit: contain;
-            transition: transform 0.5s ease;
-        }
-
-        .merch-card:hover .merch-img-wrapper img {
-            transform: scale(1.08);
-        }
-
-        .price-tag {
-            font-size: 1.1rem;
-            color: var(--color-primary);
-            font-weight: 700;
-        }
-
-        /* Secure Payment Banner */
-        .payment-banner {
-            background-color: var(--banner-blue);
-            border-radius: 15px;
-            padding: 35px;
-            margin-top: 30px;
-            margin-bottom: 60px;
-        }
-
-        .btn-checkout {
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            border-radius: 50px;
-            font-size: 0.85rem;
-        }
-       
-       /* Custom Responsive Title */
-.merch-header h2 {
-    font-size: 2.5rem; /* Desktop size */
-    transition: font-size 0.3s ease;
-}
-
-@media (max-width: 768px) {
-    .merch-header h2 {
-        font-size: 1.6rem; /* Smaller size for mobile */
     }
-    .merch-header {
-        padding: 30px 0; /* Reduce padding on mobile too */
-    }
-}
+</style>
     </style>
 </head>
 <body>
