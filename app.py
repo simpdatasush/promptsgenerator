@@ -2081,6 +2081,14 @@ def delete_ai_app(app_id):
 def donate():
     return render_template('donate.html')
 
+@app.route('/merchandise')
+def merchandise():
+    return render_template('merchandise.html')
+
+@app.route('/secure_payments')
+def secure_payments():
+    return render_template('secure_payments.html')
+
 # 1. Public Marketplace View
 @app.route('/prompts')
 def prompts_marketplace():
