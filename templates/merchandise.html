@@ -98,31 +98,32 @@
         font-size: 0.85rem;
     }
 
-    /* --- MOBILE OPTIMIZATIONS --- */
     @media (max-width: 768px) {
-        body {
-            padding-top: 100px; /* Push content further down to clear the mobile navbar */
-        }
-        
-        .merch-header {
-            padding: 60px 10px !important; /* Extra vertical padding so text isn't hidden */
-            border-radius: 0 0 25px 25px;
-        }
-
-        .merch-header h2 {
-            font-size: 1.5rem !important; /* Significantly smaller for mobile */
-            line-height: 1.2;
-        }
-
-        .merch-header p {
-            font-size: 0.85rem;
-            opacity: 0.8;
-        }
-
-        .merch-img-wrapper {
-            height: 200px; /* Shorter images on mobile to save vertical space */
-        }
+    body {
+        padding-top: 90px; /* Ensures the header isn't behind the navbar */
     }
+    
+    .merch-header {
+        padding: 50px 15px !important;
+        text-align: center;
+        overflow: hidden; /* Prevents the header from stretching the whole page */
+    }
+
+    .merch-header h2 {
+        font-size: 1.4rem !important; /* Force a smaller size */
+        line-height: 1.2;
+        word-wrap: break-word !important; /* Forces the long word to break if needed */
+        overflow-wrap: break-word !important;
+        white-space: normal !important; /* Allows the title to go to two lines */
+        display: block;
+        width: 100%;
+    }
+
+    .merch-header p {
+        font-size: 0.8rem;
+        margin-top: 10px;
+    }
+}
 </style>
     </style>
 </head>
