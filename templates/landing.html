@@ -911,19 +911,24 @@ if (alexInput) {
 </div>
 
 <script>
-$(document).ready(function() {
-    // No localStorage check here - it will run every time the page loads
-    console.log("Popup timer started: 5 seconds...");
+    // 1. Check if script is running at all
+    console.log("SuperPrompter Script Loaded");
 
-    setTimeout(function() {
-        // Trigger the Bootstrap modal
-        if ($('#newsletterModal').length) {
-            $('#newsletterModal').modal('show');
-        } else {
-            console.error("Popup Error: #newsletterModal not found in HTML.");
-        }
-    }, 5000); 
-});
+    window.onload = function() {
+        console.log("Window fully loaded. Starting 5s timer...");
+        
+        setTimeout(function() {
+            var myModalElement = document.getElementById('newsletterModal');
+            
+            if (myModalElement) {
+                console.log("Modal found! Launching...");
+                // Use the Bootstrap constructor directly (works with Bootstrap 4 and 5)
+                $(myModalElement).modal('show');
+            } else {
+                console.error("CRITICAL ERROR: Could not find #newsletterModal in the HTML.");
+            }
+        }, 5000);
+    };
 </script>
     
 </script>    
