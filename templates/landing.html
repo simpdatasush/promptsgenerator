@@ -911,24 +911,30 @@ if (alexInput) {
 </div>
 
 <script>
-    console.log("SuperPrompter Logic Initialized");
+    // 1. Service Worker Registration
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function() {
+            navigator.serviceWorker.register("/static/sw.js");
+            console.log("Service Worker Registered");
+        });
+    }
 
-    // Use window.onload to ensure all libraries are ready
-    window.onload = function() {
-        console.log("Timer started: 5 seconds...");
-
+    // 2. Newsletter Popup Logic
+    window.addEventListener('load', function() {
+        console.log("Page Loaded. Newsletter timer starting...");
+        
         setTimeout(function() {
-            // We use jQuery here, which now works because we swapped 'slim' for 'full'
+            // Use jQuery to find the modal
             var $modal = $('#newsletterModal');
             
             if ($modal.length) {
-                console.log("Launching Newsletter Modal...");
+                console.log("Modal found. Triggering show...");
                 $modal.modal('show');
             } else {
-                console.error("HTML Error: #newsletterModal not found!");
+                console.error("Newsletter Error: Modal ID not found in HTML.");
             }
-        }, 5000);
-    };
-</script>   
+        }, 5000); // 5 second delay
+    });
+</script>  
 </body>
 </html>
