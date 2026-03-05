@@ -912,17 +912,17 @@ if (alexInput) {
 
 <script>
 $(document).ready(function() {
-    // Check if the user has already interacted with the popup this session or ever
-    if (!localStorage.getItem('newsletter_popup_shown')) {
-        
-        // Wait 7 seconds after the page loads (7000ms)
-        setTimeout(function() {
+    // No localStorage check here - it will run every time the page loads
+    console.log("Popup timer started: 5 seconds...");
+
+    setTimeout(function() {
+        // Trigger the Bootstrap modal
+        if ($('#newsletterModal').length) {
             $('#newsletterModal').modal('show');
-            
-            // Save to localStorage so they don't see it every time they visit
-            localStorage.setItem('newsletter_popup_shown', 'true');
-        }, 7000);
-    }
+        } else {
+            console.error("Popup Error: #newsletterModal not found in HTML.");
+        }
+    }, 5000); 
 });
 </script>
     
