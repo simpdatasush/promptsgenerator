@@ -32,43 +32,6 @@
         *, *::before, *::after {
             box-sizing: border-box;
         }
-<div id="newsletter-top-bar" style="display:none; background: #007bff; color: white; padding: 15px; text-align: center; position: relative; z-index: 99999; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
-    <div style="max-width: 1100px; margin: 0 auto; display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 15px;">
-        <span style="font-weight: 600; font-size: 16px;">
-            🚀 Join 5,000+ enthusiasts for weekly AI insights! 
-            <span style="font-weight: 400; opacity: 0.9; margin-left: 10px;">Humans handle sense.</span>
-        </span>
-        
-        <a href="https://flow.cleverreach.com/fl/f1b39182-4b74-4664-9c1d-c175cb3a670c/" 
-           target="_blank" 
-           style="background: white; color: #007bff; padding: 8px 20px; border-radius: 50px; text-decoration: none; font-weight: bold; font-size: 14px; transition: transform 0.2s;">
-           Subscribe Now
-        </a>
-
-        <button onclick="document.getElementById('newsletter-top-bar').style.display='none'" 
-                style="background: none; border: none; color: white; font-size: 20px; cursor: pointer; margin-left: 20px;">
-                &times;
-        </button>
-    </div>
-</div>
-
-<script>
-    // This uses raw JavaScript to avoid 'Unexpected token' or jQuery issues
-    (function() {
-        console.log("Newsletter Banner Initializing...");
-        
-        // Wait 3 seconds so the user sees the page first
-        setTimeout(function() {
-            var banner = document.getElementById('newsletter-top-bar');
-            if (banner) {
-                banner.style.display = 'block';
-                console.log("Banner displayed successfully.");
-            } else {
-                console.error("Banner element not found in DOM.");
-            }
-        }, 3000);
-    })();
-</script>
 
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
