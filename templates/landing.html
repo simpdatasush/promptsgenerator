@@ -911,30 +911,27 @@ if (alexInput) {
 </div>
 
 <script>
-    // 1. Service Worker Registration
-    if ('serviceWorker' in navigator) {
-        window.addEventListener('load', function() {
-            navigator.serviceWorker.register("/static/sw.js");
-            console.log("Service Worker Registered");
-        });
-    }
+    // This runs as soon as the HTML is parsed, without waiting for images/timers
+    $(document).ready(function() {
+        console.log("Attempting immediate popup...");
 
-    // 2. Newsletter Popup Logic
-    window.addEventListener('load', function() {
-        console.log("Page Loaded. Newsletter timer starting...");
+        var $modal = $('#newsletterModal');
         
-        setTimeout(function() {
-            // Use jQuery to find the modal
-            var $modal = $('#newsletterModal');
+        if ($modal.length) {
+            // 1. Force CSS visibility first to bypass animation bugs
+            $modal.css('display', 'block').addClass('show'); 
             
-            if ($modal.length) {
-                console.log("Modal found. Triggering show...");
-                $modal.modal('show');
-            } else {
-                console.error("Newsletter Error: Modal ID not found in HTML.");
-            }
-        }, 5000); // 5 second delay
+            // 2. Trigger the official Bootstrap 'show' for backdrop/functionality
+            $modal.modal({
+                backdrop: true,
+                show: true
+            });
+            
+            console.log("Modal force-triggered successfully.");
+        } else {
+            console.error("Popup Error: Could not find #newsletterModal in your HTML.");
+        }
     });
-</script>  
+</script> 
 </body>
 </html>
