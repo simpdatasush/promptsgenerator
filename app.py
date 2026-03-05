@@ -1239,11 +1239,14 @@ def all_news():
     if search_query:
         search_term = f"%{search_query}%"
         news_query_object = news_query_object.filter(
-            (News.title.ilike(search_term)) | (News.description.ilike(search_term))
+            (News.title.ilike(search_term)) | (News.description.ilike(search_term)),
+            News.description.isnot(None),
+            ~News.description.contains('[AI_APP]'),
+            ~News.description.contains('[APP_LOG]'),
+            ~News.description.contains('[PROMPT]'),
+            ~News.description.contains('[AI_HUB]'),
+            ~News.description.contains('[AI-FACT]')
         )
-
-    # 3. FINAL SORTING
-    news_query_object = news_query_object.order_by(News.timestamp.desc())
 
     # 3. PAGINATE THE QUERY OBJECT
     # This is where the error was happening. 'news_query_object' MUST NOT be a list.
