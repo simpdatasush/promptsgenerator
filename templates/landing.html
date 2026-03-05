@@ -878,35 +878,27 @@ if (alexInput) {
     });
   }
 
-<div class="modal fade" id="newsletterModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 shadow-lg" style="border-radius: 20px; overflow: hidden;">
-            <div class="modal-header border-0 pb-0">
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-            <div class="modal-body text-center p-4">
-                <div class="icon-circle bg-light d-inline-flex p-3 rounded-circle mb-3">
-                    <i class="fas fa-paper-plane fa-2x text-primary"></i>
-                </div>
-                <h4 class="font-weight-bold">Stay Updated</h4>
-                <p class="text-muted px-3">Join 5,000+ enthusiasts getting weekly AI insights and prompt tips. <br><strong>Technology handles scale. Humans handle sense.</strong></p>
-                
-                <div class="newsletter-cta mt-4">
-                    <a href="https://flow.cleverreach.com/fl/f1b39182-4b74-4664-9c1d-c175cb3a670c/" 
-                       target="_blank" 
-                       class="btn btn-primary btn-block d-flex align-items-center justify-content-center shadow-sm" 
-                       style="height: 55px; font-weight: 600; font-size: 18px; border-radius: 12px;"
-                       onclick="$('#newsletterModal').modal('hide');"> Subscribe to Newsletter
-                    </a>
-                </div>
-                
-                <small class="text-muted d-block mt-3">
-                    <i class="fas fa-lock mr-1"></i> No spam, ever. Your privacy is our priority.
-                </small>
-            </div>
+<div id="newsletterModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:10000; align-items:center; justify-content:center;">
+    <div style="background:white; padding:30px; border-radius:20px; max-width:500px; width:90%; position:relative; text-align:center; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
+        
+        <button onclick="closeNewsletter()" style="position:absolute; top:15px; right:20px; border:none; background:none; font-size:24px; cursor:pointer;">&times;</button>
+        
+        <div style="background:#f8f9fa; display:inline-flex; padding:20px; border-radius:50%; margin-bottom:20px;">
+            <i class="fas fa-paper-plane fa-2x text-primary"></i>
         </div>
+        
+        <h3 style="font-weight:bold; margin-bottom:10px;">Stay Updated</h3>
+        <p style="color:#6c757d; margin-bottom:25px;">Join 5,000+ enthusiasts getting weekly AI insights. <br><strong>Technology handles scale. Humans handle sense.</strong></p>
+        
+        <a href="https://flow.cleverreach.com/fl/f1b39182-4b74-4664-9c1d-c175cb3a670c/" 
+           target="_blank" 
+           style="background:#007bff; color:white; padding:15px 25px; border-radius:12px; text-decoration:none; font-weight:600; display:block; font-size:18px;">
+           Subscribe to Newsletter
+        </a>
+        
+        <small style="display:block; margin-top:15px; color:#adb5bd;">
+            <i class="fas fa-lock"></i> No spam, ever. Your privacy is our priority.
+        </small>
     </div>
 </div>
 
@@ -914,29 +906,25 @@ if (alexInput) {
 <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 
 <script>
-    (function() {
-        try {
-            console.log("Newsletter logic initializing...");
-            
-            // Wait for jQuery to be fully available
-            var checkReady = setInterval(function() {
-                if (window.jQuery && $.fn.modal) {
-                    clearInterval(checkReady);
-                    runModal();
-                }
-            }, 100);
+    console.log("Atomic Script Loaded");
 
-            function runModal() {
-                var $modal = $('#newsletterModal');
-                if ($modal.length) {
-                    $modal.modal('show');
-                    console.log("Modal opened successfully.");
-                }
-            }
-        } catch (e) {
-            console.error("Script error caught: ", e);
+    // This runs immediately when the page is ready
+    $(document).ready(function() {
+        console.log("Forcing popup display now...");
+        
+        // Use raw CSS to show it - ignores any Bootstrap errors
+        var modal = document.getElementById('newsletterModal');
+        if (modal) {
+            modal.style.display = 'flex'; // 'flex' centers the content
+            console.log("Success: Modal is now visible.");
+        } else {
+            console.error("Error: newsletterModal ID not found.");
         }
-    })();
+    });
+
+    function closeNewsletter() {
+        document.getElementById('newsletterModal').style.display = 'none';
+    }
 </script>
 </body>
 </html>
