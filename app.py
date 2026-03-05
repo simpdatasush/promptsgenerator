@@ -1239,13 +1239,15 @@ def all_news():
     if search_query:
         search_term = f"%{search_query}%"
         news_query_object = news_query_object.filter(
-            (News.title.ilike(search_term)) | (News.description.ilike(search_term)),
-            News.description.isnot(None),
-            ~News.description.contains('[AI_APP]'),
-            ~News.description.contains('[APP_LOG]'),
-            ~News.description.contains('[PROMPT]'),
-            ~News.description.contains('[AI_HUB]'),
-            ~News.description.contains('[AI-FACT]')
+            # Requirement 1: The 'OR' is self-contained in parentheses
+            ((News.title.ilike(search_term)) | (News.description.ilike(search_term))),
+            # Requirement 2: The 'AND' is implicit because these are separate arguments
+            News.description.isnot(None), 
+            ~News.description.like('[AI_APP]%'),
+            ~News.description.like('[APP_LOG]%'),
+            ~News.description.like('[PROMPT]%'),
+            ~News.description.like('[AI_HUB]%'),
+            ~News.description.like('[AI-FACT]%')
         )
 
     # 3. PAGINATE THE QUERY OBJECT
