@@ -1242,6 +1242,9 @@ def all_news():
             (News.title.ilike(search_term)) | (News.description.ilike(search_term))
         )
 
+    # 3. FINAL SORTING
+    news_query_object = news_query_object.order_by(News.timestamp.desc())
+
     # 3. PAGINATE THE QUERY OBJECT
     # This is where the error was happening. 'news_query_object' MUST NOT be a list.
     pagination = news_query_object.paginate(page=page, per_page=ITEMS_PER_PAGE, error_out=False)
