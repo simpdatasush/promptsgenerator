@@ -33,29 +33,6 @@
             box-sizing: border-box;
         }
 
-    <div id="newsletterModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:10000; align-items:center; justify-content:center;">
-    <div style="background:white; padding:30px; border-radius:20px; max-width:500px; width:90%; position:relative; text-align:center; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
-        
-        <button onclick="closeNewsletter()" style="position:absolute; top:15px; right:20px; border:none; background:none; font-size:24px; cursor:pointer;">&times;</button>
-        
-        <div style="background:#f8f9fa; display:inline-flex; padding:20px; border-radius:50%; margin-bottom:20px;">
-            <i class="fas fa-paper-plane fa-2x text-primary"></i>
-        </div>
-        
-        <h3 style="font-weight:bold; margin-bottom:10px;">Stay Updated</h3>
-        <p style="color:#6c757d; margin-bottom:25px;">Join 5,000+ enthusiasts getting weekly AI insights. <br><strong>Technology handles scale. Humans handle sense.</strong></p>
-        
-        <a href="https://flow.cleverreach.com/fl/f1b39182-4b74-4664-9c1d-c175cb3a670c/" 
-           target="_blank" 
-           style="background:#007bff; color:white; padding:15px 25px; border-radius:12px; text-decoration:none; font-weight:600; display:block; font-size:18px;">
-           Subscribe to Newsletter
-        </a>
-        
-        <small style="display:block; margin-top:15px; color:#adb5bd;">
-            <i class="fas fa-lock"></i> No spam, ever. Your privacy is our priority.
-        </small>
-    </div>
-</div>
 
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -895,31 +872,7 @@ if (alexInput) {
         }
     };
 }
-    
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register("/static/sw.js");
-    });
-  }
 
-<script>
-    console.log("Atomic Script Loaded - High Priority");
-
-    // This runs immediately
-    $(document).ready(function() {
-        var modal = document.getElementById('newsletterModal');
-        if (modal) {
-            console.log("Success: Modal found at top of body. Displaying...");
-            modal.style.display = 'flex';
-        } else {
-            console.error("Error: newsletterModal still not found.");
-        }
-    });
-
-    function closeNewsletter() {
-        document.getElementById('newsletterModal').style.display = 'none';
-    }
 </script>
-        
 </body>
 </html>
