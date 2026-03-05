@@ -910,28 +910,33 @@ if (alexInput) {
     </div>
 </div>
 
-<script>
-    // This runs as soon as the HTML is parsed, without waiting for images/timers
-    $(document).ready(function() {
-        console.log("Attempting immediate popup...");
+<script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 
-        var $modal = $('#newsletterModal');
-        
-        if ($modal.length) {
-            // 1. Force CSS visibility first to bypass animation bugs
-            $modal.css('display', 'block').addClass('show'); 
+<script>
+    (function() {
+        try {
+            console.log("Newsletter logic initializing...");
             
-            // 2. Trigger the official Bootstrap 'show' for backdrop/functionality
-            $modal.modal({
-                backdrop: true,
-                show: true
-            });
-            
-            console.log("Modal force-triggered successfully.");
-        } else {
-            console.error("Popup Error: Could not find #newsletterModal in your HTML.");
+            // Wait for jQuery to be fully available
+            var checkReady = setInterval(function() {
+                if (window.jQuery && $.fn.modal) {
+                    clearInterval(checkReady);
+                    runModal();
+                }
+            }, 100);
+
+            function runModal() {
+                var $modal = $('#newsletterModal');
+                if ($modal.length) {
+                    $modal.modal('show');
+                    console.log("Modal opened successfully.");
+                }
+            }
+        } catch (e) {
+            console.error("Script error caught: ", e);
         }
-    });
-</script> 
+    })();
+</script>
 </body>
 </html>
