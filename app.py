@@ -55,7 +55,7 @@ app = Flask(__name__)
 # --- NEW: Flask-SQLAlchemy Configuration ---
 # Configure SQLite database. This file will be created in your project directory.
 # On Render, this database file will be ephemeral unless you attach a persistent disk.
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////var/data/site.db' # 'sqlite:////var/data/site.db' #'sqlite:///site.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///site.db' # 'sqlite:////var/data/site.db' #'sqlite:///site.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False # Suppress a warning
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'a_very_secret_key_that_should_be_in_env') # Needed for Flask-Login sessions
 db = SQLAlchemy(app)
