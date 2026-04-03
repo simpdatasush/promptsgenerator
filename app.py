@@ -169,9 +169,10 @@ class ModelUsageTracker:
             'gemma-3-1b-it': 0,
             'gemma-3-4b-it': 0,
             'gemma-3-12b-it': 0,
-            'gemma-3-27b-it': 0
+            'gemma-3-27b-it': 0,
+            'gemma-4-31b-it':0
         }
-        self.limit = 12000
+        self.limit = 10000
         self.last_reset = datetime.now().date()
         self.lock = threading.Lock()
 
@@ -208,8 +209,10 @@ def get_dynamic_model_name(prompt_instruction: str) -> str:
     length = len(prompt_instruction)
 
     # 1. Determine "ideal" model based on length
-    if length > 7500:
+    if length > 10000:
         preferred >= 'glm-4.7-flash'
+    elif length > 7500:
+        preferred = 'gemma-4-31b-it'
     elif length > 5400:
         preferred = 'gemma-3-27b-it'
     elif length >= 2700:
@@ -568,8 +571,8 @@ async def generate_prompts_async(raw_input, language_code="en-US"):
 
 
   # Create coroutines for parallel execution, running synchronous calls in threads
-  creative_coroutine = asyncio.to_thread(ask_gemini_for_prompt, language_instruction_prefix + f"Rewrite the following prompt to be more creative and imaginative, encouraging novel ideas and approaches:\n\n{polished_prompt_result}{strict_instruction_suffix}")
-  technical_coroutine = asyncio.to_thread(ask_gemini_for_prompt, language_instruction_prefix + f"Rewrite the following prompt to be more technical, precise, and detailed, focusing on specific requirements and constraints:\n\n{polished_prompt_result}{strict_instruction_suffix}")
+  creative_coroutine = asyncio.to_thread(ask_gemini_for_prompt, language_instruction_prefix + f"Rewrite the following prompt to be more creative and imaginative, encouraging novel ideas and approaches:\n\n{polished_prompt_result}{strict_instruction_suffix} in not more than 7000 characters.")
+  technical_coroutine = asyncio.to_thread(ask_gemini_for_prompt, language_instruction_prefix + f"Rewrite the following prompt to be more technical, precise, and detailed, focusing on specific requirements and constraints:\n\n{polished_prompt_result}{strict_instruction_suffix} in not more maximum 10000 characters.")
 
 
   creative_result, technical_result = await asyncio.gather(
