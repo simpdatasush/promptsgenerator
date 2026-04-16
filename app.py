@@ -1957,7 +1957,7 @@ def generate_audio(post_id):
         audio_script = ask_gemini_for_prompt(summary_instruction)
 
         # 3. TEXT TO SPEECH (Block 1 Logic)
-        model_id = "gemini-2.5-flash-preview-tts"
+        model_id = "gemini-3.1-flash-tts-preview"
         response = gemma_client.models.generate_content(
             model=model_id,
             contents=audio_script, # We now read the summary, not the full post
