@@ -48,24 +48,18 @@
   </style>
 </head>
 <body>
+
 <header class="app-header">
-        <div class="logo-section">
-            <!-- Placeholder for a logo image. You can replace this with an actual image. -->
-            <img src="https://placehold.co/40x40/007bff/ffffff?text=AI" alt="SuperPrompter Logo" class="app-logo">
-            <h1>SuperPrompter</h1>
-        </div>
-        <div class="auth-section">
-            {% if current_user.is_authenticated %}
-                <span class="mr-3">Welcome, <strong class="username">{{ current_user.username }}</strong>!</span>
-                <a href="{{ url_for('landing') }}" class="btn btn-outline-light btn-sm mr-2">Home</a>
-                <a href="{{ url_for('logout') }}" class="btn btn-outline-light btn-sm">Logout</a>
-            {% else %}
-                <a href="{{ url_for('login') }}" class="btn btn-outline-light btn-sm mr-2">Login</a>
-                <a href="{{ url_for('register') }}" class="btn btn-light btn-sm">Register</a>
-                <a href="{{ url_for('landing') }}" class="btn btn-outline-light btn-sm mr-2">Home</a>
-            {% endif %}
-        </div>
-    </header>
+<div class="logo-section">
+<h1 class="header-title">SuperPrompter Admin</h1>
+</div>
+<div class="auth-section">
+<a href="{{ url_for('app_home') }}" class="btn btn-outline-light btn-sm mr-2">Back to App</a>
+{% if current_user.is_authenticated %}
+<a href="{{ url_for('logout') }}" class="btn btn-outline-light btn-sm">Logout</a>
+{% endif %}
+</div>
+</header>
 
 <div class="container">
   <h2>Admin - Manage Users</h2>
