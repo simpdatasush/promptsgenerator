@@ -945,6 +945,7 @@ async def reverse_prompt_endpoint():
 
 
 @app.route('/admin/users')
+@login_required
 @admin_required
 def admin_users():
     """
