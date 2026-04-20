@@ -229,10 +229,10 @@ body {
                     if(res.category === "Newsletter") icon = "fa-envelope-open-text";
                     if(res.category === "Seminars & Podcast") icon = "fa-microphone-alt";
                     if(res.category === "Book") icon = "fa-book";
-                    if(res.category === "Channel") icon = "fa-play-circle";
+                    if(res.category === "Channel") icon = "fa-play-circle"; // For Social Media & Youtube
                     // New Categories
                     if(res.category === "Research Papers")   icon = "fa-file-alt";      // For Research Papers
-                    if(res.category === "Repos.")       icon = "fa-code-branch";   // For Github/HuggingFace Repos
+                    if(res.category === "Repos.")       icon = "fa-code-branch";   // For Github/HuggingFace Repos/Ollama/ModelScope
                     if(res.category === "IP")         icon = "fa-fingerprint";   // For Intellectual Property/Patents
                     if (res.category === "NewsBites") icon = "fa-bolt"; // For NewsBites
                     // New Categories
@@ -240,6 +240,7 @@ body {
                     if (res.category === "Sci-Fi shows" || res.category === "Movies") icon = "fa-film"; // or "fa-rocket" for a Sci-Fi vibe
                     // New Categories
                     if (res.category === "Blog") icon = "fa-blog"; // For Blogs
+                    if (res.category === "Websites") icon = "fa-compass"; // For AI-Websites
                     section += `
                         <div class="brick-card">
                             <div class="d-flex justify-content-between align-items-start">
