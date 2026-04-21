@@ -1224,6 +1224,7 @@ ITEMS_PER_PAGE = 10
 ##query = News.query.order_by(News.timestamp.desc()).limit(6).all()
 
 @app.route('/all_news', methods=['GET'])
+@login_required
 def all_news():
     search_query = request.args.get('q', '').strip()
     page = request.args.get('page', 1, type=int)
