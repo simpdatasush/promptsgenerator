@@ -166,9 +166,7 @@ configure_ai_apis()
 class ModelUsageTracker:
     def __init__(self):
         self.counts = {
-            'gemma-3-4b-it': 0,
-            'gemma-3-12b-it': 0,
-            'gemma-3-27b-it': 0,
+            'gemma-4-26b-a4b-it': 0,
             'gemma-4-31b-it':0
         }
         self.limit = 10000
@@ -193,7 +191,7 @@ class ModelUsageTracker:
                 return preferred_model
             
             # Fallback Logic: If preferred is full, try the next smallest model
-            fallbacks = ['gemma-3-12b-it', 'gemma-3-4b-it', 'gemma-3-1b-it']
+            fallbacks = ['gemma-4-26b-a4b-it', 'gemma-4-31b-it']
             for model in fallbacks:
                 if self.counts[model] < self.limit:
                     self.counts[model] += 1
@@ -212,12 +210,8 @@ def get_dynamic_model_name(prompt_instruction: str) -> str:
         preferred >= 'glm-4.7-flash'
     elif length > 7500:
         preferred = 'gemma-4-31b-it'
-    elif length > 5400:
-        preferred = 'gemma-3-27b-it'
-    elif length >= 2700:
-        preferred = 'gemma-3-12b-it'
     else:
-        preferred = 'gemma-3-4b-it'
+        preferred = 'gemma-4-26b-a4b-it'
       
     # 2. Check quota and get final model name
     final_model = usage_tracker.get_and_increment(preferred)
@@ -1917,7 +1911,7 @@ def chat_toy():
     )
 
     try:
-        response = gemma_client.models.generate_content(model='gemma-3-4b-it', contents=prompt)
+        response = gemma_client.models.generate_content(model='gemma-4-26b-a4b-it', contents=prompt)
         reply_text, follow_up_qs = process_toy_response(response.text)
         
         return jsonify({
@@ -2010,7 +2004,7 @@ STRICT RULES:
     try:
         # Check if client exists
         response = gemma_client.models.generate_content(
-            model='gemma-3-4b-it', 
+            model='gemma-4-26b-a4b-it', 
             contents=prompt
         )
         return jsonify({"reply": response.text.strip()})
@@ -2263,7 +2257,7 @@ def get_ai_fact():
 
     try:
         response = gemma_client.models.generate_content(
-            model='gemma-3-4b-it', 
+            model='gemma-4-26b-a4b-it', 
             contents=prompt
         )
         reply_text = response.text.strip()
