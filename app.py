@@ -166,7 +166,6 @@ configure_ai_apis()
 class ModelUsageTracker:
     def __init__(self):
         self.counts = {
-            'gemma-3-1b-it': 0,
             'gemma-3-4b-it': 0,
             'gemma-3-12b-it': 0,
             'gemma-3-27b-it': 0,
@@ -217,11 +216,9 @@ def get_dynamic_model_name(prompt_instruction: str) -> str:
         preferred = 'gemma-3-27b-it'
     elif length >= 2700:
         preferred = 'gemma-3-12b-it'
-    elif length >= 1800:
-        preferred = 'gemma-3-4b-it'
     else:
-        preferred = 'gemma-3-1b-it'
-
+        preferred = 'gemma-3-4b-it'
+      
     # 2. Check quota and get final model name
     final_model = usage_tracker.get_and_increment(preferred)
     
