@@ -491,7 +491,7 @@ def ask_gemini_for_prompt(prompt_instruction, max_output_tokens=1024):
                     "temperature": 0.1
                 }
             )
-          return filter_gemini_response(response.text).strip()
+            return filter_gemini_response(response.text).strip()
 
         else :
             response = gemma_client.models.generate_content(
@@ -502,7 +502,7 @@ def ask_gemini_for_prompt(prompt_instruction, max_output_tokens=1024):
                     "temperature": 0.1
                 }
             )
-          return filter_gemini_response(response.text).strip()
+            return filter_gemini_response(response.text).strip()
       
     except Exception as e:
         app.logger.error(f"Gemma Routing Error: {e}")
