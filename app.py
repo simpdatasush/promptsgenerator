@@ -167,7 +167,8 @@ class ModelUsageTracker:
     def __init__(self):
         self.counts = {
             'gemma-4-26b-a4b-it': 0,
-            'gemma-4-31b-it':0
+            'gemma-4-31b-it':0,
+            'glm-4.7-flash':0
         }
         self.limit = 10000
         self.last_reset = datetime.now().date()
@@ -191,7 +192,7 @@ class ModelUsageTracker:
                 return preferred_model
             
             # Fallback Logic: If preferred is full, try the next smallest model
-            fallbacks = ['gemma-4-26b-a4b-it', 'gemma-4-31b-it']
+            fallbacks = ['gemma-4-26b-a4b-it','gemma-4-31b-it','glm-4.7-flash']
             for model in fallbacks:
                 if self.counts[model] < self.limit:
                     self.counts[model] += 1
@@ -210,8 +211,10 @@ def get_dynamic_model_name(prompt_instruction: str) -> str:
         preferred >= 'glm-4.7-flash'
     elif length > 7500:
         preferred = 'gemma-4-31b-it'
-    else:
+    elif length > 6500:
         preferred = 'gemma-4-26b-a4b-it'
+    else :
+        preferred = 'gemini-3-flash-preview'
       
     # 2. Check quota and get final model name
     final_model = usage_tracker.get_and_increment(preferred)
