@@ -481,8 +481,18 @@ def ask_gemini_for_prompt(prompt_instruction, max_output_tokens=1024):
             )
             return response.choices[0].message.content.strip()
 
-      
-        else:
+        elif "gemma" in selected_model:
+            response = gemma_client.models.generate_content(
+                model=selected_model,
+                contents=prompt_instruction,
+                config={
+                    "max_output_tokens": max_output_tokens,
+                    "temperature": 0.1
+                }
+            )
+        return filter_gemini_response(response.text).strip()
+
+      else :
             response = gemma_client.models.generate_content(
                 model=selected_model,
                 contents=prompt_instruction,
