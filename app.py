@@ -162,21 +162,22 @@ def configure_ai_apis():
 # Call the consolidated function
 configure_ai_apis()
 
-# Model Usage Tracker
 class ModelUsageTracker:
     def __init__(self):
+        # Must match the exact strings used in the routing logic
         self.counts = {
+            'glm-4.7-flash': 0,
+            'gemma-4-31b-it': 0,
             'gemma-4-26b-a4b-it': 0,
-            'gemma-4-31b-it':0,
-            'glm-4.7-flash':0,
-            'gemini-3-flash-preview':0
+            'gemini-3-flash-preview': 0,
+            'gemini-2.5-flash': 0,
+            'gemini-2.5-flash-lite': 0
         }
         self.limit = 10000
         self.last_reset = datetime.now().date()
         self.lock = threading.Lock()
 
     def _check_reset(self):
-        """Resets counters if a new day has started."""
         now = datetime.now().date()
         if now > self.last_reset:
             with self.lock:
@@ -187,47 +188,25 @@ class ModelUsageTracker:
     def get_and_increment(self, preferred_model):
         self._check_reset()
         with self.lock:
-            # Check if preferred model is under limit
+            # Safety check for model name existence
+            if preferred_model not in self.counts:
+                return None
+
             if self.counts[preferred_model] < self.limit:
                 self.counts[preferred_model] += 1
                 return preferred_model
             
-            # Fallback Logic: If preferred is full, try the next smallest model
-            fallbacks = ['gemma-4-26b-a4b-it','gemma-4-31b-it','glm-4.7-flash']
+            # Fallback logic if the preferred model's quota is full
+            fallbacks = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'glm-4.7-flash']
             for model in fallbacks:
-                if self.counts[model] < self.limit:
+                if self.counts.get(model, 0) < self.limit:
                     self.counts[model] += 1
                     return model
-            
-            return None # All quotas exhausted
+            return None
 
 # Initialize the global tracker
 usage_tracker = ModelUsageTracker()
 
-def get_dynamic_model_name(prompt_instruction: str) -> str:
-    length = len(prompt_instruction)
-
-    # 1. Determine "ideal" model based on length
-    if length > 10000:
-        preferred = 'glm-4.7-flash'
-    elif length > 7500:
-        preferred = 'gemma-4-31b-it'
-    elif length > 5400:
-        preferred = 'gemma-4-26b-a4b-it'
-    elif length > 2700:
-        preferred = 'gemini-3-flash-preview'
-    elif length > 1800:
-        preferred = 'gemini-2.5-flash'
-    else :
-        preferred = 'gemini-2.5-flash-lite'
-      
-    # 2. Check quota and get final model name
-    final_model = usage_tracker.get_and_increment(preferred)
-    
-    if not final_model:
-        raise Exception("Daily quota exceeded for all models.")
-        
-    return final_model
 
 
 # --- UPDATED: User Model for SQLAlchemy and Flask-Login ---
@@ -466,45 +445,96 @@ def filter_gemini_response(text):
    return text
 
 
-# --- Gemini API interaction function (NOW SYNCHRONOUS) ---
-
 def ask_gemini_for_prompt(prompt_instruction, max_output_tokens=1024):
+    """
+    Directly routes to the specific API based on character length 
+    and updates the usage tracker for each specific model.
+    """
+    length = len(prompt_instruction)
+    
     try:
-        selected_model = get_dynamic_model_name(prompt_instruction)
-        
-        # --- Route 1: ZhipuAI (GLM) ---
-        if "glm" in selected_model:
-            if not zai_client:
-                return "GLM Service is not configured."
+        # --- TIER 1: Extremely Long (> 10k) -> GLM ---
+        if length > 10000:
+            if not usage_tracker.get_and_increment('glm-4.7-flash'):
+                return "Daily quota exceeded for GLM service."
+            
+            app.logger.info(f"Direct Route ({length} chars) to GLM-4.7-Flash")
             response = zai_client.chat.completions.create(
-                model=selected_model,
+                model='glm-4.7-flash',
                 messages=[{"role": "user", "content": prompt_instruction}],
                 max_tokens=max_output_tokens
             )
             return response.choices[0].message.content.strip()
 
-        # --- Route 2: Google GenAI (Gemma / Gemini) ---
-        elif "gemini" in selected_model or "gemma" in selected_model:
-            if not gemma_client:
-                return "Google AI Service is not configured."
-            
-            # Using the Google GenAI SDK (Client.models.generate_content)
+        # --- TIER 2: Large (> 7.5k) -> Gemma 4 31b ---
+        elif length > 7500:
+            if not usage_tracker.get_and_increment('gemma-4-31b-it'):
+                return "Daily quota exceeded for Gemma-31b service."
+
+            app.logger.info(f"Direct Route ({length} chars) to Gemma-4-31b-it")
             response = gemma_client.models.generate_content(
-                model=selected_model,
+                model='gemma-4-31b-it',
                 contents=prompt_instruction,
-                config={
-                    "max_output_tokens": max_output_tokens,
-                    "temperature": 0.1
-                }
+                config={"max_output_tokens": max_output_tokens, "temperature": 0.1}
             )
             return filter_gemini_response(response.text).strip()
 
+        # --- TIER 3: Medium-Large (> 5.4k) -> Gemma 4 26b ---
+        elif length > 5400:
+            if not usage_tracker.get_and_increment('gemma-4-26b-a4b-it'):
+                return "Daily quota exceeded for Gemma-26b service."
+
+            app.logger.info(f"Direct Route ({length} chars) to Gemma-4-26b-a4b-it")
+            response = gemma_client.models.generate_content(
+                model='gemma-4-26b-a4b-it',
+                contents=prompt_instruction,
+                config={"max_output_tokens": max_output_tokens, "temperature": 0.1}
+            )
+            return filter_gemini_response(response.text).strip()
+
+        # --- TIER 4: Medium (> 2.7k) -> Gemini 3 Preview ---
+        elif length > 2700:
+            if not usage_tracker.get_and_increment('gemini-3-flash-preview'):
+                return "Daily quota exceeded for Gemini-3 service."
+
+            app.logger.info(f"Direct Route ({length} chars) to Gemini-3-Flash-Preview")
+            response = gemma_client.models.generate_content(
+                model='gemini-3-flash-preview',
+                contents=prompt_instruction,
+                config={"max_output_tokens": max_output_tokens, "temperature": 0.1}
+            )
+            return filter_gemini_response(response.text).strip()
+
+        # --- TIER 5: Standard (> 1.8k) -> Gemini 2.5 Flash ---
+        elif length > 1800:
+            if not usage_tracker.get_and_increment('gemini-2.5-flash'):
+                return "Daily quota exceeded for Gemini-2.5-Flash."
+
+            app.logger.info(f"Direct Route ({length} chars) to Gemini-2.5-Flash")
+            response = gemma_client.models.generate_content(
+                model='gemini-2.5-flash',
+                contents=prompt_instruction,
+                config={"max_output_tokens": max_output_tokens, "temperature": 0.1}
+            )
+            return filter_gemini_response(response.text).strip()
+
+        # --- TIER 6: Lite (Default) -> Gemini 2.5 Flash Lite ---
         else:
-            app.logger.error(f"Unrecognized model format: {selected_model}")
-            return "Routing Error: Unknown model type."
+            if not usage_tracker.get_and_increment('gemini-2.5-flash-lite'):
+                return "Daily quota exceeded for Lite service."
+
+            app.logger.info(f"Direct Route ({length} chars) to Gemini-2.5-Flash-Lite")
+            response = gemma_client.models.generate_content(
+                model='gemini-2.5-flash-lite',
+                contents=prompt_instruction,
+                config={"max_output_tokens": max_output_tokens, "temperature": 0.1}
+            )
+            return filter_gemini_response(response.text).strip()
 
     except Exception as e:
-        app.logger.error(f"Critical Routing Error: {str(e)}")
+        app.logger.error(f"Execution Error in ask_gemini_for_prompt: {str(e)}")
+        if "404" in str(e):
+            return "Routing Error: One of the AI model versions is currently unavailable."
         return "The AI service is currently overloaded. Please try again in a few moments."
 
 
