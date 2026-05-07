@@ -211,10 +211,11 @@ def get_dynamic_model_name(prompt_instruction: str) -> str:
         preferred >= 'glm-4.7-flash'
     elif length > 7500:
         preferred = 'gemma-4-31b-it'
-    elif length > 6500:
+    elif length > 5400:
         preferred = 'gemma-4-26b-a4b-it'
     else :
         preferred = 'gemini-3-flash-preview'
+      
       
     # 2. Check quota and get final model name
     final_model = usage_tracker.get_and_increment(preferred)
@@ -492,7 +493,7 @@ def ask_gemini_for_prompt(prompt_instruction, max_output_tokens=1024):
             )
         return filter_gemini_response(response.text).strip()
 
-      else :
+        else :
             response = gemma_client.models.generate_content(
                 model=selected_model,
                 contents=prompt_instruction,
