@@ -2295,7 +2295,7 @@ def get_ai_fact():
 
     try:
         response = gemma_client.models.generate_content(
-            model='gemma-4-26b-a4b-it', 
+            model='gemini-2.5-flash', 
             contents=prompt
         )
         reply_text = response.text.strip()
