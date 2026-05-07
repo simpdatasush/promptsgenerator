@@ -164,7 +164,7 @@ configure_ai_apis()
 
 class ModelUsageTracker:
     def __init__(self):
-        # Must match the exact strings used in the routing logic
+        # Current counts initialized at 0
         self.counts = {
             'glm-4.7-flash': 0,
             'gemma-4-31b-it': 0,
@@ -173,11 +173,22 @@ class ModelUsageTracker:
             'gemini-2.5-flash': 0,
             'gemini-2.5-flash-lite': 0
         }
-        self.limit = 10000
+        
+        # Define limits: Gemini = 15 | Others = 10,000
+        self.limits = {
+            'glm-4.7-flash': 10000,
+            'gemma-4-31b-it': 10000,
+            'gemma-4-26b-a4b-it': 10000,
+            'gemini-3-flash-preview': 15,
+            'gemini-2.5-flash': 15,
+            'gemini-2.5-flash-lite': 15
+        }
+        
         self.last_reset = datetime.now().date()
         self.lock = threading.Lock()
 
     def _check_reset(self):
+        """Resets all counters if a new calendar day has started."""
         now = datetime.now().date()
         if now > self.last_reset:
             with self.lock:
@@ -185,28 +196,20 @@ class ModelUsageTracker:
                     self.counts[model] = 0
                 self.last_reset = now
 
-    def get_and_increment(self, preferred_model):
+    def is_available(self, model_name):
+        """Checks if a specific model has remaining quota."""
         self._check_reset()
-        with self.lock:
-            # Safety check for model name existence
-            if preferred_model not in self.counts:
-                return None
+        return self.counts.get(model_name, 0) < self.limits.get(model_name, 0)
 
-            if self.counts[preferred_model] < self.limit:
-                self.counts[preferred_model] += 1
-                return preferred_model
-            
-            # Fallback logic if the preferred model's quota is full
-            fallbacks = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'glm-4.7-flash']
-            for model in fallbacks:
-                if self.counts.get(model, 0) < self.limit:
-                    self.counts[model] += 1
-                    return model
-            return None
+    def increment(self, model_name):
+        """Increments the usage count for a model."""
+        with self.lock:
+            if model_name in self.counts:
+                self.counts[model_name] += 1
+
 
 # Initialize the global tracker
 usage_tracker = ModelUsageTracker()
-
 
 
 # --- UPDATED: User Model for SQLAlchemy and Flask-Login ---
@@ -444,98 +447,91 @@ def filter_gemini_response(text):
 
    return text
 
-
 def ask_gemini_for_prompt(prompt_instruction, max_output_tokens=1024):
-    """
-    Directly routes to the specific API based on character length 
-    and updates the usage tracker for each specific model.
-    """
     length = len(prompt_instruction)
     
     try:
-        # --- TIER 1: Extremely Long (> 10k) -> GLM ---
+        # --- TIER 1: GLM (> 10k chars) ---
         if length > 10000:
-            if not usage_tracker.get_and_increment('glm-4.7-flash'):
-                return "Daily quota exceeded for GLM service."
-            
-            app.logger.info(f"Direct Route ({length} chars) to GLM-4.7-Flash")
-            response = zai_client.chat.completions.create(
-                model='glm-4.7-flash',
-                messages=[{"role": "user", "content": prompt_instruction}],
-                max_tokens=max_output_tokens
-            )
-            return response.choices[0].message.content.strip()
+            if usage_tracker.is_available('glm-4.7-flash'):
+                usage_tracker.increment('glm-4.7-flash')
+                app.logger.info(f"Routing to GLM ({length} chars)")
+                response = zai_client.chat.completions.create(
+                    model='glm-4.7-flash',
+                    messages=[{"role": "user", "content": prompt_instruction}],
+                    max_tokens=max_output_tokens
+                )
+                return response.choices[0].message.content.strip()
 
-        # --- TIER 2: Large (> 7.5k) -> Gemma 4 31b ---
+        # --- TIER 2: GEMMA 31b (> 7.5k chars) ---
         elif length > 7500:
-            if not usage_tracker.get_and_increment('gemma-4-31b-it'):
-                return "Daily quota exceeded for Gemma-31b service."
+            if usage_tracker.is_available('gemma-4-31b-it'):
+                usage_tracker.increment('gemma-4-31b-it')
+                app.logger.info(f"Routing to Gemma-31b ({length} chars)")
+                response = gemma_client.models.generate_content(
+                    model='gemma-4-31b-it',
+                    contents=prompt_instruction,
+                    config={"max_output_tokens": max_output_tokens, "temperature": 0.1}
+                )
+                return filter_gemini_response(response.text).strip()
 
-            app.logger.info(f"Direct Route ({length} chars) to Gemma-4-31b-it")
-            response = gemma_client.models.generate_content(
-                model='gemma-4-31b-it',
-                contents=prompt_instruction,
-                config={"max_output_tokens": max_output_tokens, "temperature": 0.1}
-            )
-            return filter_gemini_response(response.text).strip()
-
-        # --- TIER 3: Medium-Large (> 5.4k) -> Gemma 4 26b ---
+        # --- TIER 3: GEMMA 26b (> 5.4k chars) ---
         elif length > 5400:
-            if not usage_tracker.get_and_increment('gemma-4-26b-a4b-it'):
-                return "Daily quota exceeded for Gemma-26b service."
+            if usage_tracker.is_available('gemma-4-26b-a4b-it'):
+                usage_tracker.increment('gemma-4-26b-a4b-it')
+                app.logger.info(f"Routing to Gemma-26b ({length} chars)")
+                response = gemma_client.models.generate_content(
+                    model='gemma-4-26b-a4b-it',
+                    contents=prompt_instruction,
+                    config={"max_output_tokens": max_output_tokens, "temperature": 0.1}
+                )
+                return filter_gemini_response(response.text).strip()
 
-            app.logger.info(f"Direct Route ({length} chars) to Gemma-4-26b-a4b-it")
-            response = gemma_client.models.generate_content(
-                model='gemma-4-26b-a4b-it',
-                contents=prompt_instruction,
-                config={"max_output_tokens": max_output_tokens, "temperature": 0.1}
-            )
-            return filter_gemini_response(response.text).strip()
-
-        # --- TIER 4: Medium (> 2.7k) -> Gemini 3 Preview ---
+        # --- TIER 4: GEMINI 3 (> 2.7k chars) with OVERFLOW ---
         elif length > 2700:
-            if not usage_tracker.get_and_increment('gemini-3-flash-preview'):
-                return "Daily quota exceeded for Gemini-3 service."
+            if usage_tracker.is_available('gemini-3-flash-preview'):
+                usage_tracker.increment('gemini-3-flash-preview')
+                app.logger.info(f"Routing to Gemini-3 ({length} chars)")
+                response = gemma_client.models.generate_content(model='gemini-3-flash-preview', contents=prompt_instruction)
+                return filter_gemini_response(response.text).strip()
+            else:
+                # OVERFLOW TO GEMMA 26b
+                usage_tracker.increment('gemma-4-26b-a4b-it')
+                app.logger.info(f"Gemini-3 Quota full. Overflowing to Gemma-26b")
+                response = gemma_client.models.generate_content(model='gemma-4-26b-a4b-it', contents=prompt_instruction)
+                return filter_gemini_response(response.text).strip()
 
-            app.logger.info(f"Direct Route ({length} chars) to Gemini-3-Flash-Preview")
-            response = gemma_client.models.generate_content(
-                model='gemini-3-flash-preview',
-                contents=prompt_instruction,
-                config={"max_output_tokens": max_output_tokens, "temperature": 0.1}
-            )
-            return filter_gemini_response(response.text).strip()
-
-        # --- TIER 5: Standard (> 1.8k) -> Gemini 2.5 Flash ---
+        # --- TIER 5: GEMINI 2.5 (> 1.8k chars) with OVERFLOW ---
         elif length > 1800:
-            if not usage_tracker.get_and_increment('gemini-2.5-flash'):
-                return "Daily quota exceeded for Gemini-2.5-Flash."
+            if usage_tracker.is_available('gemini-2.5-flash'):
+                usage_tracker.increment('gemini-2.5-flash')
+                app.logger.info(f"Routing to Gemini-2.5 ({length} chars)")
+                response = gemma_client.models.generate_content(model='gemini-2.5-flash', contents=prompt_instruction)
+                return filter_gemini_response(response.text).strip()
+            else:
+                # OVERFLOW TO GLM
+                usage_tracker.increment('glm-4.7-flash')
+                app.logger.info(f"Gemini-2.5 Quota full. Overflowing to GLM")
+                response = zai_client.chat.completions.create(model='glm-4.7-flash', messages=[{"role": "user", "content": prompt_instruction}])
+                return response.choices[0].message.content.strip()
 
-            app.logger.info(f"Direct Route ({length} chars) to Gemini-2.5-Flash")
-            response = gemma_client.models.generate_content(
-                model='gemini-2.5-flash',
-                contents=prompt_instruction,
-                config={"max_output_tokens": max_output_tokens, "temperature": 0.1}
-            )
-            return filter_gemini_response(response.text).strip()
-
-        # --- TIER 6: Lite (Default) -> Gemini 2.5 Flash Lite ---
+        # --- TIER 6: GEMINI LITE (Default) with OVERFLOW ---
         else:
-            if not usage_tracker.get_and_increment('gemini-2.5-flash-lite'):
-                return "Daily quota exceeded for Lite service."
-
-            app.logger.info(f"Direct Route ({length} chars) to Gemini-2.5-Flash-Lite")
-            response = gemma_client.models.generate_content(
-                model='gemini-2.5-flash-lite',
-                contents=prompt_instruction,
-                config={"max_output_tokens": max_output_tokens, "temperature": 0.1}
-            )
-            return filter_gemini_response(response.text).strip()
+            if usage_tracker.is_available('gemini-2.5-flash-lite'):
+                usage_tracker.increment('gemini-2.5-flash-lite')
+                app.logger.info(f"Routing to Lite ({length} chars)")
+                response = gemma_client.models.generate_content(model='gemini-2.5-flash-lite', contents=prompt_instruction)
+                return filter_gemini_response(response.text).strip()
+            else:
+                # OVERFLOW TO GLM
+                usage_tracker.increment('glm-4.7-flash')
+                app.logger.info(f"Lite Quota full. Overflowing to GLM")
+                response = zai_client.chat.completions.create(model='glm-4.7-flash', messages=[{"role": "user", "content": prompt_instruction}])
+                return response.choices[0].message.content.strip()
 
     except Exception as e:
-        app.logger.error(f"Execution Error in ask_gemini_for_prompt: {str(e)}")
-        if "404" in str(e):
-            return "Routing Error: One of the AI model versions is currently unavailable."
-        return "The AI service is currently overloaded. Please try again in a few moments."
+        app.logger.error(f"Routing Error: {str(e)}")
+        return "The SuperPrompter AI service is currently overloaded. Please try again later."
 
 
 # --- NEW: Gemini API for Image Understanding ---
