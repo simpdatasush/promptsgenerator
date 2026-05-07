@@ -168,7 +168,8 @@ class ModelUsageTracker:
         self.counts = {
             'gemma-4-26b-a4b-it': 0,
             'gemma-4-31b-it':0,
-            'glm-4.7-flash':0
+            'glm-4.7-flash':0,
+            'gemini-3-flash-preview':0
         }
         self.limit = 10000
         self.last_reset = datetime.now().date()
@@ -213,9 +214,12 @@ def get_dynamic_model_name(prompt_instruction: str) -> str:
         preferred = 'gemma-4-31b-it'
     elif length > 5400:
         preferred = 'gemma-4-26b-a4b-it'
-    else :
+    elif length > 2700:
         preferred = 'gemini-3-flash-preview'
-      
+    elif length > 1800:
+        preferred = 'gemini-2.5-flash'
+    else :
+        preferred = 'gemini-2.5-flash-lite'
       
     # 2. Check quota and get final model name
     final_model = usage_tracker.get_and_increment(preferred)
@@ -482,17 +486,6 @@ def ask_gemini_for_prompt(prompt_instruction, max_output_tokens=1024):
             )
             return response.choices[0].message.content.strip()
 
-        elif "gemma" in selected_model:
-            response = gemma_client.models.generate_content(
-                model=selected_model,
-                contents=prompt_instruction,
-                config={
-                    "max_output_tokens": max_output_tokens,
-                    "temperature": 0.1
-                }
-            )
-            return filter_gemini_response(response.text).strip()
-
         else :
             response = gemma_client.models.generate_content(
                 model=selected_model,
@@ -503,7 +496,7 @@ def ask_gemini_for_prompt(prompt_instruction, max_output_tokens=1024):
                 }
             )
             return filter_gemini_response(response.text).strip()
-      
+          
     except Exception as e:
         app.logger.error(f"Gemma Routing Error: {e}")
         return "SuperPrompter AI Service temporarily unavailable due to high demand."
@@ -636,8 +629,6 @@ async def generate_reverse_prompt_async(input_text, language_code="en-US"):
 
    return reverse_prompt_result
 # --- END NEW: Reverse Prompting function ---
-
-
 
 
 # --- Flask Routes ---
