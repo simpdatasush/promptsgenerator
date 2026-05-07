@@ -209,7 +209,7 @@ def get_dynamic_model_name(prompt_instruction: str) -> str:
 
     # 1. Determine "ideal" model based on length
     if length > 10000:
-        preferred >= 'glm-4.7-flash'
+        preferred = 'glm-4.7-flash'
     elif length > 7500:
         preferred = 'gemma-4-31b-it'
     elif length > 5400:
@@ -470,15 +470,17 @@ def filter_gemini_response(text):
 
 def ask_gemini_for_prompt(prompt_instruction, max_output_tokens=1024):
     """
-    Consolidated function that replaces ask_gemini_for_prompt.
-    It routes to the correct SDK based on the model name.
+    Routes to ZhipuAI (GLM) or Google (Gemma/Gemini) with safety checks.
     """
     try:
-        # This now handles both length-based tiering AND the 12k RPD check
         selected_model = get_dynamic_model_name(prompt_instruction)
+        app.logger.info(f"Routing to model: {selected_model}")
 
         # --- Route 1: GLM Model (ZhipuAI SDK) ---
         if "glm" in selected_model:
+            if not zai_client:
+                raise ValueError("GLM client is not initialized. Check API Key.")
+            
             response = zai_client.chat.completions.create(
                 model=selected_model,
                 messages=[{"role": "user", "content": prompt_instruction}],
@@ -486,7 +488,11 @@ def ask_gemini_for_prompt(prompt_instruction, max_output_tokens=1024):
             )
             return response.choices[0].message.content.strip()
 
-        else :
+        # --- Route 2: Gemma/Gemini Models (Google SDK) ---
+        else:
+            if not gemma_client:
+                raise ValueError("Gemma/Gemini client is not initialized. Check API Key.")
+
             response = gemma_client.models.generate_content(
                 model=selected_model,
                 contents=prompt_instruction,
@@ -495,11 +501,22 @@ def ask_gemini_for_prompt(prompt_instruction, max_output_tokens=1024):
                     "temperature": 0.1
                 }
             )
-            return filter_gemini_response(response.text).strip()
+            
+            # Defensive check: Ensure response and response.text exist
+            if hasattr(response, 'text') and response.text:
+                return filter_gemini_response(response.text).strip()
+            else:
+                app.logger.warning(f"Empty response from {selected_model}")
+                return "The SuperPrompter AI returned an empty response. Please refine your prompt."
           
     except Exception as e:
-        app.logger.error(f"Gemma Routing Error: {e}")
-        return "SuperPrompter AI Service temporarily unavailable due to high demand."
+        # LOG THE ACTUAL ERROR so you can fix it on Render
+        app.logger.error(f"Routing Failure for {selected_model if 'selected_model' in locals() else 'Unknown'}: {str(e)}")
+        
+        # Friendly message for the user
+        return "The SuperPrompter AI service is currently overloaded. Please try again in a few moments."
+
+
 
 # --- NEW: Gemini API for Image Understanding ---
 def ask_gemini_for_image_text(image_data_bytes):
