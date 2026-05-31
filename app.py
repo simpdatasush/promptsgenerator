@@ -1392,7 +1392,6 @@ def all_jobs():
 
 # --- UPDATED: Admin News Management Routes ---
 @app.route('/admin/news', methods=['GET'])
-@login_required
 @admin_required
 def admin_news():
    news_items = News.query.order_by(News.timestamp.desc()).all()
