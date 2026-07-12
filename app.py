@@ -753,12 +753,18 @@ def landing():
                             status_message=status_message,
                             status_class=status_class)
 
+@app.route('/dashboard')
+@login_required
+def dashboard():
+    # Pass current_user so the dashboard header knows the user's authentication status
+    return render_template('dashboard.html', current_user=current_user)
 
 # Renamed original index route to /app_home
 @app.route('/app_home')
+@login_required # Make sure this has login protection too if it didn't already!
 def app_home():
-  # Pass current_user object to the template to show login/logout status
-  return render_template('index.html', current_user=current_user)
+    # Pass current_user object to the template to show login/logout status
+    return render_template('index.html', current_user=current_user)
 
 
 # NEW: LLM Benchmark Page Route
@@ -2418,7 +2424,9 @@ def change_password():
            current_user.set_password(new_password)
            db.session.commit()
            flash('Your password has been changed successfully!', 'success')
-           return redirect(url_for('app_home'))
+#           return redirect(url_for('app_home'))
+           return redirect(url_for('dashboard'))
+         
        except Exception as e:
            db.session.rollback()
            flash(f'An error occurred while changing your password: {e}', 'danger')
@@ -2696,7 +2704,8 @@ def download_prompts_txt():
 def register():
   if current_user.is_authenticated:
       flash('You are already registered and logged in.', 'info')
-      return redirect(url_for('app_home'))
+#      return redirect(url_for('app_home'))
+      return redirect(url_for('dashboard'))
 
 
   if request.method == 'POST':
@@ -2724,7 +2733,8 @@ def register():
               db.session.commit()
               login_user(new_user) # Automatically log in the new user
               flash('Registration successful! You are now logged in.', 'success')
-              return redirect(url_for('app_home')) # Redirect directly to app_home
+  #            return redirect(url_for('app_home')) # Redirect directly to app_home
+              return redirect(url_for('dashboard'))
   return render_template('register.html') # Initial GET request, no suggestions
 
 
@@ -2802,12 +2812,14 @@ The SuperPrompter Team
                 mail.send(user_msg)
 
             flash("Your request has been sent! Check your email for a confirmation.", "success")
-            return redirect(url_for('app_home'))
+#            return redirect(url_for('app_home'))
+            return redirect(url_for('dashboard'))
 
         except Exception as e:
             app.logger.error(f"Mail failure: {e}")
             flash("Request sent, but we couldn't send a confirmation email.", "warning")
-            return redirect(url_for('app_home'))
+#            return redirect(url_for('app_home'))
+            return redirect(url_for('dashboard'))
 
     return render_template('send_request.html')
 
@@ -2817,7 +2829,8 @@ The SuperPrompter Team
 def login():
     if current_user.is_authenticated:
         flash('You are already logged in.', 'info')
-        return redirect(url_for('app_home'))
+#        return redirect(url_for('app_home'))
+        return redirect(url_for('dashboard')) # New destination!
 
     if request.method == 'POST':
         username = request.form['username']
