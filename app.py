@@ -2848,7 +2848,8 @@ def login():
             
             # 2. Redirect to the 'next' page if it exists, otherwise redirect to 'app_home'
             # (In a production environment, you should use 'is_safe_url' here to prevent phishing)
-            return redirect(next_page or url_for('app_home')) 
+            #return redirect(next_page or url_for('app_home'))
+            return redirect(next_page or url_for('dashboard'))
             
         else:
             flash('Login Unsuccessful. Please check username and password.', 'danger')
