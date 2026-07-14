@@ -1895,13 +1895,6 @@ def poll_review():
         return jsonify({"review": "I apologize, but I cannot assess the consensus right now."}), 500
 
 
-def process_toy_response(raw_text):
-    # More robust regex to handle spaces and various bracket styles
-    new_questions = re.findall(r'\[Q:\s*(.*?)\]', raw_text)
-    # Remove the question tags and asterisks for a clean typewriter effect
-    clean_text = re.sub(r'\[Q:.*?\]', '', raw_text).replace('*', '').strip()
-    return clean_text, new_questions
-
 # 2. Page Route
 @app.route('/toy-builder')
 def toy_builder():
@@ -2388,6 +2381,88 @@ def delete_ai_fact(fact_id):
         flash(f'Error deleting fact: {str(e)}', 'danger')
         
     return redirect(url_for('admin_ai_facts'))
+
+# App Routes 
+# 1. Creative Story Architect Engine
+
+def process_story_response(raw_text):
+    if not raw_text:
+        return ""
+    
+    # 1. Remove Markdown formatting characters (*, #, `, _)
+    clean_text = re.sub(r'[\*#`_]', '', raw_text)
+    
+    # 2. Strip any bracketed technical notes or residual tags if present
+    clean_text = re.sub(r'\[.*?\]', '', clean_text)
+    
+    # 3. Clean up excess whitespace strings safely
+    clean_text = re.sub(r'\n\s*\n+', '\n\n', clean_text).strip()
+    
+    return clean_text
+
+@app.route('/story-architect')
+@login_required
+def story_architect():
+    # Renders the standalone UI for the Story Architect Engine
+    # Passing current_user keeps the header status synced
+    return render_template('story_architect.html', current_user=current_user)
+
+@app.route('/generate_story_prompt', methods=['POST'])
+@login_required
+def generate_story_prompt():
+    # Use silent=True to safely manage empty or malformed JSON payloads
+    data = request.get_json(silent=True) or {}
+    subject = data.get('subject', '').strip()
+    
+    if not subject:
+        return jsonify({"error": "Subject cannot be empty."}), 400
+
+    # Your exact master narrative prompt blueprint configuration
+    prompt = f"""Act as a Master Narrative Architect. I will provide you with a Subject & subject is ```{subject}```.
+
+Your task is to first detect lanugauge of ```{subject}``` and construct a comprehensive, highly detailed "Storytelling Prompt" that I can use to generate a professional-grade short story or novel chapter.
+
+The prompt you create must include instructions for:
+
+Genre & Tone: Gemini / model Will decide.
+
+World-Building: Gemini / model Will decide.
+
+Character Archetype: Gemini / model Will decide.
+
+Narrative Hook: Gemini / model Will decide.
+
+Stylistic Constraints: Gemini / model Will decide.
+
+Please respond ONLY with the finished prompt, ready for me to copy and paste into a new session in max 1100 characters in a same language as of ```{subject}```."""
+
+    try:
+        # Fires context pipeline configuration directly to your active gemma client instance
+        response = gemma_client.models.generate_content(
+            model='gemma-4-26b-a4b-it', 
+            contents=prompt
+        )
+        
+        # Extract the text and return it cleanly as a JSON object
+        raw_output = response.text if response.text else "Failed to assemble prompt."
+        clean_output = process_story_response(raw_output)
+        
+        return jsonify({
+            "status": "success",
+            "story_prompt": clean_output
+        })
+        
+    except Exception as e:
+        print(f"Story Architect Server Error: {e}")
+        return jsonify({
+            "error": "The SuperPrompter AI service is currently overloaded. Please try again later."
+        }), 500
+
+@app.route('/reset_story_architect', methods=['POST'])
+@login_required
+def reset_story_architect():
+    # Returns an explicit success signal indicating state cleanup is complete
+    return jsonify({"status": "cleared"})
 
     
 # --- NEW: Change Password Route ---
