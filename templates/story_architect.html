@@ -117,98 +117,113 @@
     </main>
 
     <script>
-        const form = document.getElementById('architectForm');
-        const subjectInput = document.getElementById('subjectInput');
-        const submitBtn = document.getElementById('submitBtn');
-        const resetBtn = document.getElementById('resetBtn');
-        const copyBtn = document.getElementById('copyBtn');
-        
-        const idleState = document.getElementById('idleState');
-        const loadingState = document.getElementById('loadingState');
-        const outputDisplay = document.getElementById('outputDisplay');
+    const form = document.getElementById('architectForm');
+    const subjectInput = document.getElementById('subjectInput');
+    const submitBtn = document.getElementById('submitBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const copyBtn = document.getElementById('copyBtn');
+    
+    const idleState = document.getElementById('idleState');
+    const loadingState = document.getElementById('loadingState');
+    const outputDisplay = document.getElementById('outputDisplay');
 
-        // Form Submit Execution Block handler context
-        form.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const subjectValue = subjectInput.value.trim();
-            if(!subjectValue) return;
-
-            // Shift display visibility flags for loading state update loop sequence triggers
-            idleState.classList.add('hidden');
-            outputDisplay.classList.add('hidden');
-            copyBtn.classList.remove('flex');
-            copyBtn.classList.add('hidden');
-            loadingState.classList.remove('hidden');
-            submitBtn.disabled = true;
-            submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
-
-            try {
-                const response = await fetch('/generate_story_prompt', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ subject: subjectValue })
-                });
-
-                const data = await response.get_json ? await response.get_json() : await response.json();
-
-                if (response.ok && data.status === 'success') {
-                    outputDisplay.textContent = data.story_prompt;
-                    loadingState.classList.add('hidden');
-                    outputDisplay.classList.remove('hidden');
-                    copyBtn.classList.remove('hidden');
-                    copyBtn.classList.add('flex');
-                } else {
-                    alert(data.error || "An integration processing connection error flag has thrown.");
-                    resetInterfaceLayout();
-                }
-            } catch (err) {
-                console.error("Pipeline failure connection drop error tracker logged:", err);
-                alert("Critical engine error connection drop sequence caught.");
-                resetInterfaceLayout();
-            } finally {
-                submitBtn.disabled = false;
-                submitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-            }
-        });
-
-        // Clipboard Copy Command Trigger System Event Interface Hook
-        copyBtn.addEventListener('click', () => {
-            const outputText = outputDisplay.textContent;
-            if(!outputText) return;
-
-            navigator.clipboard.writeText(outputText).then(() => {
-                const icon = copyBtn.querySelector('i');
-                const label = copyBtn.querySelector('span');
-                
-                // Swap layout metrics icon parameters safely on active trigger confirm UI execution
-                icon.className = "fa-solid fa-check text-emerald-400";
-                label.textContent = "Copied!";
-                copyBtn.classList.add('border-emerald-500/30', 'bg-emerald-950/20');
-                
-                setTimeout(() => {
-                    icon.className = "fa-regular fa-copy";
-                    label.textContent = "Copy Prompt";
-                    copyBtn.classList.remove('border-emerald-500/30', 'bg-emerald-950/20');
-                }, 2000);
-            });
-        });
-
-        // State Reset Module Event Controller
-        resetBtn.addEventListener('click', async () => {
-            subjectInput.value = '';
-            resetInterfaceLayout();
-            // Call async background reset pipeline engine hook
-            await fetch('/reset_story_architect', { method: 'POST' });
-        });
-
-        function resetInterfaceLayout() {
-            outputDisplay.textContent = '';
-            outputDisplay.classList.add('hidden');
-            loadingState.classList.add('hidden');
-            copyBtn.classList.remove('flex');
-            copyBtn.classList.add('hidden');
-            idleState.classList.remove('hidden');
+    // Recursive Typewriter Core Engine Module
+    function typeWriterInto(text, element, i = 0) {
+        if (i < text.length) {
+            element.textContent = text.substring(0, i + 1);
+            // Dynamic container scroll anchor target
+            element.scrollTop = element.scrollHeight;
+            
+            setTimeout(() => typeWriterInto(text, element, i + 1), 15);
         }
-    </script>
+    }
+
+    // Form Submit Execution Block handler context
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const subjectValue = subjectInput.value.trim();
+        if(!subjectValue) return;
+
+        // Shift display visibility flags for loading state update loop sequence triggers
+        idleState.classList.add('hidden');
+        outputDisplay.classList.add('hidden');
+        copyBtn.classList.remove('flex');
+        copyBtn.classList.add('hidden');
+        loadingState.classList.remove('hidden');
+        submitBtn.disabled = true;
+        submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
+
+        try {
+            const response = await fetch('/generate_story_prompt', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ subject: subjectValue })
+            });
+
+            const data = await response.json();
+
+            if (response.ok && data.status === 'success') {
+                loadingState.classList.add('hidden');
+                outputDisplay.classList.remove('hidden');
+                copyBtn.classList.remove('hidden');
+                copyBtn.classList.add('flex');
+                
+                // Initialize clean target canvas and execute typewriter animation stream
+                outputDisplay.textContent = '';
+                typeWriterInto(data.story_prompt, outputDisplay);
+            } else {
+                alert(data.error || "An integration processing connection error flag has thrown.");
+                resetInterfaceLayout();
+            }
+        } catch (err) {
+            console.error("Pipeline failure connection drop error tracker logged:", err);
+            alert("Critical engine error connection drop sequence caught.");
+            resetInterfaceLayout();
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+        }
+    });
+
+    // Clipboard Copy Command Trigger System Event Interface Hook
+    copyBtn.addEventListener('click', () => {
+        const outputText = outputDisplay.textContent;
+        if(!outputText) return;
+
+        navigator.clipboard.writeText(outputText).then(() => {
+            const icon = copyBtn.querySelector('i');
+            const label = copyBtn.querySelector('span');
+            
+            // Swap layout metrics icon parameters safely on active trigger confirm UI execution
+            icon.className = "fa-solid fa-check text-emerald-400";
+            label.textContent = "Copied!";
+            copyBtn.classList.add('border-emerald-500/30', 'bg-emerald-950/20');
+            
+            setTimeout(() => {
+                icon.className = "fa-regular fa-copy";
+                label.textContent = "Copy Prompt";
+                copyBtn.classList.remove('border-emerald-500/30', 'bg-emerald-950/20');
+            }, 2000);
+        });
+    });
+
+    // State Reset Module Event Controller
+    resetBtn.addEventListener('click', async () => {
+        subjectInput.value = '';
+        resetInterfaceLayout();
+        // Call async background reset pipeline engine hook
+        await fetch('/reset_story_architect', { method: 'POST' });
+    });
+
+    function resetInterfaceLayout() {
+        outputDisplay.textContent = '';
+        outputDisplay.classList.add('hidden');
+        loadingState.classList.add('hidden');
+        copyBtn.classList.remove('flex');
+        copyBtn.classList.add('hidden');
+        idleState.classList.remove('hidden');
+    }
+</script>
+
 </body>
 </html>
