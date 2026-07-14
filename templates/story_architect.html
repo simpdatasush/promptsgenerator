@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Story Architect Engine</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+            min-height: 100vh;
+        }
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.45);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+    </style>
+</head>
+<body class="text-slate-100 flex flex-col antialiased">
+
+    <header class="w-full glass-panel border-b border-slate-800/60 px-6 py-4 flex justify-between items-center z-50">
+        <div class="flex items-center space-x-3">
+            <div class="bg-indigo-600/20 text-indigo-400 p-2.5 rounded-xl border border-indigo-500/30">
+                <i class="fa-solid fa-pen-nib text-xl"></i>
+            </div>
+            <div>
+                <h1 class="text-lg font-bold tracking-tight bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent">
+                    Story Architect
+                </h1>
+                <p class="text-xs text-slate-400">Master Narrative Prompt Builder</p>
+            </div>
+        </div>
+        
+        <div class="flex items-center space-x-4">
+            <a href="{{ url_for('dashboard') }}" class="text-sm text-slate-400 hover:text-white transition duration-200">
+                <i class="fa-solid fa-arrow-left mr-2"></i>Dashboard
+            </a>
+            <span class="text-slate-700">|</span>
+            <span class="text-xs text-indigo-400 font-mono bg-indigo-950/40 border border-indigo-900/50 px-2.5 py-1 rounded-md">
+                <i class="fa-solid fa-user-shield mr-1.5 text-indigo-400/70"></i>Authenticated
+            </span>
+        </div>
+    </header>
+
+    <main class="flex-1 max-w-5xl w-full mx-auto p-6 grid grid-cols-1 md:grid-cols-5 gap-6 items-start mt-4">
+        
+        <section class="md:col-span-2 glass-panel p-6 rounded-2xl shadow-xl flex flex-col space-y-5">
+            <div class="border-b border-slate-800 pb-3">
+                <h2 class="text-sm font-semibold uppercase tracking-wider text-slate-400">Configuration</h2>
+            </div>
+            
+            <form id="architectForm" class="space-y-4">
+                <div class="flex flex-col space-y-2">
+                    <label for="subjectInput" class="text-xs font-medium text-slate-300">Subject Idea or Narrative Core</label>
+                    <textarea 
+                        id="subjectInput" 
+                        rows="6" 
+                        class="w-full bg-slate-950/60 border border-slate-800 rounded-xl px-4 py-3 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition duration-200 resize-none"
+                        placeholder="e.g., A deep space salvage mechanic who discovers an active seed container from an extinct civilization written in a localized dialect..."
+                        required
+                    ></textarea>
+                </div>
+
+                <button 
+                    type="submit" 
+                    id="submitBtn"
+                    class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-sm py-3 px-4 rounded-xl transition duration-200 shadow-lg shadow-indigo-600/20 flex items-center justify-center space-x-2 cursor-pointer"
+                >
+                    <i class="fa-solid fa-wand-magic-sparkles"></i>
+                    <span>Assemble Prompt</span>
+                </button>
+            </form>
+
+            <button 
+                id="resetBtn"
+                class="w-full bg-slate-900/60 hover:bg-slate-800 border border-slate-800 text-slate-400 hover:text-white font-medium text-xs py-2 px-4 rounded-xl transition duration-200 cursor-pointer"
+            >
+                Clear Workspace
+            </button>
+        </section>
+
+        <section class="md:col-span-3 glass-panel p-6 rounded-2xl shadow-xl flex flex-col space-y-4 min-h-[420px] relative">
+            <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+                <h2 class="text-sm font-semibold uppercase tracking-wider text-slate-400">Output Manifest</h2>
+                <button 
+                    id="copyBtn"
+                    class="hidden bg-slate-800/80 hover:bg-slate-700 border border-slate-700/60 text-slate-300 hover:text-white text-xs py-1.5 px-3 rounded-lg transition duration-200 items-center space-x-1.5 cursor-pointer"
+                    title="Copy response code block to clipboard"
+                >
+                    <i class="fa-regular fa-copy"></i>
+                    <span>Copy Prompt</span>
+                </button>
+            </div>
+
+            <div id="idleState" class="flex-1 flex flex-col items-center justify-center text-center p-8 space-y-3">
+                <div class="text-slate-600 text-4xl">
+                    <i class="fa-solid fa-cubes-stacked animate-pulse"></i>
+                </div>
+                <div class="max-w-xs">
+                    <h3 class="text-sm font-medium text-slate-400">Architect Interface Idle</h3>
+                    <p class="text-xs text-slate-500 mt-1">Provide a subject configuration blueprint outline in the parameters panel to structure your engine logic payload.</p>
+                </div>
+            </div>
+
+            <div id="loadingState" class="hidden flex-1 flex-col items-center justify-center text-center p-8 space-y-3">
+                <div class="w-10 h-10 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin"></div>
+                <p class="text-xs text-slate-400 font-mono tracking-widest uppercase">Processing Context Sequence...</p>
+            </div>
+
+            <div id="outputDisplay" class="hidden flex-1 bg-slate-950/40 border border-slate-900/80 rounded-xl p-4 font-mono text-xs text-slate-300 leading-relaxed whitespace-pre-wrap select-all select-text overflow-y-auto max-h-[340px]"></div>
+        </section>
+
+    </main>
+
+    <script>
+        const form = document.getElementById('architectForm');
+        const subjectInput = document.getElementById('subjectInput');
+        const submitBtn = document.getElementById('submitBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const copyBtn = document.getElementById('copyBtn');
+        
+        const idleState = document.getElementById('idleState');
+        const loadingState = document.getElementById('loadingState');
+        const outputDisplay = document.getElementById('outputDisplay');
+
+        // Form Submit Execution Block handler context
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const subjectValue = subjectInput.value.trim();
+            if(!subjectValue) return;
+
+            // Shift display visibility flags for loading state update loop sequence triggers
+            idleState.classList.add('hidden');
+            outputDisplay.classList.add('hidden');
+            copyBtn.classList.remove('flex');
+            copyBtn.classList.add('hidden');
+            loadingState.classList.remove('hidden');
+            submitBtn.disabled = true;
+            submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
+
+            try {
+                const response = await fetch('/generate_story_prompt', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ subject: subjectValue })
+                });
+
+                const data = await response.get_json ? await response.get_json() : await response.json();
+
+                if (response.ok && data.status === 'success') {
+                    outputDisplay.textContent = data.story_prompt;
+                    loadingState.classList.add('hidden');
+                    outputDisplay.classList.remove('hidden');
+                    copyBtn.classList.remove('hidden');
+                    copyBtn.classList.add('flex');
+                } else {
+                    alert(data.error || "An integration processing connection error flag has thrown.");
+                    resetInterfaceLayout();
+                }
+            } catch (err) {
+                console.error("Pipeline failure connection drop error tracker logged:", err);
+                alert("Critical engine error connection drop sequence caught.");
+                resetInterfaceLayout();
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            }
+        });
+
+        // Clipboard Copy Command Trigger System Event Interface Hook
+        copyBtn.addEventListener('click', () => {
+            const outputText = outputDisplay.textContent;
+            if(!outputText) return;
+
+            navigator.clipboard.writeText(outputText).then(() => {
+                const icon = copyBtn.querySelector('i');
+                const label = copyBtn.querySelector('span');
+                
+                // Swap layout metrics icon parameters safely on active trigger confirm UI execution
+                icon.className = "fa-solid fa-check text-emerald-400";
+                label.textContent = "Copied!";
+                copyBtn.classList.add('border-emerald-500/30', 'bg-emerald-950/20');
+                
+                setTimeout(() => {
+                    icon.className = "fa-regular fa-copy";
+                    label.textContent = "Copy Prompt";
+                    copyBtn.classList.remove('border-emerald-500/30', 'bg-emerald-950/20');
+                }, 2000);
+            });
+        });
+
+        // State Reset Module Event Controller
+        resetBtn.addEventListener('click', async () => {
+            subjectInput.value = '';
+            resetInterfaceLayout();
+            // Call async background reset pipeline engine hook
+            await fetch('/reset_story_architect', { method: 'POST' });
+        });
+
+        function resetInterfaceLayout() {
+            outputDisplay.textContent = '';
+            outputDisplay.classList.add('hidden');
+            loadingState.classList.add('hidden');
+            copyBtn.classList.remove('flex');
+            copyBtn.classList.add('hidden');
+            idleState.classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>
