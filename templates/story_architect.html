@@ -127,6 +127,9 @@
     const loadingState = document.getElementById('loadingState');
     const outputDisplay = document.getElementById('outputDisplay');
 
+    const llmLaunchpad = document.getElementById('llmLaunchpad');
+    const launchpadSubtext = document.getElementById('launchpadSubtext');
+
     // Recursive Typewriter Core Engine Module
     function typeWriterInto(text, element, i = 0) {
         if (i < text.length) {
@@ -198,6 +201,11 @@
             icon.className = "fa-solid fa-check text-emerald-400";
             label.textContent = "Copied!";
             copyBtn.classList.add('border-emerald-500/30', 'bg-emerald-950/20');
+            // Unlock the external portal buttons smoothly
+            llmLaunchpad.classList.remove('opacity-40', 'pointer-events-none', 'select-none');
+            launchpadSubtext.textContent = "(Copy a prompt using the \"Copy\" button above, then click an LLM button to open its website and paste.)";
+            launchpadSubtext.classList.remove('text-slate-500');
+            launchpadSubtext.classList.add('text-indigo-400', 'font-medium');
             
             setTimeout(() => {
                 icon.className = "fa-regular fa-copy";
@@ -216,13 +224,19 @@
     });
 
     function resetInterfaceLayout() {
-        outputDisplay.textContent = '';
-        outputDisplay.classList.add('hidden');
-        loadingState.classList.add('hidden');
-        copyBtn.classList.remove('flex');
-        copyBtn.classList.add('hidden');
-        idleState.classList.remove('hidden');
-    }
+    outputDisplay.textContent = '';
+    outputDisplay.classList.add('hidden');
+    loadingState.classList.add('hidden');
+    copyBtn.classList.remove('flex');
+    copyBtn.classList.add('hidden');
+    idleState.classList.remove('hidden');
+    
+    // --- LOCK THE LAUNCHPAD BACK UP ---
+    llmLaunchpad.classList.add('opacity-40', 'pointer-events-none', 'select-none');
+    launchpadSubtext.textContent = "(Copy a prompt using the \"Copy Prompt\" button above to enable quick-launch portals)";
+    launchpadSubtext.classList.remove('text-indigo-400', 'font-medium');
+    launchpadSubtext.classList.add('text-slate-500');
+}
 </script>
 
 </body>
