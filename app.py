@@ -2499,7 +2499,83 @@ def reset_story_architect():
     # Returns an explicit success signal indicating state cleanup is complete
     return jsonify({"status": "cleared"})
 
+# speech_practice
+
+# 1. Page Route
+@app.route('/speech-practice-engine')
+@login_required
+def speech_practice_engine():
+    # Renders the standalone workspace layout for the Language Speech Engine
+    return render_template('speech_practice.html', current_user=current_user)
+
+# 2. Text Processor / Special Character Stripper Utility
+def process_speech_response(raw_text):
+    if not raw_text:
+        return ""
     
+    # Remove Markdown formatting elements (*, #, `, _)
+    clean_text = re.sub(r'[\*#`_]', '', raw_text)
+    
+    # Strip out any technical bracketed annotation strings if generated
+    clean_text = re.sub(r'\[.*?\]', '', clean_text)
+    
+    # Consolidate cascading whitespace line breaks cleanly
+    clean_text = re.sub(r'\n\s*\n+', '\n\n', clean_text).strip()
+    
+    return clean_text
+
+# 3. Prompt Assembly Generation Pipeline Endpoint
+@app.route('/generate_speech_prompt', methods=['POST'])
+@login_required
+def generate_speech_prompt():
+    data = request.get_json(silent=True) or {}
+    subject = data.get('subject', '').strip()
+    
+    if not subject:
+        return jsonify({"error": "Practice scenario layout parameter cannot be empty."}), 400
+
+    # Master Pedagogical & Speech Architect System Wrap Blueprint
+    prompt = f"""Act as a Master Pedagogical & Speech Architect. I will provide you with a Practice Subject / Scenario: ```{subject}```.
+
+Your task is to first detect the language of ```{subject}``` and construct a comprehensive, highly detailed "Language Practice Prompt" that I can use to initiate a simulated learning session in a new AI instance.
+
+The prompt you create must include explicit operational instructions for:
+1. Learner Profile & Objectives: Gemini / model Will decide based on Matching appropriate CEFR/ACTFL levels, L1 interference awareness, and targeted grammar/vocabulary skills based on the subject.
+2. Scenario, Persona & Register: Gemini / model Will decide, AI's role, relationship to the user, and the required degree of formality/dialect.
+3. Correction, Feedback & Scaffolding Strategy: Gemini / model Will decide Specifying when to correct errors (immediate vs. delayed), how to recast sentences, and how to offer hints or sentence starters.
+4. Speech & Interaction Parameters: Gemini / model Will decide based on mandate of target speaking pace, turn-taking dynamics (open-ended prompting), and repair strategies for misunderstandings.
+5. Assessment Metrics: Gemini / model Will decide by Outlining how the system should secretly evaluate pronunciation, fluency, and vocabulary range per turn.
+
+Please respond ONLY with the finished prompt, ready for me to copy and paste into a new session in max 1100 characters in the same language as of ```{subject}```."""
+
+    try:
+        # Querying the gemma model client instance
+        response = gemma_client.models.generate_content(
+            model='gemini-3.5-flash', 
+            contents=prompt
+        )
+        
+        raw_output = response.text if response.text else "Failed to assemble pedagogical prompt."
+        clean_output = process_speech_response(raw_output)
+        
+        return jsonify({
+            "status": "success",
+            "speech_prompt": clean_output
+        })
+        
+    except Exception as e:
+        print(f"Speech Practice Engine Pipeline Server Error: {e}")
+        return jsonify({
+            "error": "The SuperPrompter AI service is currently overloaded. Please try again later."
+        }), 500
+
+# 4. State Reset Utility Endpoint
+@app.route('/reset_speech_practice', methods=['POST'])
+@login_required
+def reset_speech_practice():
+    return jsonify({"status": "cleared"})
+  
+  
 # --- NEW: Change Password Route ---
 @app.route('/change_password', methods=['GET', 'POST'])
 @login_required
