@@ -11,7 +11,7 @@
            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
            background-color: #f0f2f5;
            color: #333;
-           padding: 0; /* Remove body padding */
+           padding: 0;
            display: flex;
            flex-direction: column;
            min-height: 100vh;
@@ -26,51 +26,39 @@
            align-items: center;
            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
        }
-
-
        .app-header .logo-section {
            display: flex;
            align-items: center;
        }
-
-
        .app-header .app-logo {
            height: 40px;
            margin-right: 15px;
            border-radius: 5px;
        }
-
-
        .app-header h1.header-title {
            margin: 0;
            font-size: 1.8rem;
            color: #ffffff;
            text-align: left;
        }
-
-
        .app-header .auth-section a {
            color: #ffffff;
            margin-left: 20px;
            text-decoration: none;
            transition: color 0.2s ease;
        }
-
-
        .app-header .auth-section a:hover {
            color: #007bff;
            text-decoration: underline;
        }
-
-
        .container {
-           flex-grow: 1; /* Allow container to grow */
+           flex-grow: 1;
            max-width: 900px;
            background-color: #fff;
            padding: 30px;
            border-radius: 8px;
            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-           margin: 30px auto; /* Add margin for spacing */
+           margin: 30px auto;
        }
        h2 {
            text-align: center;
@@ -89,6 +77,7 @@
            display: flex;
            justify-content: space-between;
            align-items: flex-start;
+           transition: all 0.2s ease;
        }
        .news-item-content {
            flex-grow: 1;
@@ -110,11 +99,11 @@
        }
        .news-item .actions {
            flex-shrink: 0;
-           display: flex; /* Make buttons align horizontally */
-           gap: 5px; /* Space between buttons */
+           display: flex;
+           gap: 5px;
        }
        .news-item .btn-danger,
-       .news-item .btn-info { /* Style for repost button */
+       .news-item .btn-info {
            padding: 5px 10px;
            font-size: 0.8rem;
        }
@@ -143,7 +132,30 @@
        .footer-content a:hover {
            text-decoration: underline;
        }
-       /* Responsive adjustments */
+       
+       /* Custom Tab Layout Metrics Adjustments */
+       .nav-tabs {
+           margin-bottom: 20px;
+           border-bottom: 2px solid #dee2e6;
+       }
+       .nav-tabs .nav-link {
+           font-weight: 500;
+           color: #6c757d;
+           border: none;
+           padding: 10px 20px;
+       }
+       .nav-tabs .nav-link.active {
+           color: #007bff;
+           background: transparent;
+           border-bottom: 2px solid #007bff;
+           font-weight: 600;
+       }
+       .badge-pill {
+           padding-left: 8px;
+           padding-right: 8px;
+           font-size: 0.75rem;
+       }
+
        @media (max-width: 768px) {
            .app-header {
                flex-direction: column;
@@ -163,7 +175,7 @@
                padding: 10px;
            }
            .news-item .actions {
-               flex-direction: column; /* Stack buttons vertically on small screens */
+               flex-direction: column;
            }
        }
    </style>
@@ -182,12 +194,8 @@
            {% endif %}
        </div>
    </header>
-
-
    <div class="container">
        <h2>Admin News Management</h2>
-
-
        {% with messages = get_flashed_messages(with_categories=true) %}
            {% if messages %}
                <div class="alert-container">
@@ -197,8 +205,7 @@
                </div>
            {% endif %}
        {% endwith %}
-
-
+       
        <div class="card mb-4">
            <div class="card-header">
                <h4>Add New News Item</h4>
@@ -226,51 +233,66 @@
                </form>
            </div>
        </div>
-
-
+       
        <div class="card">
            <div class="card-header">
-               <h4>Existing News Items</h4>
+               <h4>Existing Manifest Hub</h4>
            </div>
            <div class="card-body">
-               {% if news_items %}
-                   {% for news in news_items %}
-                       <div class="news-item">
-                           <div class="news-item-content">
-                               <h5><a href="{{ news.url }}" target="_blank">{{ news.title }}</a></h5>
-                               {% if news.description %}
-                                   <p>{{ news.description | truncate(20) }}</p>
-                               {% endif %}
-                               <p class="timestamp">
-                                   Added to App: {{ news.timestamp.strftime('%Y-%m-%d %H:%M') }} by {{ news.user.username if news.user else 'N/A' }}
-                                   {% if news.published_date %}
-                                       <br>Actual Published: {{ news.published_date.strftime('%Y-%m-%d') }}
+               <!-- Frontend Filter Tabs Controller Navigation Row -->
+               <ul class="nav nav-tabs" id="logFilterTabs" role="tablist">
+                   <li class="nav-item">
+                       <a class="nav-link active" id="news-tab" data-toggle="tab" href="#news" role="tab" onclick="switchTab('news')">
+                           <i class="fa-solid fa-newspaper mr-1.5"></i>News Feeds <span class="badge badge-secondary badge-pill ml-1" id="news-count">0</span>
+                       </a>
+                   </li>
+                   <li class="nav-item">
+                       <a class="nav-link" id="logs-tab" data-toggle="tab" href="#logs" role="tab" onclick="switchTab('logs')">
+                           <i class="fa-solid fa-terminal mr-1.5"></i>System Logs <span class="badge badge-secondary badge-pill ml-1" id="logs-count">0</span>
+                       </a>
+                   </li>
+               </ul>
+
+               <!-- Items List Container -->
+               <div id="items-wrapper">
+                   {% if news_items %}
+                       {% for news in news_items %}
+                           <div class="news-item" data-title="{{ news.title }}" data-desc="{{ news.description if news.description else '' }}">
+                               <div class="news-item-content">
+                                   <h5><a href="{{ news.url }}" target="_blank">{{ news.title }}</a></h5>
+                                   {% if news.description %}
+                                       <p>{{ news.description | truncate(120) }}</p>
                                    {% endif %}
-                               </p>
+                                   <p class="timestamp">
+                                       Added to App: {{ news.timestamp.strftime('%Y-%m-%d %H:%M') }} by {{ news.user.username if news.user else 'N/A' }}
+                                       {% if news.published_date %}
+                                           <br>Actual Published: {{ news.published_date.strftime('%Y-%m-%d') }}
+                                       {% endif %}
+                                   </p>
+                               </div>
+                               <div class="actions">
+                                   <form action="{{ url_for('repost_news', news_id=news.id) }}" method="POST" style="display: inline-block;">
+                                       <button type="submit" class="btn btn-info btn-sm" title="Repost this news item (moves to top)">Repost</button>
+                                   </form>
+                                   <form action="{{ url_for('delete_news', news_id=news.id) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this news item?');" style="display: inline-block;">
+                                       <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                                   </form>
+                               </div>
                            </div>
-                           <div class="actions">
-                               <form action="{{ url_for('repost_news', news_id=news.id) }}" method="POST" style="display: inline-block;">
-                                   <button type="submit" class="btn btn-info btn-sm" title="Repost this news item (moves to top)">Repost</button>
-                               </form>
-                               <form action="{{ url_for('delete_news', news_id=news.id) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this news item?');" style="display: inline-block;">
-                                   <button type="submit" class="btn btn-danger btn-sm">Delete</button>
-                               </form>
-                           </div>
-                       </div>
-                   {% endfor %}
-               {% else %}
-                   <p>No news items added yet.</p>
-               {% endif %}
+                       {% endfor %}
+                   {% endif %}
+               </div>
+
+               <!-- Empty State Placeholders -->
+               <div id="empty-placeholder" class="text-center py-4 d-none">
+                   <p class="text-muted mb-0" id="empty-message">No records found here.</p>
+               </div>
            </div>
        </div>
-
-
        <div class="text-center mt-4">
            <a href="{{ url_for('landing') }}" class="btn btn-secondary">Back to Landing Page</a>
        </div>
    </div>
-
-
    <footer class="footer">
       <div class="footer-content">
           This is developed by Sushrut Kulkarni &nbsp; Email: <a href="mailto:info@promptsgenerator.ai">info@promptsgenerator.ai</a>
@@ -278,16 +300,16 @@
    </footer>
 
 <script>
+    let currentActiveTab = 'news';
+
     document.addEventListener('DOMContentLoaded', () => {
+        // --- 1. Autocomplete Logic System Block ---
         const input = document.getElementById('title');
         const dataList = document.getElementById('admin-news-autocomplete');
-
-        // Set the API endpoint URL for news titles
         const API_URL = '{{ url_for("news_autocomplete") }}'; 
         
         let typingTimer;
-        const doneTypingInterval = 300; // Time in ms
-
+        const doneTypingInterval = 300;
         input.addEventListener('keyup', () => {
             clearTimeout(typingTimer);
             if (input.value.length >= 2) { 
@@ -296,11 +318,9 @@
                 dataList.innerHTML = ''; 
             }
         });
-
         function fetchSuggestions() {
             const query = input.value;
             if (!query) return;
-
             fetch(API_URL + '?q=' + encodeURIComponent(query))
                 .then(response => response.json())
                 .then(data => {
@@ -313,7 +333,75 @@
                 })
                 .catch(error => console.error('Error fetching autocomplete data:', error));
         }
+
+        // --- 2. Live Frontend Sorting & Classification System ---
+        classifyAndFilterItems();
     });
+
+    function classifyAndFilterItems() {
+        const items = document.querySelectorAll('#items-wrapper .news-item');
+        let newsCount = 0;
+        let logsCount = 0;
+
+        items.forEach(item => {
+            const title = item.getAttribute('data-title') || '';
+            const desc = item.getAttribute('data-desc') || '';
+
+            // Identify logs via title matching or brackets prefix match
+            if (title === 'System Log Entry' || desc.startsWith('[APP_LOG]')) {
+                item.setAttribute('data-type', 'logs');
+                logsCount++;
+            } else {
+                item.setAttribute('data-type', 'news');
+                newsCount++;
+            }
+        });
+
+        // Inject calculated numerical counters directly inside tab badges
+        document.getElementById('news-count').textContent = newsCount;
+        document.getElementById('logs-count').textContent = logsCount;
+
+        // Trigger presentation update rules
+        applyFilterView();
+    }
+
+    function switchTab(targetTab) {
+        // Toggle tab activation classes manually
+        document.querySelectorAll('#logFilterTabs .nav-link').forEach(tab => tab.classList.remove('active'));
+        if(targetTab === 'news') document.getElementById('news-tab').classList.add('active');
+        if(targetTab === 'logs') document.getElementById('logs-tab').classList.add('active');
+
+        currentActiveTab = targetTab;
+        applyFilterView();
+    }
+
+    function applyFilterView() {
+        const items = document.querySelectorAll('#items-wrapper .news-item');
+        let visibleCount = 0;
+
+        items.forEach(item => {
+            const itemType = item.getAttribute('data-type');
+            if (itemType === currentActiveTab) {
+                item.classList.remove('d-none');
+                visibleCount++;
+            } else {
+                item.classList.add('d-none');
+            }
+        });
+
+        // Manage dynamic context placeholder states when arrays return empty
+        const placeholder = document.getElementById('empty-placeholder');
+        const message = document.getElementById('empty-message');
+
+        if (visibleCount === 0) {
+            placeholder.classList.remove('d-none');
+            message.textContent = currentActiveTab === 'news' 
+                ? "No administrative news feeds added yet." 
+                : "No automated system logs found inside database cache.";
+        } else {
+            placeholder.classList.add('d-none');
+        }
+    }
 </script>
    
 </body>
