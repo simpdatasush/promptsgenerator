@@ -168,6 +168,8 @@ class ModelUsageTracker:
         self.counts = {
             'glm-4.7-flash': 0,
             'gemma-4-31b-it': 0,
+            'gemini-3.6-flash': 0,
+            'gemini-3.6-flash-lite': 0,
             'gemini-3.5-flash': 0,
             'gemini-3.1-flash-lite': 0,
             'gemini-3.1-flash-lite-preview':0,
@@ -180,6 +182,8 @@ class ModelUsageTracker:
         self.limits = {
             'glm-4.7-flash': 10000,
             'gemma-4-31b-it': 10000,
+            'gemini-3.6-flash': 15,
+            'gemini-3.6-flash-lite': 200,
             'gemini-3.5-flash': 15,
             'gemini-3.1-flash-lite': 200,
             'gemini-3.1-flash-lite-preview': 15,
@@ -456,8 +460,8 @@ def ask_gemini_for_prompt(prompt_instruction, max_output_tokens=1024):
     length = len(prompt_instruction)
     
     try:
-        # --- TIER 1: GLM (> 10k chars) ---
-        if length > 10000:
+        # --- TIER 1: GLM (> 15k chars) ---
+        if length > 15000:
             if usage_tracker.is_available('glm-4.7-flash'):
                 usage_tracker.increment('glm-4.7-flash')
                 app.logger.info(f"Routing to GLM ({length} chars)")
@@ -468,7 +472,35 @@ def ask_gemini_for_prompt(prompt_instruction, max_output_tokens=1024):
                 )
                 return response.choices[0].message.content.strip()
 
-        # --- TIER 2: GEMMA 31b (> 7.5k chars) ---
+      # --- TIER 2: GEMINI 3.6 Flash (>12.5k chars) with OVERFLOW ---
+        elif length > 12500:
+            if usage_tracker.is_available('gemini-3.6-flash'):
+                usage_tracker.increment('gemini-3.6-flash')
+                app.logger.info(f"Routing to gemini-3.6-flash ({length} chars)")
+                response = gemma_client.models.generate_content(model='gemini-3.6-flash', contents=prompt_instruction)
+                return filter_gemini_response(response.text).strip()
+            else:
+                # OVERFLOW TO GEMMA 31b
+                usage_tracker.increment('gemma-4-31b-it')
+                app.logger.info(f"Gemini-3 Quota full. Overflowing to Gemma-31b")
+                response = gemma_client.models.generate_content(model='gemma-4-31b-it', contents=prompt_instruction)
+                return filter_gemini_response(response.text).strip()
+
+      # --- TIER 3: GEMINI 3.6 Flash - Lite (>10k chars) with OVERFLOW ---
+        elif length > 10000:
+            if usage_tracker.is_available('gemini-3.6-flash-lite'):
+                usage_tracker.increment('gemini-3.6-flash-lite')
+                app.logger.info(f"Routing to gemini-3.5-flash-lite ({length} chars)")
+                response = gemma_client.models.generate_content(model='gemini-3.5-flash-lite', contents=prompt_instruction)
+                return filter_gemini_response(response.text).strip()
+            else:
+                # OVERFLOW TO GEMMA 31b
+                usage_tracker.increment('gemma-4-31b-it')
+                app.logger.info(f"Gemini-3 Quota full. Overflowing to Gemma-31b")
+                response = gemma_client.models.generate_content(model='gemma-4-31b-it', contents=prompt_instruction)
+                return filter_gemini_response(response.text).strip()
+
+        # --- TIER 4: GEMMA 31b (> 7.5k chars) ---
         elif length > 7500:
             if usage_tracker.is_available('gemma-4-31b-it'):
                 usage_tracker.increment('gemma-4-31b-it')
@@ -480,7 +512,7 @@ def ask_gemini_for_prompt(prompt_instruction, max_output_tokens=1024):
                 )
                 return filter_gemini_response(response.text).strip()
 
-        # --- TIER 3: GEMINI 3.5 (> 5.4k chars) with OVERFLOW ---
+        # --- TIER 5: GEMINI 3.5 (> 5.4k chars) with OVERFLOW ---
         elif length > 5400:
             if usage_tracker.is_available('gemini-3.5-flash'):
                 usage_tracker.increment('gemini-3.5-flash')
@@ -494,7 +526,7 @@ def ask_gemini_for_prompt(prompt_instruction, max_output_tokens=1024):
                 response = gemma_client.models.generate_content(model='gemma-4-31b-it', contents=prompt_instruction)
                 return filter_gemini_response(response.text).strip()
 
-      # --- TIER 4: GEMINI 3.1 (> 4.5k chars) with OVERFLOW ---
+      # --- TIER 6: GEMINI 3.1 (> 4.5k chars) with OVERFLOW ---
         elif length > 4500:
             if usage_tracker.is_available('gemini-3.1-flash-lite'):
                 usage_tracker.increment('gemini-3.1-flash-lite')
@@ -508,7 +540,7 @@ def ask_gemini_for_prompt(prompt_instruction, max_output_tokens=1024):
                 response = gemma_client.models.generate_content(model='gemma-4-31b-it', contents=prompt_instruction)
                 return filter_gemini_response(response.text).strip()
 
-      # --- TIER 5: GEMINI 3.1 Preview (> 3.5k chars) with OVERFLOW ---
+      # --- TIER 7: GEMINI 3.1 Preview (> 3.5k chars) with OVERFLOW ---
         elif length > 3500:
             if usage_tracker.is_available('gemini-3.1-flash-lite-preview'):
                 usage_tracker.increment('gemini-3.1-flash-lite-preview')
@@ -522,7 +554,7 @@ def ask_gemini_for_prompt(prompt_instruction, max_output_tokens=1024):
                 response = gemma_client.models.generate_content(model='gemma-4-31b-it', contents=prompt_instruction)
                 return filter_gemini_response(response.text).strip()
 
-        # --- TIER 6: GEMINI 3 Preview (> 2.7k chars) with OVERFLOW ---
+        # --- TIER 8: GEMINI 3 Preview (> 2.7k chars) with OVERFLOW ---
         elif length > 2700:
             if usage_tracker.is_available('gemini-3-flash-preview'):
                 usage_tracker.increment('gemini-3-flash-preview')
@@ -536,7 +568,7 @@ def ask_gemini_for_prompt(prompt_instruction, max_output_tokens=1024):
                 response = gemma_client.models.generate_content(model='gemma-4-31b-it', contents=prompt_instruction)
                 return filter_gemini_response(response.text).strip()
 
-        # --- TIER 7: GEMINI 2.5 (> 1.8k chars) with OVERFLOW ---
+        # --- TIER 9: GEMINI 2.5 (> 1.8k chars) with OVERFLOW ---
         elif length > 1800:
             if usage_tracker.is_available('gemini-2.5-flash'):
                 usage_tracker.increment('gemini-2.5-flash')
@@ -550,7 +582,7 @@ def ask_gemini_for_prompt(prompt_instruction, max_output_tokens=1024):
                 response = gemma_client.models.generate_content(model='gemma-4-31b-it', contents=prompt_instruction)
                 return filter_gemini_response(response.text).strip()
 
-        # --- TIER 8: GEMINI LITE (Default) with OVERFLOW ---
+        # --- TIER 10: GEMINI LITE (Default) with OVERFLOW ---
         else:
             if usage_tracker.is_available('gemini-2.5-flash-lite'):
                 usage_tracker.increment('gemini-2.5-flash-lite')
