@@ -2642,7 +2642,7 @@ def img_text_process():
         )
 
         # Send request to Gemini API
-        response = client.models.generate_content(
+        response = gemma_client.models.generate_content(
             model=IMG_TEXT_DEFAULT_MODEL,
             contents=[
                 types.Part.from_bytes(data=image_bytes, mime_type=mime_type),
