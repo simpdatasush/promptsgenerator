@@ -26,6 +26,8 @@ from zai import ZaiClient as ZhipuAI
 # 1. Use absolute import
 import secrets
 from datetime import datetime
+from html2docx import html2docx
+from xhtml2pdf import pisa
 # Assuming News and ApiRequestLog models are imported
 
 # --- NEW IMPORTS FOR AUTHENTICATION ---
@@ -2606,8 +2608,170 @@ Please respond ONLY with the finished prompt, ready for me to copy and paste int
 @login_required
 def reset_speech_practice():
     return jsonify({"status": "cleared"})
-  
-  
+
+
+# --- NEW: Image to Text --- # 
+
+
+# Default backend model
+IMG_TEXT_DEFAULT_MODEL = 'gemini-2.5-flash'
+
+
+# 1. Page Route for img_text.html
+@app.route('/img_text')
+def img_text_page():
+    return render_template('img_text.html')
+
+
+# 2. Process Document Image Route
+@app.route('/img_text_process', methods=['POST'])
+def img_text_process():
+    try:
+        image_file = request.files.get('doc_image')
+
+        if not image_file:
+            return jsonify({'success': False, 'error': 'No image file uploaded'}), 400
+
+        image_bytes = image_file.read()
+        mime_type = image_file.content_type or 'image/jpeg'
+
+        prompt = (
+            "Analyze this document image and extract/reconstruct all text and structure into clean, "
+            "well-formatted HTML (using <h2>, <h3>, <p>, <ul>, <ol>, <table>, <strong>, <em>, etc.). "
+            "Do NOT wrap in markdown code blocks like ```html. Return ONLY raw HTML body content."
+        )
+
+        # Send request to Gemini API
+        response = client.models.generate_content(
+            model=IMG_TEXT_DEFAULT_MODEL,
+            contents=[
+                types.Part.from_bytes(data=image_bytes, mime_type=mime_type),
+                prompt
+            ]
+        )
+
+        formatted_html = response.text.strip()
+
+        # Clean markdown code block wrappers if returned by the model
+        if formatted_html.startswith("```html"):
+            formatted_html = formatted_html[7:]
+        elif formatted_html.startswith("```"):
+            formatted_html = formatted_html[3:]
+
+        if formatted_html.endswith("```"):
+            formatted_html = formatted_html[:-3]
+
+        return jsonify({
+            'success': True,
+            'formatted_html': formatted_html.strip()
+        })
+
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+# 3. Server-Side DOCX Export Route
+@app.route('/img_text_export_docx', methods=['POST'])
+def img_text_export_docx():
+    try:
+        data = request.get_json()
+        html_content = data.get('html_content', '')
+
+        if not html_content:
+            return jsonify({'error': 'No content provided to export'}), 400
+
+        # Convert HTML string into an in-memory .docx buffer
+        docx_buffer = html2docx(html_content, title="ImgText Document")
+
+        return send_file(
+            docx_buffer,
+            as_attachment=True,
+            download_name="ImgText_Document.docx",
+            mimetype="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        )
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+# 4. Server-Side PDF Export Route
+@app.route('/img_text_export_pdf', methods=['POST'])
+def img_text_export_pdf():
+    try:
+        data = request.get_json()
+        html_content = data.get('html_content', '')
+
+        if not html_content:
+            return jsonify({'error': 'No content provided to export'}), 400
+
+        # Wrap HTML content with styling for PDF generation
+        styled_html = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <style>
+                @page {{
+                    size: letter portrait;
+                    margin: 0.75in;
+                }}
+                body {{
+                    font-family: Helvetica, Arial, sans-serif;
+                    font-size: 11pt;
+                    line-height: 1.5;
+                    color: #333333;
+                }}
+                h1, h2, h3, h4 {{
+                    color: #111111;
+                    margin-top: 15px;
+                    margin-bottom: 8px;
+                }}
+                table {{
+                    width: 100%;
+                    border-collapse: collapse;
+                    margin-top: 12px;
+                    margin-bottom: 12px;
+                }}
+                table, th, td {{
+                    border: 1px solid #cccccc;
+                    padding: 8px;
+                }}
+                th {{
+                    background-color: #f2f2f2;
+                    font-weight: bold;
+                }}
+                p {{
+                    margin-bottom: 10px;
+                }}
+                ul, ol {{
+                    margin-bottom: 10px;
+                    padding-left: 20px;
+                }}
+            </style>
+        </head>
+        <body>
+            {html_content}
+        </body>
+        </html>
+        """
+
+        pdf_buffer = BytesIO()
+        pisa_status = pisa.CreatePDF(styled_html, dest=pdf_buffer)
+
+        if pisa_status.err:
+            return jsonify({'error': 'Failed to generate PDF document'}), 500
+
+        pdf_buffer.seek(0)
+
+        return send_file(
+            pdf_buffer,
+            as_attachment=True,
+            download_name="ImgText_Document.pdf",
+            mimetype="application/pdf"
+        )
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
 # --- NEW: Change Password Route ---
 @app.route('/change_password', methods=['GET', 'POST'])
 @login_required
