@@ -2772,7 +2772,7 @@ def img_text_export_pdf():
         return jsonify({'error': str(e)}), 500
 
 
-4. State Reset Utility Endpoint
+#4. State Reset Utility Endpoint
 @app.route('/reset_img_text', methods=['POST'])
 @login_required
 def reset_img_text_page():
