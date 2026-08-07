@@ -2619,8 +2619,9 @@ IMG_TEXT_DEFAULT_MODEL = 'gemini-2.5-flash'
 
 # 1. Page Route for img_text.html
 @app.route('/img_text')
+@login_required
 def img_text_page():
-    return render_template('img_text.html')
+    return render_template('img_text.html', current_user=current_user )
 
 
 # 2. Process Document Image Route
@@ -2770,6 +2771,14 @@ def img_text_export_pdf():
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+
+# 4. State Reset Utility Endpoint
+@app.route('/img_text')
+@login_required
+def img_text_page():
+    return jsonify({"status": "cleared"})
+
 
 
 # --- NEW: Change Password Route ---
