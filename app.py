@@ -2774,11 +2774,10 @@ def img_text_export_pdf():
 
 
 # 4. State Reset Utility Endpoint
-@app.route('/img_text')
-@login_required
-def img_text_page():
-    return jsonify({"status": "cleared"})
-
+#@app.route('/img_text')
+#@login_required
+#def img_text_page():
+#    return jsonify({"status": "cleared"})
 
 
 # --- NEW: Change Password Route ---
