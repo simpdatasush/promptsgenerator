@@ -2612,7 +2612,6 @@ def reset_speech_practice():
 
 # --- NEW: Image to Text --- # 
 
-
 # Default backend model
 IMG_TEXT_DEFAULT_MODEL = 'gemini-2.5-flash'
 
@@ -2773,11 +2772,11 @@ def img_text_export_pdf():
         return jsonify({'error': str(e)}), 500
 
 
-# 4. State Reset Utility Endpoint
-#@app.route('/img_text')
-#@login_required
-#def img_text_page():
-#    return jsonify({"status": "cleared"})
+4. State Reset Utility Endpoint
+@app.route('/reset_img_text', methods=['POST'])
+@login_required
+def reset_img_text_page():
+    return jsonify({"status": "cleared"})
 
 
 # --- NEW: Change Password Route ---
