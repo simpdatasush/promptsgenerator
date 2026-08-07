@@ -2645,7 +2645,7 @@ def img_text_process():
         response = gemma_client.models.generate_content(
             model=IMG_TEXT_DEFAULT_MODEL,
             contents=[
-                types.Part.from_bytes(data=image_bytes, mime_type=mime_type),
+                gemma_types.Part.from_bytes(data=image_bytes, mime_type=mime_type),
                 prompt
             ]
         )
