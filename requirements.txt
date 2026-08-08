@@ -18,7 +18,6 @@ zai-sdk
 html2docx
 xhtml2pdf
 python-docx
-docx
 
 
 ##Flask==2.3.2
