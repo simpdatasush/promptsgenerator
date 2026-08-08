@@ -183,73 +183,79 @@
         }
     }
 
-    // 2. Export PDF (Server-Side via /img_text_export_pdf)
-    async function exportPDF() {
-        const htmlContent = $('#imgtext_editor').summernote('code');
-        if (!htmlContent || htmlContent === '<p><br></p>') {
-            logStatus('Export Error: Workspace is empty.', 'warning');
-            return;
-        }
-
-        logStatus('Requesting server to render PDF document...');
-
-        try {
-            const response = await fetch('/img_text_export_pdf', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ html_content: htmlContent })
-            });
-
-            if (!response.ok) throw new Error('Failed to generate PDF document.');
-
-            const blob = await response.blob();
-            const downloadUrl = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = downloadUrl;
-            a.download = 'ImgText_Document.pdf';
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
-
-            logStatus('PDF document exported successfully from server.');
-        } catch (err) {
-            logStatus('PDF Export Failed: ' + err.message, 'error');
-        }
+    // Export Word (.docx)
+async function exportDocx() {
+    const htmlContent = $('#imgtext_editor').summernote('code');
+    if (!htmlContent || htmlContent === '<p><br></p>') {
+        logStatus('Export Error: Workspace is empty.', 'warning');
+        return;
     }
 
-    // 3. Export Word (.docx) (Server-Side via /img_text_export_docx)
-    async function exportDocx() {
-        const htmlContent = $('#imgtext_editor').summernote('code');
-        if (!htmlContent || htmlContent === '<p><br></p>') {
-            logStatus('Export Error: Workspace is empty.', 'warning');
-            return;
+    logStatus('Requesting server to render Word (.docx) document...');
+
+    try {
+        const response = await fetch('/img_text_export_docx', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ html_content: htmlContent })
+        });
+
+        if (!response.ok) {
+            const errData = await response.json();
+            throw new Error(errData.error || 'Failed to generate Word document.');
         }
 
-        logStatus('Requesting server to render Word (.docx) document...');
+        const blob = await response.blob();
+        const downloadUrl = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = downloadUrl;
+        a.download = 'ImgText_Document.docx';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
 
-        try {
-            const response = await fetch('/img_text_export_docx', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ html_content: htmlContent })
-            });
-
-            if (!response.ok) throw new Error('Failed to generate Word document.');
-
-            const blob = await response.blob();
-            const downloadUrl = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = downloadUrl;
-            a.download = 'ImgText_Document.docx';
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
-
-            logStatus('Word document (.docx) exported successfully from server.');
-        } catch (err) {
-            logStatus('DOCX Export Failed: ' + err.message, 'error');
-        }
+        logStatus('Word document (.docx) exported successfully.');
+    } catch (err) {
+        logStatus('DOCX Export Failed: ' + err.message, 'error');
     }
+}
+
+// Export PDF
+async function exportPDF() {
+    const htmlContent = $('#imgtext_editor').summernote('code');
+    if (!htmlContent || htmlContent === '<p><br></p>') {
+        logStatus('Export Error: Workspace is empty.', 'warning');
+        return;
+    }
+
+    logStatus('Requesting server to render PDF document...');
+
+    try {
+        const response = await fetch('/img_text_export_pdf', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ html_content: htmlContent })
+        });
+
+        if (!response.ok) {
+            const errData = await response.json();
+            throw new Error(errData.error || 'Failed to generate PDF document.');
+        }
+
+        const blob = await response.blob();
+        const downloadUrl = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = downloadUrl;
+        a.download = 'ImgText_Document.pdf';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+
+        logStatus('PDF document exported successfully.');
+    } catch (err) {
+        logStatus('PDF Export Failed: ' + err.message, 'error');
+    }
+}
 </script>
 
 </body>
