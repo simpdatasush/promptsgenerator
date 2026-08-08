@@ -2670,18 +2670,23 @@ def img_text_process():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
-# 3. Server-Side DOCX Export Route
+# 3. DOCX Export Route
 @app.route('/img_text_export_docx', methods=['POST'])
 def img_text_export_docx():
     try:
-        data = request.get_json()
+        data = request.get_json() or {}
         html_content = data.get('html_content', '')
 
-        if not html_content:
+        if not html_content or html_content == '<p><br></p>':
             return jsonify({'error': 'No content provided to export'}), 400
 
-        # Convert HTML string into an in-memory .docx buffer
-        docx_buffer = html2docx(html_content, title="ImgText Document")
+        doc = Document()
+        parser = HtmlToDocx()
+        parser.add_html_to_document(html_content, doc)
+
+        docx_buffer = BytesIO()
+        doc.save(docx_buffer)
+        docx_buffer.seek(0)
 
         return send_file(
             docx_buffer,
@@ -2690,61 +2695,32 @@ def img_text_export_docx():
             mimetype="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
         )
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        # Print full error log in Render Dashboard
+        print("--- DOCX EXPORT ERROR ---")
+        traceback.print_exc()
+        return jsonify({'error': f'DOCX Generation Failed: {str(e)}'}), 500
 
 
-# 4. Server-Side PDF Export Route
+# 4. PDF Export Route
 @app.route('/img_text_export_pdf', methods=['POST'])
 def img_text_export_pdf():
     try:
-        data = request.get_json()
+        data = request.get_json() or {}
         html_content = data.get('html_content', '')
 
-        if not html_content:
+        if not html_content or html_content == '<p><br></p>':
             return jsonify({'error': 'No content provided to export'}), 400
 
-        # Wrap HTML content with styling for PDF generation
+        # Basic HTML wrapper for pisa
         styled_html = f"""
         <!DOCTYPE html>
         <html>
         <head>
             <style>
-                @page {{
-                    size: letter portrait;
-                    margin: 0.75in;
-                }}
-                body {{
-                    font-family: Helvetica, Arial, sans-serif;
-                    font-size: 11pt;
-                    line-height: 1.5;
-                    color: #333333;
-                }}
-                h1, h2, h3, h4 {{
-                    color: #111111;
-                    margin-top: 15px;
-                    margin-bottom: 8px;
-                }}
-                table {{
-                    width: 100%;
-                    border-collapse: collapse;
-                    margin-top: 12px;
-                    margin-bottom: 12px;
-                }}
-                table, th, td {{
-                    border: 1px solid #cccccc;
-                    padding: 8px;
-                }}
-                th {{
-                    background-color: #f2f2f2;
-                    font-weight: bold;
-                }}
-                p {{
-                    margin-bottom: 10px;
-                }}
-                ul, ol {{
-                    margin-bottom: 10px;
-                    padding-left: 20px;
-                }}
+                @page {{ size: letter portrait; margin: 1in; }}
+                body {{ font-family: Helvetica, sans-serif; font-size: 11pt; color: #333; }}
+                table {{ width: 100%; border-collapse: collapse; margin-top: 10px; }}
+                td, th {{ border: 1px solid #ccc; padding: 6px; }}
             </style>
         </head>
         <body>
@@ -2757,7 +2733,8 @@ def img_text_export_pdf():
         pisa_status = pisa.CreatePDF(styled_html, dest=pdf_buffer)
 
         if pisa_status.err:
-            return jsonify({'error': 'Failed to generate PDF document'}), 500
+            print(f"PISA Error Code: {pisa_status.err}")
+            return jsonify({'error': 'PDF rendering failed inside xhtml2pdf engine.'}), 500
 
         pdf_buffer.seek(0)
 
@@ -2767,9 +2744,11 @@ def img_text_export_pdf():
             download_name="ImgText_Document.pdf",
             mimetype="application/pdf"
         )
-
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        # Print full error log in Render Dashboard
+        print("--- PDF EXPORT ERROR ---")
+        traceback.print_exc()
+        return jsonify({'error': f'PDF Generation Failed: {str(e)}'}), 500
 
 
 #4. State Reset Utility Endpoint
