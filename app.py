@@ -28,6 +28,8 @@ import secrets
 from datetime import datetime
 from html2docx import html2docx
 from xhtml2pdf import pisa
+from io import BytesIO
+from docx import Document
 # Assuming News and ApiRequestLog models are imported
 
 # --- NEW IMPORTS FOR AUTHENTICATION ---
