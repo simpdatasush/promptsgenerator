@@ -2704,7 +2704,6 @@ def img_text_export_docx():
         return jsonify({'error': f'DOCX Generation Failed: {str(e)}'}), 500
 
 
-# 4. PDF Export Route
 @app.route('/img_text_export_pdf', methods=['POST'])
 def img_text_export_pdf():
     try:
@@ -2714,16 +2713,48 @@ def img_text_export_pdf():
         if not html_content or html_content == '<p><br></p>':
             return jsonify({'error': 'No content provided to export'}), 400
 
-        # Basic HTML wrapper for pisa
+        # Path to DejaVuSans or NotoSans TTF file
+        # If placed in project root:
+        font_path = os.path.join(os.path.dirname(__file__), 'DejaVuSans.ttf')
+        
+        # Fallback to system font path on Linux/Render if local file isn't present
+        if not os.path.exists(font_path):
+            font_path = '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf'
+
+        # Embed font in HTML head using @font-face for xhtml2pdf
         styled_html = f"""
         <!DOCTYPE html>
         <html>
         <head>
+            <meta charset="utf-8">
             <style>
-                @page {{ size: letter portrait; margin: 1in; }}
-                body {{ font-family: Helvetica, sans-serif; font-size: 11pt; color: #333; }}
-                table {{ width: 100%; border-collapse: collapse; margin-top: 10px; }}
-                td, th {{ border: 1px solid #ccc; padding: 6px; }}
+                @font-face {{
+                    font-family: 'UniversalFont';
+                    src: url('{font_path}');
+                }}
+                @page {{
+                    size: letter portrait;
+                    margin: 0.75in;
+                }}
+                body {{
+                    font-family: 'UniversalFont', sans-serif;
+                    font-size: 11pt;
+                    line-height: 1.5;
+                    color: #333333;
+                }}
+                table {{
+                    width: 100%;
+                    border-collapse: collapse;
+                    margin-top: 10px;
+                    margin-bottom: 10px;
+                }}
+                table, th, td {{
+                    border: 1px solid #cccccc;
+                    padding: 6px;
+                }}
+                th {{
+                    background-color: #f2f2f2;
+                }}
             </style>
         </head>
         <body>
@@ -2736,7 +2767,6 @@ def img_text_export_pdf():
         pisa_status = pisa.CreatePDF(styled_html, dest=pdf_buffer)
 
         if pisa_status.err:
-            print(f"PISA Error Code: {pisa_status.err}")
             return jsonify({'error': 'PDF rendering failed inside xhtml2pdf engine.'}), 500
 
         pdf_buffer.seek(0)
@@ -2748,7 +2778,6 @@ def img_text_export_pdf():
             mimetype="application/pdf"
         )
     except Exception as e:
-        # Print full error log in Render Dashboard
         print("--- PDF EXPORT ERROR ---")
         traceback.print_exc()
         return jsonify({'error': f'PDF Generation Failed: {str(e)}'}), 500
