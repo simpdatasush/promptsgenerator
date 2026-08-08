@@ -17,6 +17,9 @@ flask-sock
 zai-sdk
 html2docx
 xhtml2pdf
+python-docx
+docx
+
 
 ##Flask==2.3.2
 ##google-generativeai==0.7.0
