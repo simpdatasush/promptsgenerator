@@ -2791,6 +2791,97 @@ def img_text_export_pdf():
 def reset_img_text_page():
     return jsonify({"status": "cleared"})
 
+# =====================================================================
+# TEXT AI DETECTOR - FUNCTION & ROUTES
+# =====================================================================
+
+def analyze_text_ai(text_content):
+    """Function dedicated purely to evaluating text content for AI indicators."""
+    prompt = (
+        "You are an expert NLP and digital forensics auditor. "
+        "Analyze the following text content across these specific parameters:\n\n"
+        "1. LINGUISTIC BURSTINESS & PERPLEXITY: Evaluate sentence length variation, word choice predictability, and structural fluidity.\n"
+        "2. STYLISTIC CONSTRAINTS & TONE: Look for telltale LLM traits like overly polished transitions, generic summaries, or uniform bullet structures.\n"
+        "3. NARRATIVE & RHETORICAL HOOKS: Assess if the opening, tone, and concluding style match standard LLM defaults vs human nuance.\n\n"
+        "Return your assessment ONLY as raw JSON matching this exact structure (no markdown formatting or code blocks):\n"
+        "{\n"
+        '  "overall_ai_score": 80,\n'
+        '  "linguistic_score": 75,\n'
+        '  "stylistic_score": 85,\n'
+        '  "parameter_decisions": {\n'
+        '    "Linguistic Burstiness": "SuperPrompter AI decision / reasoning...",\n'
+        '    "Stylistic Constraints": "SuperPrompter AI decision / reasoning...",\n'
+        '    "Narrative & Tone": "SuperPrompter AI decision / reasoning..."\n'
+        '  },\n'
+        '  "key_indicators": ["Indicator 1", "Indicator 2"]\n'
+        "}\n\n"
+        f"TEXT CONTENT TO ANALYZE:\n{text_content}"
+    )
+
+    response = gemma_client.models.generate_content(
+        model=IMG_TEXT_DEFAULT_MODEL,
+        contents=prompt
+    )
+
+    clean_text = response.text.strip()
+    if clean_text.startswith("```json"):
+        clean_text = clean_text[7:]
+    elif clean_text.startswith("```"):
+        clean_text = clean_text[3:]
+    if clean_text.endswith("```"):
+        clean_text = clean_text[:-3]
+
+    return json.loads(clean_text.strip())
+
+
+@app.route('/ai_detector_text')
+@login_required
+def ai_detector_text_page():
+    return render_template('ai_detector_text.html', current_user=current_user)
+
+@app.route('/ai_detector_text_process', methods=['POST'])
+@login_required
+def ai_detector_text_process():
+    try:
+        uploaded_file = request.files.get('text_file')
+        raw_text_input = request.form.get('raw_text', '').strip()
+
+        # Handle either uploaded text file OR pasted text string
+        if uploaded_file and uploaded_file.filename:
+            text_content = uploaded_file.read().decode('utf-8', errors='ignore').strip()
+        elif raw_text_input:
+            text_content = raw_text_input
+        else:
+            return jsonify({'success': False, 'error': 'No text file or text content provided.'}), 400
+
+        if not text_content:
+            return jsonify({'success': False, 'error': 'Provided text content is empty.'}), 400
+
+        analysis_data = analyze_text_ai(text_content)
+        overall_ai = analysis_data.get('overall_ai_score', 50)
+
+        return jsonify({
+            'success': True,
+            'overall_ai_percentage': overall_ai,
+            'human_percentage': 100 - overall_ai,
+            'linguistic_score': analysis_data.get('linguistic_score', 50),
+            'stylistic_score': analysis_data.get('stylistic_score', 50),
+            'parameter_decisions': analysis_data.get('parameter_decisions', {}),
+            'key_indicators': analysis_data.get('key_indicators', []),
+            'analyzed_text': text_content
+        })
+
+    except Exception as e:
+        print("--- TEXT AI DETECTOR ERROR ---")
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+#4. State Reset Utility Endpoint
+@app.route('/reset_ai_detector_text', methods=['POST'])
+@login_required
+def  reset_ai_detector_text_page():
+    return jsonify({"status": "cleared"})
+
 
 # --- NEW: Change Password Route ---
 @app.route('/change_password', methods=['GET', 'POST'])
