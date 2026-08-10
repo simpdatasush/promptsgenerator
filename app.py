@@ -2839,6 +2839,8 @@ def analyze_text_ai(text_content):
 def ai_detector_text_page():
     return render_template('ai_detector_text.html', current_user=current_user)
 
+MAX_TEXT_SIZE_BYTES = 2 * 1024 * 1024  # 2 MB
+
 @app.route('/ai_detector_text_process', methods=['POST'])
 @login_required
 def ai_detector_text_process():
@@ -2846,17 +2848,38 @@ def ai_detector_text_process():
         uploaded_file = request.files.get('text_file')
         raw_text_input = request.form.get('raw_text', '').strip()
 
-        # Handle either uploaded text file OR pasted text string
+        # 1. File Upload Size Check
         if uploaded_file and uploaded_file.filename:
+            # Check content length from file header/stream
+            uploaded_file.seek(0, 2)  # Move cursor to end of file
+            file_length = uploaded_file.tell()
+            uploaded_file.seek(0)     # Reset cursor to start
+
+            if file_length > MAX_TEXT_SIZE_BYTES:
+                return jsonify({
+                    'success': False, 
+                    'error': 'Uploaded file exceeds the 2 MB limit. Please upload a smaller file.'
+                }), 400
+
             text_content = uploaded_file.read().decode('utf-8', errors='ignore').strip()
+
+        # 2. Raw Pasted Text Size Check
         elif raw_text_input:
+            if len(raw_text_input.encode('utf-8')) > MAX_TEXT_SIZE_BYTES:
+                return jsonify({
+                    'success': False, 
+                    'error': 'Pasted text content exceeds the 2 MB limit.'
+                }), 400
+            
             text_content = raw_text_input
+            
         else:
             return jsonify({'success': False, 'error': 'No text file or text content provided.'}), 400
 
         if not text_content:
             return jsonify({'success': False, 'error': 'Provided text content is empty.'}), 400
 
+        # Run AI Detector logic
         analysis_data = analyze_text_ai(text_content)
         overall_ai = analysis_data.get('overall_ai_score', 50)
 
