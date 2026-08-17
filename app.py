@@ -2906,6 +2906,100 @@ def  reset_ai_detector_text_page():
     return jsonify({"status": "cleared"})
 
 
+# =====================================================================
+# 2. IMAGE AI DETECTOR - FUNCTION & ROUTES
+# =====================================================================
+
+def analyze_image_ai(image_bytes, mime_type):
+    """Function dedicated purely to evaluating document images for visual/forensic AI indicators."""
+    prompt = (
+        "You are an expert digital forensics and computer vision auditor. "
+        "Analyze the uploaded image document across the following parameters:\n\n"
+        "1. VISUAL FORENSICS & ARTIFACTS: Check for diffusion patterns, synthetic text rendering, edge anomalies, or unnatural lighting.\n"
+        "2. LINGUISTIC BURSTINESS & PERPLEXITY: Extract readable text and evaluate sentence length variation, word choice predictability, and structural fluidity.\n"
+        "3. STYLISTIC CONSTRAINTS & TONE: Look for telltale LLM traits like overly polished transitions, generic summaries, or uniform bullet structures.\n"
+        "4. TYPOGRAPHY & LAYOUT: Check for unnatural alignment, font glitches, or synthetic OCR artifacts.\n\n"
+        "Extract all readable text and evaluate each parameter thoroughly. "
+        "Return your assessment ONLY as raw JSON matching this exact structure (no markdown formatting or code blocks):\n"
+        "{\n"
+        '  "extracted_text": "Extracted text content here...",\n'
+        '  "overall_ai_score": 80,\n'
+        '  "visual_artifacts_score": 85,\n'
+        '  "linguistic_score": 75,\n'
+        '  "stylistic_score": 70,\n'
+        '  "parameter_decisions": {\n'
+        '    "Visual Artifacts": "SuperPrompter AI decision / reasoning...",\n'
+        '    "Linguistic Burstiness": "SuperPrompter AI decision / reasoning...",\n'
+        '    "Stylistic Constraints": "SuperPrompter AI decision / reasoning...",\n'
+        '    "Typography & Layout": "SuperPrompter AI decision / reasoning..."\n'
+        '  },\n'
+        '  "key_indicators": ["Indicator 1", "Indicator 2"]\n'
+        "}\n"
+    )
+
+    response = gemma_client.models.generate_content(
+        model=IMG_TEXT_DEFAULT_MODEL,
+        contents=[
+            gemma_types.Part.from_bytes(data=image_bytes, mime_type=mime_type),
+            prompt
+        ]
+    )
+
+    clean_text = response.text.strip()
+    if clean_text.startswith("```json"):
+        clean_text = clean_text[7:]
+    elif clean_text.startswith("```"):
+        clean_text = clean_text[3:]
+    if clean_text.endswith("```"):
+        clean_text = clean_text[:-3]
+
+    return json.loads(clean_text.strip())
+
+
+@app.route('/ai_detector_image')
+@login_required
+def ai_detector_image_page():
+    return render_template('ai_detector_image.html', current_user=current_user)
+
+@app.route('/ai_detector_image_process', methods=['POST'])
+@login_required
+def ai_detector_image_process():
+    try:
+        image_file = request.files.get('doc_image')
+
+        if not image_file:
+            return jsonify({'success': False, 'error': 'No image file uploaded.'}), 400
+
+        image_bytes = image_file.read()
+        mime_type = image_file.content_type or 'image/jpeg'
+
+        analysis_data = analyze_image_ai(image_bytes, mime_type)
+        overall_ai = analysis_data.get('overall_ai_score', 50)
+
+        return jsonify({
+            'success': True,
+            'overall_ai_percentage': overall_ai,
+            'human_percentage': 100 - overall_ai,
+            'visual_score': analysis_data.get('visual_artifacts_score', 50),
+            'linguistic_score': analysis_data.get('linguistic_score', 50),
+            'stylistic_score': analysis_data.get('stylistic_score', 50),
+            'parameter_decisions': analysis_data.get('parameter_decisions', {}),
+            'key_indicators': analysis_data.get('key_indicators', []),
+            'extracted_text': analysis_data.get('extracted_text', '')
+        })
+
+    except Exception as e:
+        print("--- IMAGE AI DETECTOR ERROR ---")
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+#4. State Reset Utility Endpoint
+@app.route('/reset_ai_detector_image', methods=['POST'])
+@login_required
+def  reset_ai_detector_image_page():
+    return jsonify({"status": "cleared"})
+
 # ---------------------------------------------------------------------
 # SECURITY ENGINE: PROMPT INJECTION DETECTOR
 # ---------------------------------------------------------------------
