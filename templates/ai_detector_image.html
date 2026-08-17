@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SuperPrompter AI - Image Detector</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f0f2f5; }
+        .main-card { border-radius: 8px; border: none; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+        .score-box { border-radius: 50%; width: 120px; height: 120px; display: flex; flex-direction: column; align-items: center; justify-content: center; margin: 0 auto; background: #fff; }
+        .status-console { background-color: #1e1e1e; color: #00ff66; font-family: monospace; padding: 10px; border-radius: 4px; font-size: 0.85rem; }
+    </style>
+</head>
+<body>
+
+<div class="container my-4" style="max-width: 1000px;">
+    <div class="card main-card">
+        <div class="card-header bg-dark text-white py-3">
+            <h4 class="mb-0"><i class="fas fa-image text-warning mr-2"></i>Image AI Detector</h4>
+        </div>
+        <div class="card-body">
+            
+            <div class="form-group">
+                <label class="font-weight-bold">Upload Image / Document Image:</label>
+                <input type="file" id="imageFile" class="form-control-file" accept="image/*">
+            </div>
+
+            <button id="analyzeBtn" class="btn btn-warning font-weight-bold mb-3" onclick="processImageAI()">
+                <i class="fas fa-search mr-1"></i> Analyze Image
+            </button>
+
+            <div class="mb-3">
+                <div id="statusConsole" class="status-console">Ready. Upload an image to analyze visual artifacts...</div>
+            </div>
+
+            <hr>
+
+            <!-- Results -->
+            <div id="resultsPanel" style="display: none;">
+                <div class="row text-center mb-4">
+                    <div class="col-md-6">
+                        <div class="card bg-light p-3 border-0">
+                            <h6 class="text-muted font-weight-bold">AI GENERATED</h6>
+                            <div class="score-box border border-danger">
+                                <h3 class="text-danger mb-0" id="aiScore">0%</h3>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card bg-light p-3 border-0">
+                            <h6 class="text-muted font-weight-bold">HUMAN CREATED</h6>
+                            <div class="score-box border border-success">
+                                <h3 class="text-success mb-0" id="humanScore">0%</h3>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card mb-3">
+                    <div class="card-header bg-secondary text-white font-weight-bold">Forensic & Visual Decisions</div>
+                    <div class="card-body" id="decisionsContainer"></div>
+                </div>
+
+                <div class="form-group">
+                    <label class="font-weight-bold">Extracted Image Text:</label>
+                    <textarea id="extractedText" class="form-control" rows="4" readonly></textarea>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+<script>
+    function logStatus(msg) {
+        document.getElementById('statusConsole').innerText = `[${new Date().toLocaleTimeString()}] ${msg}`;
+    }
+
+    async function processImageAI() {
+        const fileInput = document.getElementById('imageFile');
+
+        if (!fileInput.files[0]) {
+            logStatus('Please select an image file first.');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('doc_image', fileInput.files[0]);
+
+        logStatus('SuperPrompter AI is analyzing image artifacts...');
+
+        try {
+            const res = await fetch('/ai_detector_image_process', { method: 'POST', body: formData });
+            const data = await res.json();
+
+            if (data.success) {
+                document.getElementById('resultsPanel').style.display = 'block';
+                document.getElementById('aiScore').innerText = data.overall_ai_percentage + '%';
+                document.getElementById('humanScore').innerText = data.human_percentage + '%';
+
+                const container = document.getElementById('decisionsContainer');
+                container.innerHTML = '';
+                for (const [key, val] of Object.entries(data.parameter_decisions)) {
+                    container.innerHTML += `<div class="mb-2"><strong>${key}:</strong> <span class="text-muted">${val}</span></div>`;
+                }
+
+                document.getElementById('extractedText').value = data.extracted_text || 'No text detected.';
+                logStatus('SuperPrompter AI image evaluation completed!');
+            } else {
+                logStatus('Error: ' + data.error);
+            }
+        } catch (e) {
+            logStatus('Request failed: ' + e.message);
+        }
+    }
+</script>
+</body>
+</html>
