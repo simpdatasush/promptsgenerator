@@ -2961,6 +2961,8 @@ def analyze_image_ai(image_bytes, mime_type):
 def ai_detector_image_page():
     return render_template('ai_detector_image.html', current_user=current_user)
 
+MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024  # 5 MB
+
 @app.route('/ai_detector_image_process', methods=['POST'])
 @login_required
 def ai_detector_image_process():
@@ -2970,9 +2972,21 @@ def ai_detector_image_process():
         if not image_file:
             return jsonify({'success': False, 'error': 'No image file uploaded.'}), 400
 
+        # Check image file size using file stream
+        image_file.seek(0, 2)  # Move cursor to end of file
+        file_length = image_file.tell()
+        image_file.seek(0)     # Reset cursor back to start
+
+        if file_length > MAX_IMAGE_SIZE_BYTES:
+            return jsonify({
+                'success': False, 
+                'error': 'Uploaded image exceeds the 5 MB size limit. Please upload a smaller image.'
+            }), 400
+
         image_bytes = image_file.read()
         mime_type = image_file.content_type or 'image/jpeg'
 
+        # Send image to multimodal evaluation function
         analysis_data = analyze_image_ai(image_bytes, mime_type)
         overall_ai = analysis_data.get('overall_ai_score', 50)
 
@@ -2992,7 +3006,6 @@ def ai_detector_image_process():
         print("--- IMAGE AI DETECTOR ERROR ---")
         traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
-
 
 #4. State Reset Utility Endpoint
 @app.route('/reset_ai_detector_image', methods=['POST'])
