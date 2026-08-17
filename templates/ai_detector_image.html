@@ -11,6 +11,23 @@
         .main-card { border-radius: 8px; border: none; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
         .score-box { border-radius: 50%; width: 120px; height: 120px; display: flex; flex-direction: column; align-items: center; justify-content: center; margin: 0 auto; background: #fff; }
         .status-console { background-color: #1e1e1e; color: #00ff66; font-family: monospace; padding: 10px; border-radius: 4px; font-size: 0.85rem; }
+        
+        /* Preview Thumbnail Container Styles */
+        .preview-card {
+            border: 2px dashed #ced4da;
+            border-radius: 8px;
+            background-color: #ffffff;
+            padding: 15px;
+            text-align: center;
+            max-width: 280px;
+        }
+        .preview-img {
+            max-width: 100%;
+            max-height: 200px;
+            border-radius: 6px;
+            object-fit: contain;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+        }
     </style>
 </head>
 <body>
@@ -23,8 +40,17 @@
         <div class="card-body">
             
             <div class="form-group">
-                <label class="font-weight-bold">Upload Image / Document Image: (Max File Size, 5MB)</label>
-                <input type="file" id="imageFile" class="form-control-file" accept="image/*">
+                <label class="font-weight-bold">Upload Image / Document Image: (Max File Size: 5MB)</label>
+                <input type="file" id="imageFile" class="form-control-file" accept="image/*" onchange="previewSelectedImage(event)">
+            </div>
+
+            <!-- Image Preview Box (Hidden by Default) -->
+            <div id="previewWrapper" class="mb-3" style="display: none;">
+                <label class="font-weight-bold text-muted small d-block mb-1">SELECTED IMAGE PREVIEW</label>
+                <div class="preview-card">
+                    <img id="imagePreview" src="#" alt="Selected Image Preview" class="preview-img mb-2">
+                    <div id="fileInfo" class="small text-secondary font-weight-bold"></div>
+                </div>
             </div>
 
             <button id="analyzeBtn" class="btn btn-warning font-weight-bold mb-3" onclick="processImageAI()">
@@ -75,56 +101,92 @@
 
 <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
 <script>
-    function logStatus(msg) {
-        document.getElementById('statusConsole').innerText = `[${new Date().toLocaleTimeString()}] ${msg}`;
-    }
-    async function processImageAI() {
-    const fileInput = document.getElementById('imageFile');
     const MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024; // 5 MB limit
 
-    if (!fileInput.files[0]) {
-        logStatus('Please select an image file first.', 'warning');
-        return;
+    function logStatus(msg, type = 'info') {
+        document.getElementById('statusConsole').innerText = `[${new Date().toLocaleTimeString()}] ${msg}`;
     }
 
-    // Check file size before uploading
-    if (fileInput.files[0].size > MAX_IMAGE_SIZE_BYTES) {
-        logStatus('Error: Selected image exceeds the 5 MB size limit.', 'error');
-        return;
-    }
+    // Function to generate lightweight image preview
+    function previewSelectedImage(event) {
+        const file = event.target.files[0];
+        const previewWrapper = document.getElementById('previewWrapper');
+        const previewImg = document.getElementById('imagePreview');
+        const fileInfo = document.getElementById('fileInfo');
 
-    const formData = new FormData();
-    formData.append('doc_image', fileInput.files[0]);
-
-    logStatus('SuperPrompter AI is analyzing image artifacts...');
-
-    try {
-        const res = await fetch('/ai_detector_image_process', { 
-            method: 'POST', 
-            body: formData 
-        });
-        const data = await res.json();
-
-        if (data.success) {
-            document.getElementById('resultsPanel').style.display = 'block';
-            document.getElementById('aiScore').innerText = data.overall_ai_percentage + '%';
-            document.getElementById('humanScore').innerText = data.human_percentage + '%';
-
-            const container = document.getElementById('decisionsContainer');
-            container.innerHTML = '';
-            for (const [key, val] of Object.entries(data.parameter_decisions)) {
-                container.innerHTML += `<div class="mb-2"><strong>${key}:</strong> <span class="text-muted">${val}</span></div>`;
+        if (file) {
+            // Validate File Size on Selection
+            if (file.size > MAX_IMAGE_SIZE_BYTES) {
+                logStatus('Error: Selected image exceeds the 5 MB size limit.', 'error');
+                event.target.value = ''; // Reset input
+                previewWrapper.style.display = 'none';
+                return;
             }
 
-            document.getElementById('extractedText').value = data.extracted_text || 'No text detected.';
-            logStatus('SuperPrompter AI image evaluation completed!');
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                previewImg.src = e.target.result;
+                previewWrapper.style.display = 'block';
+                
+                // Format size display (KB or MB)
+                const sizeInMB = (file.size / (1024 * 1024)).toFixed(2);
+                fileInfo.innerText = `${file.name} (${sizeInMB} MB)`;
+                logStatus(`Image loaded: ${file.name}. Click 'Analyze Image' to proceed.`);
+            };
+            reader.readAsDataURL(file);
         } else {
-            logStatus('Error: ' + data.error, 'error');
+            previewWrapper.style.display = 'none';
+            previewImg.src = '#';
+            fileInfo.innerText = '';
         }
-    } catch (e) {
-        logStatus('Request failed: ' + e.message, 'error');
     }
-}
+
+    async function processImageAI() {
+        const fileInput = document.getElementById('imageFile');
+
+        if (!fileInput.files[0]) {
+            logStatus('Please select an image file first.', 'warning');
+            return;
+        }
+
+        // Check file size before uploading
+        if (fileInput.files[0].size > MAX_IMAGE_SIZE_BYTES) {
+            logStatus('Error: Selected image exceeds the 5 MB size limit.', 'error');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('doc_image', fileInput.files[0]);
+
+        logStatus('SuperPrompter AI is analyzing image artifacts...');
+
+        try {
+            const res = await fetch('/ai_detector_image_process', { 
+                method: 'POST', 
+                body: formData 
+            });
+            const data = await res.json();
+
+            if (data.success) {
+                document.getElementById('resultsPanel').style.display = 'block';
+                document.getElementById('aiScore').innerText = data.overall_ai_percentage + '%';
+                document.getElementById('humanScore').innerText = data.human_percentage + '%';
+
+                const container = document.getElementById('decisionsContainer');
+                container.innerHTML = '';
+                for (const [key, val] of Object.entries(data.parameter_decisions)) {
+                    container.innerHTML += `<div class="mb-2"><strong>${key}:</strong> <span class="text-muted">${val}</span></div>`;
+                }
+
+                document.getElementById('extractedText').value = data.extracted_text || 'No text detected.';
+                logStatus('SuperPrompter AI image evaluation completed!');
+            } else {
+                logStatus('Error: ' + data.error, 'error');
+            }
+        } catch (e) {
+            logStatus('Request failed: ' + e.message, 'error');
+        }
+    }
 </script>
 </body>
 </html>
