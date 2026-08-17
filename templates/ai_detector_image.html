@@ -78,44 +78,53 @@
     function logStatus(msg) {
         document.getElementById('statusConsole').innerText = `[${new Date().toLocaleTimeString()}] ${msg}`;
     }
-
     async function processImageAI() {
-        const fileInput = document.getElementById('imageFile');
+    const fileInput = document.getElementById('imageFile');
+    const MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024; // 5 MB limit
 
-        if (!fileInput.files[0]) {
-            logStatus('Please select an image file first.');
-            return;
-        }
-
-        const formData = new FormData();
-        formData.append('doc_image', fileInput.files[0]);
-
-        logStatus('SuperPrompter AI is analyzing image artifacts...');
-
-        try {
-            const res = await fetch('/ai_detector_image_process', { method: 'POST', body: formData });
-            const data = await res.json();
-
-            if (data.success) {
-                document.getElementById('resultsPanel').style.display = 'block';
-                document.getElementById('aiScore').innerText = data.overall_ai_percentage + '%';
-                document.getElementById('humanScore').innerText = data.human_percentage + '%';
-
-                const container = document.getElementById('decisionsContainer');
-                container.innerHTML = '';
-                for (const [key, val] of Object.entries(data.parameter_decisions)) {
-                    container.innerHTML += `<div class="mb-2"><strong>${key}:</strong> <span class="text-muted">${val}</span></div>`;
-                }
-
-                document.getElementById('extractedText').value = data.extracted_text || 'No text detected.';
-                logStatus('SuperPrompter AI image evaluation completed!');
-            } else {
-                logStatus('Error: ' + data.error);
-            }
-        } catch (e) {
-            logStatus('Request failed: ' + e.message);
-        }
+    if (!fileInput.files[0]) {
+        logStatus('Please select an image file first.', 'warning');
+        return;
     }
+
+    // Check file size before uploading
+    if (fileInput.files[0].size > MAX_IMAGE_SIZE_BYTES) {
+        logStatus('Error: Selected image exceeds the 5 MB size limit.', 'error');
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('doc_image', fileInput.files[0]);
+
+    logStatus('SuperPrompter AI is analyzing image artifacts...');
+
+    try {
+        const res = await fetch('/ai_detector_image_process', { 
+            method: 'POST', 
+            body: formData 
+        });
+        const data = await res.json();
+
+        if (data.success) {
+            document.getElementById('resultsPanel').style.display = 'block';
+            document.getElementById('aiScore').innerText = data.overall_ai_percentage + '%';
+            document.getElementById('humanScore').innerText = data.human_percentage + '%';
+
+            const container = document.getElementById('decisionsContainer');
+            container.innerHTML = '';
+            for (const [key, val] of Object.entries(data.parameter_decisions)) {
+                container.innerHTML += `<div class="mb-2"><strong>${key}:</strong> <span class="text-muted">${val}</span></div>`;
+            }
+
+            document.getElementById('extractedText').value = data.extracted_text || 'No text detected.';
+            logStatus('SuperPrompter AI image evaluation completed!');
+        } else {
+            logStatus('Error: ' + data.error, 'error');
+        }
+    } catch (e) {
+        logStatus('Request failed: ' + e.message, 'error');
+    }
+}
 </script>
 </body>
 </html>
