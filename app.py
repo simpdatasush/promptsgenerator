@@ -175,6 +175,7 @@ class ModelUsageTracker:
         self.counts = {
             'glm-4.7-flash': 0,
             'gemma-4-31b-it': 0,
+            'gemini-3.7-flash': 0,
             'gemini-3.6-flash': 0,
             'gemini-3.6-flash-lite': 0,
             'gemini-3.5-flash': 0,
@@ -189,6 +190,7 @@ class ModelUsageTracker:
         self.limits = {
             'glm-4.7-flash': 10000,
             'gemma-4-31b-it': 10000,
+            'gemini-3.7-flash': 12,
             'gemini-3.6-flash': 15,
             'gemini-3.6-flash-lite': 200,
             'gemini-3.5-flash': 15,
@@ -489,7 +491,7 @@ def ask_gemini_for_prompt(prompt_instruction, max_output_tokens=1024):
             else:
                 # OVERFLOW TO GEMMA 31b
                 usage_tracker.increment('gemma-4-31b-it')
-                app.logger.info(f"Gemini-3 Quota full. Overflowing to Gemma-31b")
+                app.logger.info(f"Gemini-3.6-flash Quota full. Overflowing to Gemma-31b")
                 response = gemma_client.models.generate_content(model='gemma-4-31b-it', contents=prompt_instruction)
                 return filter_gemini_response(response.text).strip()
 
@@ -497,13 +499,13 @@ def ask_gemini_for_prompt(prompt_instruction, max_output_tokens=1024):
         elif length > 10000:
             if usage_tracker.is_available('gemini-3.6-flash-lite'):
                 usage_tracker.increment('gemini-3.6-flash-lite')
-                app.logger.info(f"Routing to gemini-3.5-flash-lite ({length} chars)")
-                response = gemma_client.models.generate_content(model='gemini-3.5-flash-lite', contents=prompt_instruction)
+                app.logger.info(f"Routing to gemini-3.6-flash-lite ({length} chars)")
+                response = gemma_client.models.generate_content(model='gemini-3.6-flash-lite', contents=prompt_instruction)
                 return filter_gemini_response(response.text).strip()
             else:
                 # OVERFLOW TO GEMMA 31b
                 usage_tracker.increment('gemma-4-31b-it')
-                app.logger.info(f"Gemini-3 Quota full. Overflowing to Gemma-31b")
+                app.logger.info(f"Gemini-3.6-flash-lite Quota full. Overflowing to Gemma-31b")
                 response = gemma_client.models.generate_content(model='gemma-4-31b-it', contents=prompt_instruction)
                 return filter_gemini_response(response.text).strip()
 
@@ -529,7 +531,7 @@ def ask_gemini_for_prompt(prompt_instruction, max_output_tokens=1024):
             else:
                 # OVERFLOW TO GEMMA 31b
                 usage_tracker.increment('gemma-4-31b-it')
-                app.logger.info(f"Gemini-3 Quota full. Overflowing to Gemma-31b")
+                app.logger.info(f"Gemini-3.5-flash Quota full. Overflowing to Gemma-31b")
                 response = gemma_client.models.generate_content(model='gemma-4-31b-it', contents=prompt_instruction)
                 return filter_gemini_response(response.text).strip()
 
@@ -543,7 +545,7 @@ def ask_gemini_for_prompt(prompt_instruction, max_output_tokens=1024):
             else:
                 # OVERFLOW TO GEMMA 31b
                 usage_tracker.increment('gemma-4-31b-it')
-                app.logger.info(f"Gemini-3 Quota full. Overflowing to Gemma-31b")
+                app.logger.info(f"Gemini-3.1-flash-lite Quota full. Overflowing to Gemma-31b")
                 response = gemma_client.models.generate_content(model='gemma-4-31b-it', contents=prompt_instruction)
                 return filter_gemini_response(response.text).strip()
 
@@ -557,7 +559,7 @@ def ask_gemini_for_prompt(prompt_instruction, max_output_tokens=1024):
             else:
                 # OVERFLOW TO GEMMA 31b
                 usage_tracker.increment('gemma-4-31b-it')
-                app.logger.info(f"Gemini-3 Quota full. Overflowing to Gemma-31b")
+                app.logger.info(f"Gemini-3.1-flash-lite-preview Quota full. Overflowing to Gemma-31b")
                 response = gemma_client.models.generate_content(model='gemma-4-31b-it', contents=prompt_instruction)
                 return filter_gemini_response(response.text).strip()
 
@@ -565,13 +567,13 @@ def ask_gemini_for_prompt(prompt_instruction, max_output_tokens=1024):
         elif length > 2700:
             if usage_tracker.is_available('gemini-3-flash-preview'):
                 usage_tracker.increment('gemini-3-flash-preview')
-                app.logger.info(f"Routing to Gemini-3 ({length} chars)")
+                app.logger.info(f"Routing to gemini-3-flash-preview ({length} chars)")
                 response = gemma_client.models.generate_content(model='gemini-3-flash-preview', contents=prompt_instruction)
                 return filter_gemini_response(response.text).strip()
             else:
                 # OVERFLOW TO GEMMA 31b
                 usage_tracker.increment('gemma-4-31b-it')
-                app.logger.info(f"Gemini-3 Quota full. Overflowing to Gemma-13b")
+                app.logger.info(f"Gemini-3-flash-preview Quota full. Overflowing to Gemma-13b")
                 response = gemma_client.models.generate_content(model='gemma-4-31b-it', contents=prompt_instruction)
                 return filter_gemini_response(response.text).strip()
 
@@ -579,27 +581,41 @@ def ask_gemini_for_prompt(prompt_instruction, max_output_tokens=1024):
         elif length > 1800:
             if usage_tracker.is_available('gemini-2.5-flash'):
                 usage_tracker.increment('gemini-2.5-flash')
-                app.logger.info(f"Routing to Gemini-2.5 ({length} chars)")
+                app.logger.info(f"Routing to Gemini-2.5-flash ({length} chars)")
                 response = gemma_client.models.generate_content(model='gemini-2.5-flash', contents=prompt_instruction)
                 return filter_gemini_response(response.text).strip()
             else:
                 # OVERFLOW TO GEMMA 31b
                 usage_tracker.increment('gemma-4-31b-it')
-                app.logger.info(f"Gemini-2.5 Quota full. Overflowing to Gemma-31b")
+                app.logger.info(f"Gemini-2.5-flash Quota full. Overflowing to Gemma-31b")
                 response = gemma_client.models.generate_content(model='gemma-4-31b-it', contents=prompt_instruction)
                 return filter_gemini_response(response.text).strip()
 
-        # --- TIER 10: GEMINI LITE (Default) with OVERFLOW ---
+      # --- TIER 10: GEMINI 3.7 (> 0.9k chars) with OVERFLOW ---
+        elif length > 900:
+            if usage_tracker.is_available('gemini-3.7-flash'):
+                usage_tracker.increment('gemini-3.7-flash')
+                app.logger.info(f"Routing to Gemini-3.7-flash ({length} chars)")
+                response = gemma_client.models.generate_content(model='gemini-3.7-flash', contents=prompt_instruction)
+                return filter_gemini_response(response.text).strip()
+            else:
+                # OVERFLOW TO GEMMA 31b
+                usage_tracker.increment('gemma-4-31b-it')
+                app.logger.info(f"Gemini-3.7-flash Quota full. Overflowing to Gemma-31b")
+                response = gemma_client.models.generate_content(model='gemma-4-31b-it', contents=prompt_instruction)
+                return filter_gemini_response(response.text).strip()
+
+        # --- TIER 11: GEMINI LITE (Default) with OVERFLOW ---
         else:
             if usage_tracker.is_available('gemini-2.5-flash-lite'):
                 usage_tracker.increment('gemini-2.5-flash-lite')
-                app.logger.info(f"Routing to Lite ({length} chars)")
+                app.logger.info(f"Routing to Gemini-2.5-flash-lite ({length} chars)")
                 response = gemma_client.models.generate_content(model='gemini-2.5-flash-lite', contents=prompt_instruction)
                 return filter_gemini_response(response.text).strip()
             else:
                 # OVERFLOW TO GEMMA 31b
                 usage_tracker.increment('gemma-4-31b-it')
-                app.logger.info(f"Gemini-lite Quota full. Overflowing to Gemma-31b")
+                app.logger.info(f"Gemini-2.5-flash-lite Quota full. Overflowing to Gemma-31b")
                 response = gemma_client.models.generate_content(model='gemma-4-31b-it', contents=prompt_instruction)
                 return filter_gemini_response(response.text).strip()
 
