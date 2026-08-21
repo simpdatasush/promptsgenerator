@@ -3136,6 +3136,68 @@ def prompt_firewall_process():
 def  reset_prompt_firewall_page():
     return jsonify({"status": "cleared"})
 
+# ---------------------------------------------------------------------
+# BIOSPHERE AI: CURIOSITY & MEDICAL SCIENCE INQUIRY ENGINE
+# ---------------------------------------------------------------------
+
+BIO_SYSTEM_INSTRUCTION = (
+    "You are BioSphere AI (BioAI), an educational bio-medical science and health curiosity guide. "
+    "Your purpose is to explain biological mechanisms, human anatomy, medical terminology, physiological processes, "
+    "and scientific research in clear, accessible, and structured terms.\n\n"
+    "SAFETY & POLICY CONSTRAINTS:\n"
+    "1. You do NOT prescribe medications, suggest dosages, or give personalized clinical treatment advice.\n"
+    "2. If a user asks for prescription advice or symptoms triage, politely clarify the underlying biology and add a standard disclaimer to consult a healthcare provider.\n"
+    "3. Format answers cleanly using bold headers, short paragraphs, and bullet points for complex biological pathways."
+)
+
+
+@app.route('/bio_ai')
+@login_required
+def bio_ai_page():
+    return render_template('bio_ai.html', current_user=current_user)
+
+
+@app.route('/bio_ai_query', methods=['POST'])
+@login_required
+def bio_ai_query():
+    try:
+        data = request.get_json() or {}
+        user_query = data.get('query', '').strip()
+
+        if not user_query:
+            return jsonify({'success': False, 'error': 'Please enter a biological or medical question.'}), 400
+
+        # Enforce input length limit
+        if len(user_query.encode('utf-8')) > (500 * 1024):  # 500 KB limit
+            return jsonify({'success': False, 'error': 'Query exceeds allowed size limit.'}), 400
+
+        client = gemma_client  # Uses your initialized GenAI client
+
+        response = gemma_client.models.generate_content(
+            model=IMG_TEXT_DEFAULT_MODEL,
+            config=gemma_types.GenerateContentConfig(
+                system_instruction=BIO_SYSTEM_INSTRUCTION,
+                temperature=0.4
+            ),
+            contents=user_query
+        )
+
+        return jsonify({
+            'success': True,
+            'response': response.text.strip()
+        })
+
+    except Exception as e:
+        print("--- BIO AI ERROR ---")
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+#4. State Reset Utility Endpoint
+@app.route('/reset_bio_ai', methods=['POST'])
+@login_required
+def reset_bio_ai_page():
+    return jsonify({"status": "cleared"})
+
 
 # --- NEW: Change Password Route ---
 @app.route('/change_password', methods=['GET', 'POST'])
