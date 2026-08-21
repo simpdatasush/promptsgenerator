@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SuperPrompter AI - MPSC GK Practice Engine</title>
+    <link rel="stylesheet" href="[https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css](https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css)">
+    <link rel="stylesheet" href="[https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css](https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css)">
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f8fafc; color: #1e293b; }
+        .main-card { border-radius: 10px; border: none; box-shadow: 0 4px 15px rgba(0,0,0,0.06); background: #ffffff; }
+        .option-btn { display: block; width: 100%; text-align: left; margin-bottom: 8px; border: 1px solid #cbd5e1; background: #ffffff; border-radius: 6px; padding: 10px 14px; transition: all 0.2s; font-size: 0.95rem; }
+        .option-btn:hover { background-color: #f1f5f9; }
+        .option-btn.correct { background-color: #dcfce7 !important; border-color: #22c55e !important; color: #15803d !important; font-weight: bold; }
+        .option-btn.wrong { background-color: #fee2e2 !important; border-color: #ef4444 !important; color: #b91c1c !important; }
+        .explanation-box { background-color: #eff6ff; border-left: 4px solid #3b82f6; padding: 12px 16px; border-radius: 0 6px 6px 0; font-size: 0.9rem; }
+        .topic-pill { cursor: pointer; border-radius: 20px; font-size: 0.82rem; }
+        .status-console { background-color: #0f172a; color: #38bdf8; font-family: monospace; padding: 10px 14px; border-radius: 6px; font-size: 0.85rem; }
+    </style>
+</head>
+<body>
+
+<div class="container my-4" style="max-width: 950px;">
+    <div class="card main-card">
+        
+        <!-- Header -->
+        <div class="card-header bg-dark text-white py-3 d-flex justify-content-between align-items-center">
+            <h4 class="mb-0">
+                <i class="fas fa-graduation-cap text-warning mr-2"></i>MPSC GK Question Engine
+            </h4>
+            <span class="badge badge-warning text-dark font-weight-bold">State Services Exam Prep</span>
+        </div>
+
+        <div class="card-body">
+            
+            <!-- Quick Topic Starters -->
+            <div class="mb-3">
+                <small class="text-muted font-weight-bold d-block mb-2">QUICK MPSC HIGH-YIELD TOPICS:</small>
+                <button class="btn btn-outline-secondary btn-sm topic-pill mr-1 mb-1" onclick="setTopic('Maharashtra Social Reformers: Jyotirao Phule and Shahu Maharaj')">Social Reformers</button>
+                <button class="btn btn-outline-secondary btn-sm topic-pill mr-1 mb-1" onclick="setTopic('Physiography and River Systems of Maharashtra')">Maharashtra Rivers</button>
+                <button class="btn btn-outline-secondary btn-sm topic-pill mr-1 mb-1" onclick="setTopic('73rd and 74th Constitutional Amendment Acts & Panchayati Raj')">Panchayati Raj</button>
+                <button class="btn btn-outline-secondary btn-sm topic-pill mr-1 mb-1" onclick="setTopic('1857 Revolt in Maharashtra and Regional Leaders')">1857 in Maharashtra</button>
+            </div>
+
+            <!-- Input Controls -->
+            <div class="form-row align-items-end mb-3">
+                <div class="form-group col-md-9 mb-0">
+                    <label class="font-weight-bold">Enter MPSC Subject, Topic, or Keyword:</label>
+                    <input type="text" id="topicInput" class="form-control" placeholder="e.g., Western Ghats passes, Governor powers under Article 163...">
+                </div>
+                <div class="form-group col-md-3 mb-0">
+                    <button id="generateBtn" class="btn btn-warning btn-block font-weight-bold" onclick="generateMCQs()">
+                        <i class="fas fa-cogs mr-1"></i> Generate MCQs
+                    </button>
+                </div>
+            </div>
+
+            <!-- Status Console -->
+            <div class="mb-4">
+                <div id="statusConsole" class="status-console">Ready. Enter an MPSC syllabus topic to build exam-standard MCQs...</div>
+            </div>
+
+            <hr>
+
+            <!-- Questions Container -->
+            <div id="mcqContainer"></div>
+
+        </div>
+    </div>
+</div>
+
+<script src="[https://code.jquery.com/jquery-3.5.1.min.js](https://code.jquery.com/jquery-3.5.1.min.js)"></script>
+<script>
+    function logStatus(msg) {
+        document.getElementById('statusConsole').innerText = `[${new Date().toLocaleTimeString()}] ${msg}`;
+    }
+
+    function setTopic(text) {
+        document.getElementById('topicInput').value = text;
+        generateMCQs();
+    }
+
+    async function generateMCQs() {
+        const topic = document.getElementById('topicInput').value.trim();
+        const generateBtn = document.getElementById('generateBtn');
+        const container = document.getElementById('mcqContainer');
+
+        if (!topic) {
+            logStatus('Please enter a topic or keyword first.');
+            return;
+        }
+
+        generateBtn.disabled = true;
+        generateBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Generating...';
+        logStatus(`SuperPrompter AI is crafting MPSC standard MCQs for: "${topic}"...`);
+        container.innerHTML = '';
+
+        try {
+            const res = await fetch('/mpsc_gk_generate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ topic: topic, count: 3 })
+            });
+
+            const data = await res.json();
+
+            if (data.status === 'success' && data.mcqs) {
+                renderQuestions(data.mcqs);
+                logStatus(`Successfully loaded ${data.mcqs.length} MCQs for "${data.topic}".`);
+            } else {
+                logStatus('Error: ' + data.error);
+            }
+        } catch (e) {
+            logStatus('Request failed: ' + e.message);
+        } finally {
+            generateBtn.disabled = false;
+            generateBtn.innerHTML = '<i class="fas fa-cogs mr-1"></i> Generate MCQs';
+        }
+    }
+
+    function renderQuestions(mcqs) {
+        const container = document.getElementById('mcqContainer');
+        container.innerHTML = '';
+
+        mcqs.forEach((q, idx) => {
+            const card = document.createElement('div');
+            card.className = 'card mb-4 border';
+            
+            let optionsHtml = '';
+            for (const [key, text] of Object.entries(q.options)) {
+                optionsHtml += `
+                    <button class="option-btn" onclick="checkAnswer(this, '${key}', '${q.correct_option}', 'exp-${idx}')">
+                        <strong>(${key})</strong> ${escapeHtml(text)}
+                    </button>
+                `;
+            }
+
+            card.innerHTML = `
+                <div class="card-header bg-light font-weight-bold">
+                    Q${idx + 1}. ${escapeHtml(q.question)}
+                </div>
+                <div class="card-body">
+                    <div class="options-wrapper mb-3">
+                        ${optionsHtml}
+                    </div>
+                    <div id="exp-${idx}" class="explanation-box" style="display: none;">
+                        <strong><i class="fas fa-info-circle mr-1"></i> Correct Answer: Option (${q.correct_option})</strong>
+                        <p class="mb-0 mt-1">${escapeHtml(q.explanation)}</p>
+                    </div>
+                </div>
+            `;
+            container.appendChild(card);
+        });
+    }
+
+    function checkAnswer(btnEl, selected, correct, expId) {
+        const parent = btnEl.closest('.options-wrapper');
+        const allBtns = parent.querySelectorAll('.option-btn');
+        
+        // Prevent re-selection
+        allBtns.forEach(b => b.disabled = true);
+
+        if (selected === correct) {
+            btnEl.classList.add('correct');
+        } else {
+            btnEl.classList.add('wrong');
+            // Highlight the right answer
+            allBtns.forEach(b => {
+                if (b.innerText.startsWith(`(${correct})`)) b.classList.add('correct');
+            });
+        }
+
+        // Show explanation
+        document.getElementById(expId).style.display = 'block';
+    }
+
+    function escapeHtml(text) {
+        return text ? text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;") : '';
+    }
+</script>
+</body>
+</html>
