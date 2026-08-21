@@ -3171,7 +3171,6 @@ def bio_ai_query():
         if len(user_query.encode('utf-8')) > (500 * 1024):  # 500 KB limit
             return jsonify({'success': False, 'error': 'Query exceeds allowed size limit.'}), 400
 
-        client = gemma_client  # Uses your initialized GenAI client
 
         response = gemma_client.models.generate_content(
             model=IMG_TEXT_DEFAULT_MODEL,
@@ -3182,11 +3181,14 @@ def bio_ai_query():
             contents=user_query
         )
 
-        return jsonify({
-            'success': True,
-            'response': response.text.strip()
-        })
+        raw_output = response.text if response.text else "Failed to assemble pedagogical prompt."
+        clean_output = process_speech_response(raw_output)
 
+        return jsonify({
+            "status": "success",
+            "speech_prompt": clean_output
+        })
+  
     except Exception as e:
         print("--- BIO AI ERROR ---")
         traceback.print_exc()
