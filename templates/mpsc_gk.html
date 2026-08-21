@@ -119,39 +119,45 @@
     }
 
     function renderQuestions(mcqs) {
-        const container = document.getElementById('mcqContainer');
-        container.innerHTML = '';
+    const container = document.getElementById('mcqContainer');
+    container.innerHTML = '';
 
-        mcqs.forEach((q, idx) => {
-            const card = document.createElement('div');
-            card.className = 'card mb-4 border';
-            
-            let optionsHtml = '';
-            for (const [key, text] of Object.entries(q.options)) {
-                optionsHtml += `
-                    <button class="option-btn" onclick="checkAnswer(this, '${key}', '${q.correct_option}', 'exp-${idx}')">
-                        <strong>(${key})</strong> ${escapeHtml(text)}
-                    </button>
-                `;
-            }
-
-            card.innerHTML = `
-                <div class="card-header bg-light font-weight-bold">
-                    Q${idx + 1}. ${escapeHtml(q.question)}
-                </div>
-                <div class="card-body">
-                    <div class="options-wrapper mb-3">
-                        ${optionsHtml}
-                    </div>
-                    <div id="exp-${idx}" class="explanation-box" style="display: none;">
-                        <strong><i class="fas fa-info-circle mr-1"></i> Correct Answer: Option (${q.correct_option})</strong>
-                        <p class="mb-0 mt-1">${escapeHtml(q.explanation)}</p>
-                    </div>
+    mcqs.forEach((q, idx) => {
+        const card = document.createElement('div');
+        card.className = 'card mb-4 border shadow-sm';
+        
+        let optionsHtml = '';
+        for (const [key, text] of Object.entries(q.options)) {
+            const isCorrect = (key === q.correct_option);
+            optionsHtml += `
+                <div class="option-btn mb-2 p-2 border rounded ${isCorrect ? 'correct' : ''}">
+                    <strong>(${key})</strong> ${escapeHtml(text)}
                 </div>
             `;
-            container.appendChild(card);
-        });
-    }
+        }
+
+        // Card layout with Answer and Explanation displayed directly after all 4 options
+        card.innerHTML = `
+            <div class="card-header bg-light font-weight-bold">
+                Q${idx + 1}. ${escapeHtml(q.question)}
+            </div>
+            <div class="card-body">
+                <div class="options-wrapper mb-3">
+                    ${optionsHtml}
+                </div>
+                <div class="explanation-box mt-3 p-3 bg-light border-left border-success" style="border-left: 5px solid #28a745 !important;">
+                    <div class="font-weight-bold text-success mb-1">
+                        <i class="fas fa-check-circle mr-1"></i> Correct Answer: Option (${q.correct_option})
+                    </div>
+                    <div class="text-secondary small">
+                        <strong>Explanation:</strong> ${escapeHtml(q.explanation)}
+                    </div>
+                </div>
+            </div>
+        `;
+        container.appendChild(card);
+    });
+}
 
     function checkAnswer(btnEl, selected, correct, expId) {
         const parent = btnEl.closest('.options-wrapper');
