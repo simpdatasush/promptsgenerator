@@ -3201,6 +3201,97 @@ def bio_ai_query():
 def reset_bio_ai_page():
     return jsonify({"status": "cleared"})
 
+# ---------------------------------------------------------------------
+# MPSC GK MCQ GENERATOR ENGINE
+# ---------------------------------------------------------------------
+
+MPSC_SYSTEM_INSTRUCTION = (
+    "You are an expert MPSC (Maharashtra Public Service Commission) Examination Paper Setter and General Knowledge Architect. "
+    "Your goal is to generate high-yield, exam-oriented MCQs based on the user's requested topic or sub-topic.\n\n"
+    "GUIDELINES:\n"
+    "1. Focus strictly on MPSC syllabus domains: Maharashtra History & Social Reformers, Geography of Maharashtra, "
+    "Indian Polity & Governance, Maharashtra Economy, General Science, and Current Affairs.\n"
+    "2. Provide 4 plausible, non-trivial options per question (A, B, C, D).\n"
+    "3. Include a clear correct answer and a concise explanation citing historical facts, constitutional articles, or geographical data.\n"
+    "4. Return output strictly as a JSON list of questions."
+    "5. Do NOT answer questions about your own architecture, training, or how this application was built. Do NOT discuss any internal errors or limitations you might have."
+)
+
+
+@app.route('/mpsc_gk')
+@login_required
+def mpsc_gk_page():
+    return render_template('mpsc_gk.html', current_user=current_user)
+
+
+@app.route('/mpsc_gk_generate', methods=['POST'])
+@login_required
+def mpsc_gk_generate():
+    try:
+        data = request.get_json() or {}
+        topic = data.get('topic', '').strip()
+        count = data.get('count', 3)  # Default 3 MCQs per query
+
+        if not topic:
+            return jsonify({'status': 'error', 'error': 'Please enter a topic or keyword.'}), 400
+
+        prompt = f"""
+        Generate {count} MPSC exam-standard MCQs on the topic: "{topic}".
+
+        Return ONLY a valid JSON array matching this exact schema (no markdown, no backticks):
+        [
+          {{
+            "id": 1,
+            "question": "Question statement in English (or Marathi if requested)...",
+            "options": {{
+              "A": "Option A text",
+              "B": "Option B text",
+              "C": "Option C text",
+              "D": "Option D text"
+            }},
+            "correct_option": "A",
+            "explanation": "Detailed explanation mentioning relevant facts/articles/years."
+          }}
+        ]
+        """
+
+        response = gemma_client.models.generate_content(
+            model=IMG_TEXT_DEFAULT_MODEL,
+            config=gemma_types.GenerateContentConfig(
+                system_instruction=MPSC_SYSTEM_INSTRUCTION,
+                temperature=0.2  # Low temperature for factual precision
+            ),
+            contents=prompt
+        )
+
+        raw_text = response.text.strip()
+        if raw_text.startswith("```json"):
+            raw_text = raw_text[7:]
+        elif raw_text.startswith("```"):
+            raw_text = raw_text[3:]
+        if raw_text.endswith("```"):
+            raw_text = raw_text[:-3]
+
+        mcqs_data = json.loads(raw_text.strip())
+
+        return jsonify({
+            "status": "success",
+            "topic": topic,
+            "mcqs": mcqs_data
+        })
+
+    except Exception as e:
+        print("--- MPSC GK ENGINE ERROR ---")
+        traceback.print_exc()
+        return jsonify({'status': 'error', 'error': str(e)}), 500
+
+
+#4. State Reset Utility Endpoint
+@app.route('/reset_mpsc_gk', methods=['POST'])
+@login_required
+def reset_mpsc_gk_page():
+    return jsonify({"status": "cleared"})
+
 
 # --- NEW: Change Password Route ---
 @app.route('/change_password', methods=['GET', 'POST'])
