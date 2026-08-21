@@ -83,66 +83,64 @@
         askBioAI();
     }
 
-    async function askBioAI() {
-        const inputEl = document.getElementById('bioQueryInput');
-        const askBtn = document.getElementById('askBtn');
-        const chatWindow = document.getElementById('chatWindow');
-        const query = inputEl.value.trim();
+async function askBioAI() {
+    const inputEl = document.getElementById('bioQueryInput');
+    const askBtn = document.getElementById('askBtn');
+    const chatWindow = document.getElementById('chatWindow');
+    const query = inputEl.value.trim();
 
-        if (!query) return;
+    if (!query) return;
 
-        // Render User Message
-        chatWindow.innerHTML += `
-            <div class="user-msg">
-                <strong>You:</strong>
-                <p class="mb-0 mt-1">${escapeHtml(query)}</p>
-            </div>
-        `;
-        inputEl.value = '';
-        chatWindow.scrollTop = chatWindow.scrollHeight;
+    // Render User Message
+    chatWindow.innerHTML += `
+        <div class="user-msg">
+            <strong>You:</strong>
+            <p class="mb-0 mt-1">${escapeHtml(query)}</p>
+        </div>
+    `;
+    inputEl.value = '';
+    chatWindow.scrollTop = chatWindow.scrollHeight;
 
-        // Disable input during request
-        askBtn.disabled = true;
-        askBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    askBtn.disabled = true;
+    askBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
 
-        try {
-            const res = await fetch('/bio_ai_query', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ query: query })
-            });
+    try {
+        const res = await fetch('/bio_ai_query', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ query: query })
+        });
 
-            const data = await res.json();
+        const data = await res.json();
 
-            if (data.success) {
-                // Format markdown newlines into readable HTML paragraphs
-                const formattedResponse = data.response.replace(/\n\n/g, '<br><br>').replace(/\n/g, '<br>');
-                chatWindow.innerHTML += `
-                    <div class="ai-msg">
-                        <strong><i class="fas fa-robot text-success mr-1"></i> BioSphere AI:</strong>
-                        <div class="mt-1">${formattedResponse}</div>
-                    </div>
-                `;
-            } else {
-                chatWindow.innerHTML += `
-                    <div class="ai-msg text-danger">
-                        <strong><i class="fas fa-exclamation-triangle mr-1"></i> Error:</strong> ${data.error}
-                    </div>
-                `;
-            }
-        } catch (e) {
+        if (data.status === "success") {
+            const formattedResponse = data.speech_prompt.replace(/\n\n/g, '<br><br>').replace(/\n/g, '<br>');
             chatWindow.innerHTML += `
-                <div class="ai-msg text-danger">
-                    <strong><i class="fas fa-exclamation-triangle mr-1"></i> Connection Error:</strong> ${e.message}
+                <div class="ai-msg">
+                    <strong><i class="fas fa-robot text-success mr-1"></i> BioSphere AI:</strong>
+                    <div class="mt-1">${formattedResponse}</div>
                 </div>
             `;
-        } finally {
-            askBtn.disabled = false;
-            askBtn.innerHTML = '<i class="fas fa-paper-plane mr-1"></i> Ask';
-            chatWindow.scrollTop = chatWindow.scrollHeight;
+        } else {
+            chatWindow.innerHTML += `
+                <div class="ai-msg text-danger">
+                    <strong><i class="fas fa-exclamation-triangle mr-1"></i> Error:</strong> ${data.error}
+                </div>
+            `;
         }
+    } catch (e) {
+        chatWindow.innerHTML += `
+            <div class="ai-msg text-danger">
+                <strong><i class="fas fa-exclamation-triangle mr-1"></i> Connection Error:</strong> ${e.message}
+            </div>
+        `;
+    } finally {
+        askBtn.disabled = false;
+        askBtn.innerHTML = '<i class="fas fa-paper-plane mr-1"></i> Ask';
+        chatWindow.scrollTop = chatWindow.scrollHeight;
     }
-
+}
+    
     function escapeHtml(text) {
         return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
     }
