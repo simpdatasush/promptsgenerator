@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BioSphere AI - Medical Science & Health Curiosity Guide</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4fbf7; color: #2c3e50; }
+        .main-card { border-radius: 12px; border: none; box-shadow: 0 4px 15px rgba(46, 125, 50, 0.08); background: #ffffff; }
+        .chat-scroll { max-height: 480px; overflow-y: auto; padding: 15px; background-color: #f9fdfb; border-radius: 8px; border: 1px solid #e0f2e9; }
+        .user-msg { background-color: #e8f5e9; color: #1b5e20; border-radius: 10px 10px 0 10px; padding: 10px 15px; margin-bottom: 12px; max-width: 80%; margin-left: auto; }
+        .ai-msg { background-color: #ffffff; color: #2c3e50; border: 1px solid #d0ebd9; border-radius: 10px 10px 10px 0; padding: 12px 18px; margin-bottom: 15px; max-width: 90%; }
+        .topic-pill { cursor: pointer; transition: all 0.2s; border-radius: 20px; font-size: 0.85rem; }
+        .topic-pill:hover { background-color: #2e7d32; color: #fff !important; }
+        .status-badge { font-size: 0.75rem; background-color: #e8f5e9; color: #2e7d32; padding: 4px 8px; border-radius: 12px; }
+    </style>
+</head>
+<body>
+
+<div class="container my-4" style="max-width: 950px;">
+    <div class="card main-card">
+        
+        <!-- Header -->
+        <div class="card-header bg-white border-bottom border-light py-3 d-flex justify-content-between align-items-center">
+            <div>
+                <h4 class="mb-0 text-success font-weight-bold">
+                    <i class="fas fa-dna mr-2"></i>BioSphere AI
+                </h4>
+                <small class="text-muted">Pure Biological & Health Science Inquiry</small>
+            </div>
+            <span class="status-badge"><i class="fas fa-microscope mr-1"></i>Education & Mechanism Mode</span>
+        </div>
+
+        <div class="card-body">
+            
+            <!-- Curiosity Quick Starters -->
+            <div class="mb-3">
+                <small class="text-muted font-weight-bold d-block mb-2">EXPLORE CURIOUS TOPICS:</small>
+                <button class="btn btn-outline-success btn-sm topic-pill mr-1 mb-1" onclick="fillQuery('How does the immune system remember viruses?')">Immune Memory</button>
+                <button class="btn btn-outline-success btn-sm topic-pill mr-1 mb-1" onclick="fillQuery('What is the difference between DNA and RNA?')">DNA vs RNA</button>
+                <button class="btn btn-outline-success btn-sm topic-pill mr-1 mb-1" onclick="fillQuery('How does cellular respiration create ATP energy?')">ATP & Energy</button>
+                <button class="btn btn-outline-success btn-sm topic-pill mr-1 mb-1" onclick="fillQuery('Why do neurotransmitters affect human mood and focus?')">Neurochemistry</button>
+            </div>
+
+            <!-- Dialogue / Response Window -->
+            <div id="chatWindow" class="chat-scroll mb-3">
+                <div class="ai-msg">
+                    <strong><i class="fas fa-robot text-success mr-1"></i> BioSphere AI:</strong>
+                    <p class="mb-0 mt-1">Hello! I am your curiosity guide for human biology, anatomy, physiological mechanisms, and medical science. Ask me what something is, how a bodily process works, or explore how cells function.</p>
+                </div>
+            </div>
+
+            <!-- Query Input -->
+            <div class="input-group">
+                <input type="text" id="bioQueryInput" class="form-control" placeholder="Ask a biological or health question (e.g., 'What is CRISPR gene editing?')..." onkeydown="handleKeyPress(event)">
+                <div class="input-group-append">
+                    <button id="askBtn" class="btn btn-success font-weight-bold px-4" onclick="askBioAI()">
+                        <i class="fas fa-paper-plane mr-1"></i> Ask
+                    </button>
+                </div>
+            </div>
+
+            <div class="text-center mt-3">
+                <small class="text-muted">
+                    <i class="fas fa-info-circle mr-1"></i><strong>Educational Note:</strong> BioSphere AI provides biological science education and mechanistic explanations. It does not provide medical prescriptions or treatment plans.
+                </small>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+<script>
+    function handleKeyPress(e) {
+        if (e.key === 'Enter') askBioAI();
+    }
+
+    function fillQuery(text) {
+        document.getElementById('bioQueryInput').value = text;
+        askBioAI();
+    }
+
+    async function askBioAI() {
+        const inputEl = document.getElementById('bioQueryInput');
+        const askBtn = document.getElementById('askBtn');
+        const chatWindow = document.getElementById('chatWindow');
+        const query = inputEl.value.trim();
+
+        if (!query) return;
+
+        // Render User Message
+        chatWindow.innerHTML += `
+            <div class="user-msg">
+                <strong>You:</strong>
+                <p class="mb-0 mt-1">${escapeHtml(query)}</p>
+            </div>
+        `;
+        inputEl.value = '';
+        chatWindow.scrollTop = chatWindow.scrollHeight;
+
+        // Disable input during request
+        askBtn.disabled = true;
+        askBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+
+        try {
+            const res = await fetch('/bio_ai_query', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ query: query })
+            });
+
+            const data = await res.json();
+
+            if (data.success) {
+                // Format markdown newlines into readable HTML paragraphs
+                const formattedResponse = data.response.replace(/\n\n/g, '<br><br>').replace(/\n/g, '<br>');
+                chatWindow.innerHTML += `
+                    <div class="ai-msg">
+                        <strong><i class="fas fa-robot text-success mr-1"></i> BioSphere AI:</strong>
+                        <div class="mt-1">${formattedResponse}</div>
+                    </div>
+                `;
+            } else {
+                chatWindow.innerHTML += `
+                    <div class="ai-msg text-danger">
+                        <strong><i class="fas fa-exclamation-triangle mr-1"></i> Error:</strong> ${data.error}
+                    </div>
+                `;
+            }
+        } catch (e) {
+            chatWindow.innerHTML += `
+                <div class="ai-msg text-danger">
+                    <strong><i class="fas fa-exclamation-triangle mr-1"></i> Connection Error:</strong> ${e.message}
+                </div>
+            `;
+        } finally {
+            askBtn.disabled = false;
+            askBtn.innerHTML = '<i class="fas fa-paper-plane mr-1"></i> Ask';
+            chatWindow.scrollTop = chatWindow.scrollHeight;
+        }
+    }
+
+    function escapeHtml(text) {
+        return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+</script>
+</body>
+</html>
