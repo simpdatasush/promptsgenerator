@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="mr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,14 +7,12 @@
     <link rel="stylesheet" href="[https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css](https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css)">
     <link rel="stylesheet" href="[https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css](https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css)">
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f8fafc; color: #1e293b; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, 'Nirmala UI', sans-serif; background-color: #f8fafc; color: #1e293b; }
         .main-card { border-radius: 10px; border: none; box-shadow: 0 4px 15px rgba(0,0,0,0.06); background: #ffffff; }
-        .option-btn { display: block; width: 100%; text-align: left; margin-bottom: 8px; border: 1px solid #cbd5e1; background: #ffffff; border-radius: 6px; padding: 10px 14px; transition: all 0.2s; font-size: 0.95rem; }
-        .option-btn:hover { background-color: #f1f5f9; }
-        .option-btn.correct { background-color: #dcfce7 !important; border-color: #22c55e !important; color: #15803d !important; font-weight: bold; }
-        .option-btn.wrong { background-color: #fee2e2 !important; border-color: #ef4444 !important; color: #b91c1c !important; }
-        .explanation-box { background-color: #eff6ff; border-left: 4px solid #3b82f6; padding: 12px 16px; border-radius: 0 6px 6px 0; font-size: 0.9rem; }
-        .topic-pill { cursor: pointer; border-radius: 20px; font-size: 0.82rem; }
+        .option-box { display: block; width: 100%; text-align: left; margin-bottom: 8px; border: 1px solid #cbd5e1; background: #ffffff; border-radius: 6px; padding: 10px 14px; font-size: 0.98rem; }
+        .option-box.correct { background-color: #dcfce7 !important; border-color: #22c55e !important; color: #15803d !important; font-weight: bold; }
+        .explanation-box { background-color: #f0fdf4; border-left: 5px solid #22c55e; padding: 14px 16px; border-radius: 0 6px 6px 0; font-size: 0.95rem; }
+        .topic-pill { cursor: pointer; border-radius: 20px; font-size: 0.85rem; }
         .status-console { background-color: #0f172a; color: #38bdf8; font-family: monospace; padding: 10px 14px; border-radius: 6px; font-size: 0.85rem; }
     </style>
 </head>
@@ -26,38 +24,39 @@
         <!-- Header -->
         <div class="card-header bg-dark text-white py-3 d-flex justify-content-between align-items-center">
             <h4 class="mb-0">
-                <i class="fas fa-graduation-cap text-warning mr-2"></i>MPSC GK Question Engine
+                <i class="fas fa-graduation-cap text-warning mr-2"></i>MPSC GK प्रश्नसंच निर्मिती
             </h4>
-            <span class="badge badge-warning text-dark font-weight-bold">State Services Exam Prep</span>
+            <span class="badge badge-warning text-dark font-weight-bold">महाराष्ट्र राज्य लोकसेवा परीक्षा</span>
         </div>
 
         <div class="card-body">
             
-            <!-- Quick Topic Starters -->
+            <!-- Quick Topic Starters in Marathi -->
             <div class="mb-3">
-                <small class="text-muted font-weight-bold d-block mb-2">QUICK MPSC HIGH-YIELD TOPICS:</small>
-                <button class="btn btn-outline-secondary btn-sm topic-pill mr-1 mb-1" onclick="setTopic('Maharashtra Social Reformers: Jyotirao Phule and Shahu Maharaj')">Social Reformers</button>
-                <button class="btn btn-outline-secondary btn-sm topic-pill mr-1 mb-1" onclick="setTopic('Physiography and River Systems of Maharashtra')">Maharashtra Rivers</button>
-                <button class="btn btn-outline-secondary btn-sm topic-pill mr-1 mb-1" onclick="setTopic('73rd and 74th Constitutional Amendment Acts & Panchayati Raj')">Panchayati Raj</button>
-                <button class="btn btn-outline-secondary btn-sm topic-pill mr-1 mb-1" onclick="setTopic('1857 Revolt in Maharashtra and Regional Leaders')">1857 in Maharashtra</button>
+                <small class="text-muted font-weight-bold d-block mb-2">महत्त्वाचे MPSC सराव विषय:</small>
+                <button class="btn btn-outline-secondary btn-sm topic-pill mr-1 mb-1" onclick="setTopic('महाराष्ट्रातील समाजसुधारक: महात्मा फुले आणि राजर्षी शाहू महाराज')">समाजसुधारक</button>
+                <button class="btn btn-outline-secondary btn-sm topic-pill mr-1 mb-1" onclick="setTopic('महाराष्ट्राची प्राकृतिक रचना आणि गोदावरी नदी प्रणाली')">प्राकृतिक रचना व नद्या</button>
+                <button class="btn btn-outline-secondary btn-sm topic-pill mr-1 mb-1" onclick="setTopic('७३ वी व ७४ वी घटनादुरुस्ती आणि पंचायत राज व्यवस्था')">पंचायत राज</button>
+                <button class="btn btn-outline-secondary btn-sm topic-pill mr-1 mb-1" onclick="setTopic('महाराष्ट्रातील १८५७ चा उठाव आणि प्रमुख नेतृत्व')">१८५७ चा उठाव</button>
+                <button class="btn btn-outline-secondary btn-sm topic-pill mr-1 mb-1" onclick="setTopic('सह्याद्री पर्वत आणि प्रमुख घाट रस्ते')">घाट रस्ते व पर्वत</button>
             </div>
 
             <!-- Input Controls -->
             <div class="form-row align-items-end mb-3">
                 <div class="form-group col-md-9 mb-0">
-                    <label class="font-weight-bold">Enter MPSC Subject, Topic, or Keyword:</label>
-                    <input type="text" id="topicInput" class="form-control" placeholder="e.g., Western Ghats passes, Governor powers under Article 163...">
+                    <label class="font-weight-bold">MPSC विषय किंवा कीवर्ड प्रविष्ट करा:</label>
+                    <input type="text" id="topicInput" class="form-control" placeholder="उदा. सह्याद्रीतील घाट, राज्यपालांचे विशेषाधिकार, तापी नदी खोरे...">
                 </div>
                 <div class="form-group col-md-3 mb-0">
                     <button id="generateBtn" class="btn btn-warning btn-block font-weight-bold" onclick="generateMCQs()">
-                        <i class="fas fa-cogs mr-1"></i> Generate MCQs
+                        <i class="fas fa-cogs mr-1"></i> प्रश्न तयार करा
                     </button>
                 </div>
             </div>
 
             <!-- Status Console -->
             <div class="mb-4">
-                <div id="statusConsole" class="status-console">Ready. Enter an MPSC syllabus topic to build exam-standard MCQs...</div>
+                <div id="statusConsole" class="status-console">तयार आहे. MPSC प्रश्न तयार करण्यासाठी विषय प्रविष्ट करा...</div>
             </div>
 
             <hr>
@@ -86,13 +85,13 @@
         const container = document.getElementById('mcqContainer');
 
         if (!topic) {
-            logStatus('Please enter a topic or keyword first.');
+            logStatus('कृपया विषय प्रविष्ट करा.');
             return;
         }
 
         generateBtn.disabled = true;
-        generateBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Generating...';
-        logStatus(`SuperPrompter AI is crafting MPSC standard MCQs for: "${topic}"...`);
+        generateBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> प्रश्न तयार होत आहेत...';
+        logStatus(`SuperPrompter AI "${topic}" या विषयावर MPSC दर्जाचे प्रश्न तयार करत आहे...`);
         container.innerHTML = '';
 
         try {
@@ -106,78 +105,56 @@
 
             if (data.status === 'success' && data.mcqs) {
                 renderQuestions(data.mcqs);
-                logStatus(`Successfully loaded ${data.mcqs.length} MCQs for "${data.topic}".`);
+                logStatus(`"${data.topic}" या विषयावर ${data.mcqs.length} प्रश्न यशस्वीरित्या तयार झाले.`);
             } else {
-                logStatus('Error: ' + data.error);
+                logStatus('त्रुटी: ' + data.error);
             }
         } catch (e) {
-            logStatus('Request failed: ' + e.message);
+            logStatus('सर्व्हर त्रुटी: ' + e.message);
         } finally {
             generateBtn.disabled = false;
-            generateBtn.innerHTML = '<i class="fas fa-cogs mr-1"></i> Generate MCQs';
+            generateBtn.innerHTML = '<i class="fas fa-cogs mr-1"></i> प्रश्न तयार करा';
         }
     }
 
     function renderQuestions(mcqs) {
-    const container = document.getElementById('mcqContainer');
-    container.innerHTML = '';
+        const container = document.getElementById('mcqContainer');
+        container.innerHTML = '';
 
-    mcqs.forEach((q, idx) => {
-        const card = document.createElement('div');
-        card.className = 'card mb-4 border shadow-sm';
-        
-        let optionsHtml = '';
-        for (const [key, text] of Object.entries(q.options)) {
-            const isCorrect = (key === q.correct_option);
-            optionsHtml += `
-                <div class="option-btn mb-2 p-2 border rounded ${isCorrect ? 'correct' : ''}">
-                    <strong>(${key})</strong> ${escapeHtml(text)}
+        mcqs.forEach((q, idx) => {
+            const card = document.createElement('div');
+            card.className = 'card mb-4 border shadow-sm';
+            
+            let optionsHtml = '';
+            for (const [key, text] of Object.entries(q.options)) {
+                const isCorrect = (key === q.correct_option);
+                optionsHtml += `
+                    <div class="option-box ${isCorrect ? 'correct' : ''}">
+                        <strong>(${key})</strong> ${escapeHtml(text)}
+                    </div>
+                `;
+            }
+
+            card.innerHTML = `
+                <div class="card-header bg-light font-weight-bold">
+                    प्रश्न ${idx + 1}. ${escapeHtml(q.question)}
+                </div>
+                <div class="card-body">
+                    <div class="options-wrapper mb-3">
+                        ${optionsHtml}
+                    </div>
+                    <div class="explanation-box mt-3">
+                        <div class="font-weight-bold text-success mb-1">
+                            <i class="fas fa-check-circle mr-1"></i> योग्य उत्तर: पर्याय (${q.correct_option})
+                        </div>
+                        <div class="text-secondary">
+                            <strong>स्पष्टीकरण:</strong> ${escapeHtml(q.explanation)}
+                        </div>
+                    </div>
                 </div>
             `;
-        }
-
-        // Card layout with Answer and Explanation displayed directly after all 4 options
-        card.innerHTML = `
-            <div class="card-header bg-light font-weight-bold">
-                Q${idx + 1}. ${escapeHtml(q.question)}
-            </div>
-            <div class="card-body">
-                <div class="options-wrapper mb-3">
-                    ${optionsHtml}
-                </div>
-                <div class="explanation-box mt-3 p-3 bg-light border-left border-success" style="border-left: 5px solid #28a745 !important;">
-                    <div class="font-weight-bold text-success mb-1">
-                        <i class="fas fa-check-circle mr-1"></i> Correct Answer: Option (${q.correct_option})
-                    </div>
-                    <div class="text-secondary small">
-                        <strong>Explanation:</strong> ${escapeHtml(q.explanation)}
-                    </div>
-                </div>
-            </div>
-        `;
-        container.appendChild(card);
-    });
-}
-
-    function checkAnswer(btnEl, selected, correct, expId) {
-        const parent = btnEl.closest('.options-wrapper');
-        const allBtns = parent.querySelectorAll('.option-btn');
-        
-        // Prevent re-selection
-        allBtns.forEach(b => b.disabled = true);
-
-        if (selected === correct) {
-            btnEl.classList.add('correct');
-        } else {
-            btnEl.classList.add('wrong');
-            // Highlight the right answer
-            allBtns.forEach(b => {
-                if (b.innerText.startsWith(`(${correct})`)) b.classList.add('correct');
-            });
-        }
-
-        // Show explanation
-        document.getElementById(expId).style.display = 'block';
+            container.appendChild(card);
+        });
     }
 
     function escapeHtml(text) {
