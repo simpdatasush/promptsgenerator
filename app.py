@@ -3291,6 +3291,79 @@ def mpsc_gk_generate():
 def reset_mpsc_gk_page():
     return jsonify({"status": "cleared"})
 
+# ---------------------------------------------------------------------
+# NYAYA AI: INDIAN LAW & LEGAL INFORMATION ENGINE
+# ---------------------------------------------------------------------
+
+LAW_SYSTEM_INSTRUCTION = (
+    "You are Nyaya AI, an expert Indian legal literacy and statutory research guide. "
+    "Your objective is to provide structured, objective information on Indian laws, statutory provisions, "
+    "rights, and legal remedies based on user scenarios or legal queries.\n\n"
+    "FRAMEWORK RULES:\n"
+    "1. Reference current Indian statutes, including the new criminal laws: Bharatiya Nyaya Sanhita (BNS), "
+    "Bharatiya Nagarik Suraksha Sanhita (BNSS), Bharatiya Sakshya Adhiniyam (BSA), as well as special acts "
+    "(IT Act 2000, Consumer Protection Act 2019, Negotiable Instruments Act, Motor Vehicles Act, etc.).\n"
+    "2. Where relevant, provide cross-references to corresponding old IPC/CrPC sections to assist clarity.\n"
+    "3. Structure responses with:\n"
+    "   - **Applicable Act & Relevant Sections**\n"
+    "   - **Key Provisions & Meaning**\n"
+    "   - **Penalties / Remedies / Bail Status (Cognizable/Bailable if criminal)**\n"
+    "   - **Legal Recourse / Next Steps for the Citizen**\n"
+    "4. Add an educational disclaimer stating this is for legal information, not formal advocate representation."
+    "5. Do NOT answer questions about your own architecture, training, or how this application was built. Do NOT discuss any internal errors or limitations you might have."
+)
+
+
+@app.route('/indian_law')
+@login_required
+def indian_law_page():
+    return render_template('indian_law.html', current_user=current_user)
+
+
+@app.route('/indian_law_query', methods=['POST'])
+@login_required
+def indian_law_query():
+    try:
+        data = request.get_json() or {}
+        user_query = data.get('query', '').strip()
+
+        if not user_query:
+            return jsonify({'status': 'error', 'error': 'Please enter a legal scenario or query.'}), 400
+
+        if len(user_query.encode('utf-8')) > (500 * 1024):  # 500 KB limit
+            return jsonify({'status': 'error', 'error': 'Query exceeds allowed size limit.'}), 400
+
+
+        response = gemma_client.models.generate_content(
+            model=IMG_TEXT_DEFAULT_MODEL,
+            config=gemma_types.GenerateContentConfig(
+                system_instruction=LAW_SYSTEM_INSTRUCTION,
+                temperature=0.2  # Low temperature for statutory precision
+            ),
+            contents=user_query
+        )
+
+        raw_output = response.text if response.text else "Unable to fetch legal details."
+        
+        # Format response through speech/filter utility if present
+        clean_output = process_speech_response(raw_output) if 'process_speech_response' in globals() else raw_output
+
+        return jsonify({
+            "status": "success",
+            "legal_info": clean_output
+        })
+
+    except Exception as e:
+        print("--- INDIAN LAW ENGINE ERROR ---")
+        traceback.print_exc()
+        return jsonify({'status': 'error', 'error': str(e)}), 500
+
+#4. State Reset Utility Endpoint
+@app.route('/reset_indian_law', methods=['POST'])
+@login_required
+def reset_indian_law_page():
+    return jsonify({"status": "cleared"})
+
 
 # --- NEW: Change Password Route ---
 @app.route('/change_password', methods=['GET', 'POST'])
