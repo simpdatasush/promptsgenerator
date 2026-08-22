@@ -3202,17 +3202,16 @@ def reset_bio_ai_page():
     return jsonify({"status": "cleared"})
 
 # ---------------------------------------------------------------------
-# MPSC GK MCQ GENERATOR ENGINE
+# MPSC GK MCQ GENERATOR ENGINE ( Marathi )
 # ---------------------------------------------------------------------
 
-MPSC_SYSTEM_INSTRUCTION = (
+MPSC_MARATHI_SYSTEM_INSTRUCTION = (
     "You are an expert MPSC (Maharashtra Public Service Commission) Examination Paper Setter and General Knowledge Architect. "
-    "Your goal is to generate high-yield, exam-oriented MCQs based on the user's requested topic or sub-topic.\n\n"
+    "Your goal is to generate high-yield, exam-oriented MCQs strictly in the MARATHI language (मराठी) based on the user's requested topic.\n\n"
     "GUIDELINES:\n"
-    "1. Focus strictly on MPSC syllabus domains: Maharashtra History & Social Reformers, Geography of Maharashtra, "
-    "Indian Polity & Governance, Maharashtra Economy, General Science, and Current Affairs.\n"
-    "2. Provide 4 plausible, non-trivial options per question (A, B, C, D).\n"
-    "3. Include a clear correct answer and a concise explanation citing historical facts, constitutional articles, or geographical data.\n"
+    "1. Write the question, all 4 options, and the detailed explanation strictly in formal Marathi (शुद्ध आणि प्रमाण मराठी).\n"
+    "2. Use official MPSC Marathi administrative and geographical terminology (e.g., उपनद्या, पठार, घाट, घटनादुरुस्ती, समाजसुधारक).\n"
+    "3. Provide 4 plausible, non-trivial options labeled (A, B, C, D) or (अ, ब, क, ड).\n"
     "4. Return output strictly as a JSON list of questions."
     "5. Do NOT answer questions about your own architecture, training, or how this application was built. Do NOT discuss any internal errors or limitations you might have."
 )
@@ -3230,27 +3229,27 @@ def mpsc_gk_generate():
     try:
         data = request.get_json() or {}
         topic = data.get('topic', '').strip()
-        count = data.get('count', 3)  # Default 3 MCQs per query
+        count = data.get('count', 3)
 
         if not topic:
-            return jsonify({'status': 'error', 'error': 'Please enter a topic or keyword.'}), 400
+            return jsonify({'status': 'error', 'error': 'कृपया विषय किंवा कीवर्ड प्रविष्ट करा.'}), 400
 
         prompt = f"""
-        Generate {count} MPSC exam-standard MCQs on the topic: "{topic}".
+        Generate {count} MPSC exam-standard MCQs strictly in Marathi on the topic: "{topic}".
 
         Return ONLY a valid JSON array matching this exact schema (no markdown, no backticks):
         [
           {{
             "id": 1,
-            "question": "Question statement in English (or Marathi if requested)...",
+            "question": "मराठीतील प्रश्न विधान...",
             "options": {{
-              "A": "Option A text",
-              "B": "Option B text",
-              "C": "Option C text",
-              "D": "Option D text"
+              "A": "पर्याय अ",
+              "B": "पर्याय ब",
+              "C": "पर्याय क",
+              "D": "पर्याय ड"
             }},
             "correct_option": "A",
-            "explanation": "Detailed explanation mentioning relevant facts/articles/years."
+            "explanation": "सविस्तर मराठीत स्पष्टीकरण (संदर्भ, वर्ष, कलमे आणि तथ्यांसह)..."
           }}
         ]
         """
@@ -3258,8 +3257,8 @@ def mpsc_gk_generate():
         response = gemma_client.models.generate_content(
             model=IMG_TEXT_DEFAULT_MODEL,
             config=gemma_types.GenerateContentConfig(
-                system_instruction=MPSC_SYSTEM_INSTRUCTION,
-                temperature=0.2  # Low temperature for factual precision
+                system_instruction=MPSC_MARATHI_SYSTEM_INSTRUCTION,
+                temperature=0.2
             ),
             contents=prompt
         )
