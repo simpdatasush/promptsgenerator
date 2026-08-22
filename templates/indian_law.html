@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nyaya AI - Indian Law & Legal Literacy Guide</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f8fafc; color: #1e293b; }
+        .main-card { border-radius: 10px; border: none; box-shadow: 0 4px 15px rgba(0,0,0,0.06); background: #ffffff; }
+        .law-output { background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; line-height: 1.6; }
+        .topic-pill { cursor: pointer; border-radius: 20px; font-size: 0.82rem; transition: all 0.2s; }
+        .topic-pill:hover { background-color: #0f172a; color: #ffffff !important; }
+        .status-console { background-color: #0f172a; color: #38bdf8; font-family: monospace; padding: 10px 14px; border-radius: 6px; font-size: 0.85rem; }
+    </style>
+</head>
+<body>
+
+<div class="container my-4" style="max-width: 950px;">
+    <div class="card main-card">
+        
+        <!-- Header -->
+        <div class="card-header bg-dark text-white py-3 d-flex justify-content-between align-items-center">
+            <div>
+                <h4 class="mb-0 text-warning font-weight-bold">
+                    <i class="fas fa-balance-scale mr-2"></i>Nyaya AI
+                </h4>
+                <small class="text-light">Indian Statutory & Legal Literacy Guide</small>
+            </div>
+            <span class="badge badge-warning text-dark font-weight-bold">BNS / BNSS / Civil Law</span>
+        </div>
+
+        <div class="card-body">
+            
+            <!-- Quick Legal Scenario Starters -->
+            <div class="mb-3">
+                <small class="text-muted font-weight-bold d-block mb-2">COMMON LEGAL INQUIRIES:</small>
+                <button class="btn btn-outline-secondary btn-sm topic-pill mr-1 mb-1" onclick="setQuery('What are the laws and remedy for a cheque bounce case under Section 138 NI Act?')">Cheque Bounce (Sec 138)</button>
+                <button class="btn btn-outline-secondary btn-sm topic-pill mr-1 mb-1" onclick="setQuery('How to report online financial cyber fraud and what sections apply under IT Act?')">Cyber Financial Fraud</button>
+                <button class="btn btn-outline-secondary btn-sm topic-pill mr-1 mb-1" onclick="setQuery('Consumer rights and procedure to file a complaint against defective products under Consumer Protection Act 2019')">Consumer Rights</button>
+                <button class="btn btn-outline-secondary btn-sm topic-pill mr-1 mb-1" onclick="setQuery('What is Zero FIR and rights of an arrested person under BNSS?')">Zero FIR & Arrest Rights</button>
+            </div>
+
+            <!-- Input Controls -->
+            <div class="form-group">
+                <label class="font-weight-bold">Describe Scenario, Legal Topic, or Section:</label>
+                <textarea id="lawQueryInput" class="form-control" rows="3" placeholder="e.g., What are the legal steps and applicable sections if a builder fails to deliver possession on time?"></textarea>
+            </div>
+
+            <button id="searchBtn" class="btn btn-warning font-weight-bold mb-3" onclick="searchLaw()">
+                <i class="fas fa-gavel mr-1"></i> Retrieve Legal Details
+            </button>
+
+            <!-- Status Console -->
+            <div class="mb-4">
+                <div id="statusConsole" class="status-console">Ready. Enter a legal scenario or section to review statutory provisions...</div>
+            </div>
+
+            <hr>
+
+            <!-- Results Output -->
+            <div id="resultsPanel" style="display: none;">
+                <h5 class="font-weight-bold text-dark mb-3"><i class="fas fa-book-reader text-warning mr-2"></i>Statutory Breakdown & Legal Recourse</h5>
+                <div id="legalContent" class="law-output shadow-sm mb-3"></div>
+                
+                <div class="alert alert-secondary small text-muted">
+                    <i class="fas fa-info-circle mr-1"></i><strong>Legal Information Disclaimer:</strong> Nyaya AI provides legal literacy and statutory citations for educational purposes. This does not constitute formal legal counsel or advocate-client representation. Consult a qualified advocate for courtroom proceedings.
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+<script>
+    function logStatus(msg) {
+        document.getElementById('statusConsole').innerText = `[${new Date().toLocaleTimeString()}] ${msg}`;
+    }
+
+    function setQuery(text) {
+        document.getElementById('lawQueryInput').value = text;
+        searchLaw();
+    }
+
+    async function searchLaw() {
+        const query = document.getElementById('lawQueryInput').value.trim();
+        const searchBtn = document.getElementById('searchBtn');
+        const resultsPanel = document.getElementById('resultsPanel');
+        const legalContent = document.getElementById('legalContent');
+
+        if (!query) {
+            logStatus('Please enter a scenario or legal query first.');
+            return;
+        }
+
+        searchBtn.disabled = true;
+        searchBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Retrieving Law Details...';
+        logStatus('Nyaya AI is researching statutes, provisions, and legal remedies...');
+
+        try {
+            const res = await fetch('/indian_law_query', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ query: query })
+            });
+
+            const data = await res.json();
+
+            if (data.status === 'success') {
+                resultsPanel.style.display = 'block';
+                // Basic markdown formatting converter for line breaks and bolding
+                let formatted = data.legal_info
+                    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                    .replace(/\n\n/g, '<br><br>')
+                    .replace(/\n/g, '<br>');
+                
+                legalContent.innerHTML = formatted;
+                logStatus('Legal information retrieved successfully!');
+            } else {
+                logStatus('Error: ' + data.error);
+            }
+        } catch (e) {
+            logStatus('Server Connection Error: ' + e.message);
+        } finally {
+            searchBtn.disabled = false;
+            searchBtn.innerHTML = '<i class="fas fa-gavel mr-1"></i> Retrieve Legal Details';
+        }
+    }
+</script>
+</body>
+</html>
