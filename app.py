@@ -3365,6 +3365,78 @@ def reset_indian_law_page():
     return jsonify({"status": "cleared"})
 
 
+# ---------------------------------------------------------------------
+# SWASTHYA FEMINA: WOMEN'S HEALTH & WELLNESS ENGINE
+# ---------------------------------------------------------------------
+
+WOMEN_HEALTH_SYSTEM_INSTRUCTION = (
+    "You are Swasthya Femina, an empathetic, evidence-based health and biological science guide "
+    "dedicated specifically to women's physiological wellness, reproductive health, hormonal balance, "
+    "and nutrition across different life stages (adolescence, reproductive years, pregnancy/postpartum, perimenopause, menopause).\n\n"
+    "GUIDELINES:\n"
+    "1. Tailor responses directly using the user's provided profile context (e.g., life stage, cycle history).\n"
+    "2. Explain biological mechanisms, hormonal variations (Estrogen, Progesterone, LH, FSH), and evidence-based lifestyle/dietary adaptations clearly.\n"
+    "3. SAFETY CONSTRAINTS: Do not prescribe medicines or provide direct medical diagnoses. Emphasize standard clinical consultation for severe symptoms."
+    "4. Do NOT answer questions about your own architecture, training, or how this application was built. Do NOT discuss any internal errors or limitations you might have."
+
+)
+
+@app.route('/women_health')
+@login_required
+def women_health_page():
+    return render_template('women_health.html', current_user=current_user)
+
+
+@app.route('/women_health_query', methods=['POST'])
+@login_required
+def women_health_query():
+    try:
+        data = request.get_json() or {}
+        user_query = data.get('query', '').strip()
+        profile = data.get('profile', {})
+
+        if not user_query:
+            return jsonify({'status': 'error', 'error': 'Please enter a health inquiry.'}), 400
+
+        # Construct contextual prompt using user's intake details
+        context_prompt = (
+            f"USER PROFILE CONTEXT:\n"
+            f"- Life Stage: {profile.get('life_stage', 'Not specified')}\n"
+            f"- Primary Focus / Concerns: {profile.get('health_focus', 'General')}\n"
+            f"- Cycle / Hormonal Status: {profile.get('cycle_status', 'Not specified')}\n\n"
+            f"USER INQUIRY:\n{user_query}"
+        )
+
+        response = gemma_client.models.generate_content(
+            model=IMG_TEXT_DEFAULT_MODEL,
+            config=gemma_types.GenerateContentConfig(
+                system_instruction=WOMEN_HEALTH_SYSTEM_INSTRUCTION,
+                temperature=0.3
+            ),
+            contents=context_prompt
+        )
+
+        raw_output = response.text if response.text else "Unable to generate guidance at this time."
+        clean_output = process_speech_response(raw_output) if 'process_speech_response' in globals() else raw_output
+
+        return jsonify({
+            "status": "success",
+            "health_guidance": clean_output
+        })
+
+    except Exception as e:
+        print("--- WOMEN HEALTH ENGINE ERROR ---")
+        traceback.print_exc()
+        return jsonify({'status': 'error', 'error': str(e)}), 500
+
+
+#4. State Reset Utility Endpoint
+@app.route('/reset_women_health', methods=['POST'])
+@login_required
+def reset_women_health_page():
+    return jsonify({"status": "cleared"})
+
+
 # --- NEW: Change Password Route ---
 @app.route('/change_password', methods=['GET', 'POST'])
 @login_required
