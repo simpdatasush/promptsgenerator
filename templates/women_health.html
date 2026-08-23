@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Swasthya Femina - Women's Health & Wellness Guide</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #fdf8fa; color: #333; }
+        .main-card { border-radius: 12px; border: none; box-shadow: 0 4px 15px rgba(214, 51, 132, 0.08); background: #ffffff; }
+        .health-badge { background-color: #fce7f3; color: #be185d; font-size: 0.8rem; padding: 4px 10px; border-radius: 12px; }
+        .response-box { background-color: #ffffff; border: 1px solid #fbcfe8; border-radius: 8px; padding: 20px; line-height: 1.6; }
+        .topic-pill { cursor: pointer; border-radius: 20px; font-size: 0.82rem; transition: all 0.2s; }
+        .topic-pill:hover { background-color: #be185d; color: #ffffff !important; }
+        .status-console { background-color: #1e1e1e; color: #f472b6; font-family: monospace; padding: 10px 14px; border-radius: 6px; font-size: 0.85rem; }
+    </style>
+</head>
+<body>
+
+<div class="container my-4" style="max-width: 950px;">
+    <div class="card main-card">
+        
+        <!-- Header -->
+        <div class="card-header bg-white border-bottom border-light py-3 d-flex justify-content-between align-items-center">
+            <div>
+                <h4 class="mb-0 font-weight-bold" style="color: #be185d;">
+                    <i class="fas fa-female mr-2"></i>Swasthya Femina
+                </h4>
+                <small class="text-muted">Personalized Women's Health, Hormonal & Wellness Advisory</small>
+            </div>
+            <span class="health-badge"><i class="fas fa-heartbeat mr-1"></i>Hormone & Wellness Mode</span>
+        </div>
+
+        <div class="card-body">
+            
+            <!-- STEP 1: Physiological Intake / Personalization -->
+            <div id="intakeSection" class="p-3 mb-4 rounded" style="background-color: #fdf2f8; border: 1px solid #fbcfe8;">
+                <h6 class="font-weight-bold" style="color: #9d174d;">
+                    <i class="fas fa-clipboard-check mr-2"></i>Step 1: Set Your Health & Life Stage Profile
+                </h6>
+                <div class="form-row mt-3">
+                    <div class="form-group col-md-4">
+                        <label class="small font-weight-bold">Life Stage:</label>
+                        <select id="lifeStageSelect" class="form-control form-control-sm">
+                            <option value="Young Adult / Reproductive Age">Reproductive Age (18–35)</option>
+                            <option value="Prenatal / Pregnancy Planning">Planning / Pregnancy</option>
+                            <option value="Postpartum / Nursing">Postpartum / Nursing</option>
+                            <option value="Perimenopause / Menopause">Perimenopause / Menopause (40+)</option>
+                        </select>
+                    </div>
+                    <div class="form-group col-md-4">
+                        <label class="small font-weight-bold">Primary Focus Area:</label>
+                        <select id="focusSelect" class="form-control form-control-sm">
+                            <option value="Hormonal Balance & Cycle Regularity">Hormonal Balance / PCOS / PCOD</option>
+                            <option value="Nutrition & Metabolic Health">Metabolic Health & Thyroid</option>
+                            <option value="Fertility & Reproductive Health">Fertility & Ovulation</option>
+                            <option value="Bone Density & Healthy Aging">Bone Health & Micronutrients</option>
+                        </select>
+                    </div>
+                    <div class="form-group col-md-4">
+                        <label class="small font-weight-bold">Cycle Pattern / Notes:</label>
+                        <input type="text" id="cycleNotes" class="form-control form-control-sm" placeholder="e.g., 28-day regular, irregular, postpartum">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Inquiry Starters -->
+            <div class="mb-3">
+                <small class="text-muted font-weight-bold d-block mb-2">COMMON INQUIRIES:</small>
+                <button class="btn btn-outline-secondary btn-sm topic-pill mr-1 mb-1" onclick="setQuery('What dietary and lifestyle strategies help manage insulin resistance in PCOS?')">PCOS Lifestyle Strategies</button>
+                <button class="btn btn-outline-secondary btn-sm topic-pill mr-1 mb-1" onclick="setQuery('How do estrogen and progesterone fluctuate across the follicular and luteal phases?')">Hormonal Cycle Phases</button>
+                <button class="btn btn-outline-secondary btn-sm topic-pill mr-1 mb-1" onclick="setQuery('What are natural ways to support bone density and mitigate hot flashes in perimenopause?')">Perimenopause Bone Health</button>
+            </div>
+
+            <!-- Query Input -->
+            <div class="form-group">
+                <label class="font-weight-bold">Your Health Question / Inquiry:</label>
+                <textarea id="healthQueryInput" class="form-control" rows="3" placeholder="Describe your question, hormonal query, or wellness topic..."></textarea>
+            </div>
+
+            <button id="askBtn" class="btn btn-block font-weight-bold text-white mb-3" style="background-color: #db2777;" onclick="askWomenHealth()">
+                <i class="fas fa-sparkles mr-1"></i> Get Personalized Guidance
+            </button>
+
+            <!-- Status Console -->
+            <div class="mb-4">
+                <div id="statusConsole" class="status-console">Ready. Set your profile and enter your query for tailored guidance...</div>
+            </div>
+
+            <hr>
+
+            <!-- Results Panel -->
+            <div id="resultsPanel" style="display: none;">
+                <h5 class="font-weight-bold mb-3" style="color: #9d174d;">
+                    <i class="fas fa-hand-holding-heart mr-2"></i>Personalized Health & Physiological Guidance
+                </h5>
+                <div id="guidanceContent" class="response-box shadow-sm mb-3"></div>
+                
+                <div class="alert alert-light border small text-muted">
+                    <i class="fas fa-info-circle mr-1"></i><strong>Educational Note:</strong> Swasthya Femina provides biological explanations and wellness information. For clinical diagnoses or treatment plans, please consult a registered gynecologist or healthcare practitioner.
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+<script>
+    function logStatus(msg) {
+        document.getElementById('statusConsole').innerText = `[${new Date().toLocaleTimeString()}] ${msg}`;
+    }
+
+    function setQuery(text) {
+        document.getElementById('healthQueryInput').value = text;
+        askWomenHealth();
+    }
+
+    async function askWomenHealth() {
+        const query = document.getElementById('healthQueryInput').value.trim();
+        const askBtn = document.getElementById('askBtn');
+        const resultsPanel = document.getElementById('resultsPanel');
+        const guidanceContent = document.getElementById('guidanceContent');
+
+        if (!query) {
+            logStatus('Please enter your health question first.');
+            return;
+        }
+
+        const profileData = {
+            life_stage: document.getElementById('lifeStageSelect').value,
+            health_focus: document.getElementById('focusSelect').value,
+            cycle_status: document.getElementById('cycleNotes').value.trim() || 'Not specified'
+        };
+
+        askBtn.disabled = true;
+        askBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Formulating Personalized Guidance...';
+        logStatus('Swasthya Femina is reviewing physiological context and formulating evidence-based guidance...');
+
+        try {
+            const res = await fetch('/women_health_query', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    query: query,
+                    profile: profileData
+                })
+            });
+
+            const data = await res.json();
+
+            if (data.status === 'success') {
+                resultsPanel.style.display = 'block';
+                let formatted = data.health_guidance
+                    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                    .replace(/\n\n/g, '<br><br>')
+                    .replace(/\n/g, '<br>');
+
+                guidanceContent.innerHTML = formatted;
+                logStatus('Guidance retrieved successfully!');
+            } else {
+                logStatus('Error: ' + data.error);
+            }
+        } catch (e) {
+            logStatus('Connection Error: ' + e.message);
+        } finally {
+            askBtn.disabled = false;
+            askBtn.innerHTML = '<i class="fas fa-sparkles mr-1"></i> Get Personalized Guidance';
+        }
+    }
+</script>
+</body>
+</html>
