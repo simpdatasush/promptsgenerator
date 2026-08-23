@@ -3436,6 +3436,89 @@ def women_health_query():
 def reset_women_health_page():
     return jsonify({"status": "cleared"})
 
+# ---------------------------------------------------------------------
+# CHESS MASTER AI ENGINE
+# ---------------------------------------------------------------------
+
+CHESS_SYSTEM_INSTRUCTION = (
+    "You are SuperPrompter Chess AI, a grandmaster-level chess engine and strategic commentator. "
+    "Your objective is to review the current board FEN string and move history, select the strongest "
+    "legal move for your color (Black by default), and provide concise tactical commentary explaining the move.\n\n"
+    "RULES:\n"
+    "1. Output must be ONLY a valid raw JSON object (no markdown, no backticks).\n"
+    "2. 'move' MUST be in Standard Algebraic Notation (SAN, e.g., 'Nf6', 'e5', 'O-O') OR UCI notation (e.g., 'g8f6', 'e7e5').\n"
+    "3. Ensure the move is completely legal given the board FEN position."
+    "4. Do NOT answer questions about your own architecture, training, or how this application was built. Do NOT discuss any internal errors or limitations you might have."
+)
+
+
+@app.route('/chess_app')
+@login_required
+def chess_app_page():
+    return render_template('chess_app.html', current_user=current_user)
+
+
+@app.route('/chess_ai_move', methods=['POST'])
+@login_required
+def chess_ai_move():
+    try:
+        data = request.get_json() or {}
+        fen = data.get('fen', 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1')
+        move_history = data.get('history', [])
+        legal_moves = data.get('legal_moves', [])  # Validated list from frontend chess.js
+
+        prompt = f"""
+        CURRENT BOARD STATE:
+        - FEN: {fen}
+        - Move History: {', '.join(move_history) if move_history else 'Game Start'}
+        - Available Legal Moves: {', '.join(legal_moves)}
+
+        Select the best tactical move from the Available Legal Moves list.
+
+        Return ONLY a JSON object matching this schema:
+        {{
+          "selected_move": "Nf6",
+          "evaluation": "+0.3 (Equal / Balanced)",
+          "commentary": "Developing the knight toward the center while challenging White's central pawn structure."
+        }}
+        """
+
+        response = gemma_client.models.generate_content(
+            model=IMG_TEXT_DEFAULT_MODEL,
+            config=gemma_types.GenerateContentConfig(
+                system_instruction=CHESS_SYSTEM_INSTRUCTION,
+                temperature=0.2
+            ),
+            contents=prompt
+        )
+
+        clean_text = response.text.strip()
+        if clean_text.startswith("```json"):
+            clean_text = clean_text[7:]
+        elif clean_text.startswith("```"):
+            clean_text = clean_text[3:]
+        if clean_text.endswith("```"):
+            clean_text = clean_text[:-3]
+
+        move_data = json.loads(clean_text.strip())
+
+        return jsonify({
+            "status": "success",
+            "ai_move": move_data.get("selected_move"),
+            "evaluation": move_data.get("evaluation", "Even"),
+            "commentary": move_data.get("commentary", "")
+        })
+
+    except Exception as e:
+        print("--- CHESS AI ERROR ---")
+        traceback.print_exc()
+        return jsonify({'status': 'error', 'error': str(e)}), 500
+
+#4. State Reset Utility Endpoint
+@app.route('/reset_chess_app', methods=['POST'])
+@login_required
+def reset_chess_app_page():
+    return jsonify({"status": "cleared"})
 
 # --- NEW: Change Password Route ---
 @app.route('/change_password', methods=['GET', 'POST'])
