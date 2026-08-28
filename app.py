@@ -3612,7 +3612,7 @@ def bi_formula_generate():
   #4. State Reset Utility Endpoint
 @app.route('/reset_bi_formula', methods=['POST'])
 @login_required
-def reset_ bi_formula_page():
+def reset_bi_formula_page():
     return jsonify({"status": "cleared"})
 
 # --- NEW: Change Password Route ---
