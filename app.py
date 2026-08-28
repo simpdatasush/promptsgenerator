@@ -3534,6 +3534,7 @@ BI_FORMULA_SYSTEM_INSTRUCTION = (
     "2. Tableau: Calculated fields, LOD Expressions ({FIXED}, {INCLUDE}, {EXCLUDE}), table calculations.\n"
     "3. Power BI: DAX Measures (CALCULATE, FILTER, RELATED, Time Intelligence) and Power Query M-Code.\n"
     "4. Looker Studio: Calculated dimensions/metrics (CASE WHEN, REGEX_EXTRACT, aggregation fields).\n\n"
+    "5. Do NOT answer questions about your own architecture, training, or how this application was built. Do NOT discuss any internal errors or limitations you might have."
     "Return output ONLY as a raw JSON object matching this exact schema (no markdown, no backticks):\n"
     "{\n"
     '  "target_platform": "Tableau" | "Power BI (DAX)" | "Looker Studio" | "Excel",\n'
