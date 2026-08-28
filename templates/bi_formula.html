@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SuperPrompter AI - BI & Spreadsheet Formula Copilot</title>
+    <link rel="stylesheet" href="[https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css](https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css)">
+    <link rel="stylesheet" href="[https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css](https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css)">
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f8fafc; color: #1e293b; }
+        .main-card { border-radius: 10px; border: none; box-shadow: 0 4px 15px rgba(0,0,0,0.06); background: #ffffff; }
+        .formula-display { background-color: #0f172a; color: #38bdf8; font-family: 'Consolas', 'Courier New', monospace; font-size: 1.1rem; padding: 16px; border-radius: 6px; position: relative; word-break: break-word; white-space: pre-wrap; }
+        .copy-btn { position: absolute; right: 12px; top: 12px; }
+        .topic-pill { cursor: pointer; border-radius: 20px; font-size: 0.82rem; transition: all 0.2s; }
+        .topic-pill:hover { background-color: #0284c7; color: #ffffff !important; }
+        .status-console { background-color: #0f172a; color: #38bdf8; font-family: monospace; padding: 10px 14px; border-radius: 6px; font-size: 0.85rem; }
+    </style>
+</head>
+<body>
+
+<div class="container my-4" style="max-width: 1000px;">
+    <div class="card main-card">
+        
+        <!-- Header -->
+        <div class="card-header bg-dark text-white py-3 d-flex justify-content-between align-items-center">
+            <div>
+                <h4 class="mb-0 text-warning font-weight-bold">
+                    <i class="fas fa-chart-line mr-2"></i>BI & Spreadsheet Formula Copilot
+                </h4>
+                <small class="text-light">Excel • Tableau • Power BI (DAX) • Looker Studio</small>
+            </div>
+            <span class="badge badge-warning text-dark font-weight-bold">LODs / DAX / Dynamic Arrays</span>
+        </div>
+
+        <div class="card-body">
+            
+            <!-- Quick Example Starters by Tool -->
+            <div class="mb-3">
+                <small class="text-muted font-weight-bold d-block mb-2">QUICK BI FORMULA TASKS:</small>
+                <button class="btn btn-outline-secondary btn-sm topic-pill mr-1 mb-1" onclick="setExample('Tableau', 'Calculate customer total lifetime spend regardless of date filters using Fixed LOD')">Tableau: Fixed Customer LTV</button>
+                <button class="btn btn-outline-secondary btn-sm topic-pill mr-1 mb-1" onclick="setExample('Power BI (DAX)', 'Calculate Year-over-Year (YoY) percentage sales growth measure')">Power BI: YoY Sales Growth (DAX)</button>
+                <button class="btn btn-outline-secondary btn-sm topic-pill mr-1 mb-1" onclick="setExample('Looker Studio', 'Create custom dimension grouping bounce rate into Low, Medium, High using CASE statement')">Looker: CASE Dimension</button>
+                <button class="btn btn-outline-secondary btn-sm topic-pill mr-1 mb-1" onclick="setExample('Microsoft Excel 365', 'Dynamic two-way XLOOKUP matching Region row and Month column')">Excel: 2D Matrix XLOOKUP</button>
+            </div>
+
+            <!-- Input Controls -->
+            <div class="form-row mb-3">
+                <div class="form-group col-md-8">
+                    <label class="font-weight-bold">Describe Business Metric or Calculation:</label>
+                    <textarea id="requirementInput" class="form-control" rows="3" placeholder="e.g., Calculate rolling 3-month average revenue per customer..."></textarea>
+                </div>
+                <div class="form-group col-md-4">
+                    <label class="font-weight-bold">Target Platform / BI Tool:</label>
+                    <select id="platformSelect" class="form-control">
+                        <option value="Power BI (DAX)" selected>Power BI (DAX Measures & Columns)</option>
+                        <option value="Tableau">Tableau (Calculated Fields & LODs)</option>
+                        <option value="Looker Studio">Looker Studio (Calculated Fields)</option>
+                        <option value="Microsoft Excel 365">Microsoft Excel 365 (Modern)</option>
+                        <option value="Power Query (M Code)">Power Query (M Code ETL)</option>
+                    </select>
+                </div>
+            </div>
+
+            <button id="generateBtn" class="btn btn-warning btn-block font-weight-bold mb-3" onclick="generateBIFormula()">
+                <i class="fas fa-magic mr-1"></i> Build BI Calculation
+            </button>
+
+            <!-- Status Console -->
+            <div class="mb-4">
+                <div id="statusConsole" class="status-console">Ready. Select tool and describe your metric to generate syntax...</div>
+            </div>
+
+            <hr>
+
+            <!-- Results Output -->
+            <div id="resultsPanel" style="display: none;">
+                
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h5 class="font-weight-bold text-dark mb-0">Production Calculation</h5>
+                    <span id="platformBadge" class="badge badge-info px-3 py-1">Power BI</span>
+                </div>
+
+                <div class="formula-display mb-3">
+                    <span id="formulaText">-- Formula will render here</span>
+                    <button class="btn btn-sm btn-light copy-btn" onclick="copyFormula()">
+                        <i class="fas fa-copy mr-1"></i> Copy
+                    </button>
+                </div>
+
+                <!-- How it Works -->
+                <div class="card mb-3 border">
+                    <div class="card-header bg-light font-weight-bold">
+                        <i class="fas fa-layer-group text-primary mr-2"></i>Syntax & Logic Breakdown
+                    </div>
+                    <div class="card-body">
+                        <ul id="breakdownList" class="mb-0 pl-3"></ul>
+                    </div>
+                </div>
+
+                <!-- BI Visual / Pivot Field Setup -->
+                <div id="visualConfigCard" class="card mb-3 border border-info" style="display: none; background-color: #f0f9ff;">
+                    <div class="card-header bg-info text-white font-weight-bold">
+                        <i class="fas fa-table mr-2"></i>Visual / Field Mapping Layout
+                    </div>
+                    <div class="card-body">
+                        <div class="row text-center">
+                            <div class="col-md-3 mb-2">
+                                <div class="p-2 border rounded bg-white">
+                                    <small class="text-muted font-weight-bold d-block">DIMENSIONS / ROWS</small>
+                                    <span id="fieldRows" class="font-weight-bold text-dark">-</span>
+                                </div>
+                            </div>
+                            <div class="col-md-3 mb-2">
+                                <div class="p-2 border rounded bg-white">
+                                    <small class="text-muted font-weight-bold d-block">COLUMNS / SPLIT</small>
+                                    <span id="fieldCols" class="font-weight-bold text-dark">-</span>
+                                </div>
+                            </div>
+                            <div class="col-md-3 mb-2">
+                                <div class="p-2 border rounded bg-white">
+                                    <small class="text-muted font-weight-bold d-block">METRICS / VALUES (Σ)</small>
+                                    <span id="fieldValues" class="font-weight-bold text-success">-</span>
+                                </div>
+                            </div>
+                            <div class="col-md-3 mb-2">
+                                <div class="p-2 border rounded bg-white">
+                                    <small class="text-muted font-weight-bold d-block">FILTERS / SLICERS</small>
+                                    <span id="fieldFilters" class="font-weight-bold text-dark">-</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Alternative Approach -->
+                <div class="card mb-3 border">
+                    <div class="card-header bg-light font-weight-bold">
+                        <i class="fas fa-code-branch text-secondary mr-2"></i>Alternative Pattern / Equivalent
+                    </div>
+                    <div class="card-body py-2 font-italic" id="altFormulaText" style="font-family: monospace;"></div>
+                </div>
+
+                <!-- Pro Tip -->
+                <div class="alert alert-success border-0 small">
+                    <i class="fas fa-lightbulb text-success mr-1"></i><strong>Optimization Tip:</strong> <span id="tipsText"></span>
+                </div>
+
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<script src="[https://code.jquery.com/jquery-3.5.1.min.js](https://code.jquery.com/jquery-3.5.1.min.js)"></script>
+<script>
+    function logStatus(msg) {
+        document.getElementById('statusConsole').innerText = `[${new Date().toLocaleTimeString()}] ${msg}`;
+    }
+
+    function setExample(platform, requirement) {
+        document.getElementById('platformSelect').value = platform;
+        document.getElementById('requirementInput').value = requirement;
+        generateBIFormula();
+    }
+
+    async function generateBIFormula() {
+        const req = document.getElementById('requirementInput').value.trim();
+        const platform = document.getElementById('platformSelect').value;
+        const generateBtn = document.getElementById('generateBtn');
+        const resultsPanel = document.getElementById('resultsPanel');
+
+        if (!req) {
+            logStatus('Please enter a calculation requirement first.');
+            return;
+        }
+
+        generateBtn.disabled = true;
+        generateBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Modeling BI Logic...';
+        logStatus(`Formulating calculation for ${platform}...`);
+
+        try {
+            const res = await fetch('/bi_formula_generate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ requirement: req, platform: platform })
+            });
+
+            const responseData = await res.json();
+
+            if (responseData.status === 'success' && responseData.data) {
+                const item = responseData.data;
+
+                resultsPanel.style.display = 'block';
+                document.getElementById('platformBadge').innerText = item.target_platform || platform;
+                document.getElementById('formulaText').innerText = item.primary_formula;
+                document.getElementById('altFormulaText').innerText = item.alternative_approach || 'Standard syntax is optimal.';
+                document.getElementById('tipsText').innerText = item.performance_pro_tip || 'Verify filter context and relationships in your data model.';
+
+                // Breakdown list
+                const list = document.getElementById('breakdownList');
+                list.innerHTML = '';
+                (item.syntax_breakdown || []).forEach(step => {
+                    const li = document.createElement('li');
+                    li.className = 'mb-1';
+                    li.innerText = step;
+                    list.appendChild(li);
+                });
+
+                // Field Mapping / Visual Config
+                const vConfig = item.pivot_or_visual_config;
+                if (vConfig && vConfig.applicable) {
+                    document.getElementById('visualConfigCard').style.display = 'block';
+                    document.getElementById('fieldRows').innerText = (vConfig.rows_or_dimensions || []).join(', ') || 'None';
+                    document.getElementById('fieldCols').innerText = (vConfig.columns_or_breakdown || []).join(', ') || 'None';
+                    document.getElementById('fieldValues').innerText = (vConfig.values_or_metrics || []).join(', ') || 'None';
+                    document.getElementById('fieldFilters').innerText = (vConfig.filters || []).join(', ') || 'None';
+                } else {
+                    document.getElementById('visualConfigCard').style.display = 'none';
+                }
+
+                logStatus(`Calculation ready for ${platform}!`);
+            } else {
+                logStatus('Error: ' + responseData.error);
+            }
+        } catch (e) {
+            logStatus('Connection Error: ' + e.message);
+        } finally {
+            generateBtn.disabled = false;
+            generateBtn.innerHTML = '<i class="fas fa-magic mr-1"></i> Build BI Calculation';
+        }
+    }
+
+    function copyFormula() {
+        const text = document.getElementById('formulaText').innerText;
+        navigator.clipboard.writeText(text).then(() => {
+            logStatus('Formula copied to clipboard!');
+        });
+    }
+</script>
+</body>
+</html>
