@@ -3520,6 +3520,101 @@ def chess_ai_move():
 def reset_chess_app_page():
     return jsonify({"status": "cleared"})
 
+
+# ---------------------------------------------------------------------
+# BI & SPREADSHEET FORMULA ARCHITECT
+# ---------------------------------------------------------------------
+
+BI_FORMULA_SYSTEM_INSTRUCTION = (
+    "You are Formula Genius AI, a world-class Business Intelligence & Analytics Architect. "
+    "Your objective is to transform natural language business logic and metrics into production-ready "
+    "formulas and calculated fields across Excel, Tableau, Power BI (DAX), and Looker Studio.\n\n"
+    "PLATFORM RULES:\n"
+    "1. Microsoft Excel: Modern dynamic arrays (XLOOKUP, LET, LAMBDA, SUMIFS) + Pivot layout.\n"
+    "2. Tableau: Calculated fields, LOD Expressions ({FIXED}, {INCLUDE}, {EXCLUDE}), table calculations.\n"
+    "3. Power BI: DAX Measures (CALCULATE, FILTER, RELATED, Time Intelligence) and Power Query M-Code.\n"
+    "4. Looker Studio: Calculated dimensions/metrics (CASE WHEN, REGEX_EXTRACT, aggregation fields).\n\n"
+    "Return output ONLY as a raw JSON object matching this exact schema (no markdown, no backticks):\n"
+    "{\n"
+    '  "target_platform": "Tableau" | "Power BI (DAX)" | "Looker Studio" | "Excel",\n'
+    '  "primary_formula": "Calculated Field / DAX / Formula string",\n'
+    '  "syntax_breakdown": [\n'
+    '    "Parameter/Function 1: Role in calculation...",\n'
+    '    "Parameter/Function 2: Role in calculation..."\n'
+    "  ],\n"
+    '  "alternative_approach": "Alternative LOD / measure pattern or legacy syntax",\n'
+    '  "pivot_or_visual_config": {\n'
+    '    "applicable": true,\n'
+    '    "rows_or_dimensions": ["Region", "Category"],\n'
+    '    "columns_or_breakdown": ["Order Year"],\n'
+    '    "values_or_metrics": ["Total Profit (Measure)", "YoY Growth"],\n'
+    '    "filters": ["Order Status = Completed"]\n'
+    "  },\n"
+    '  "performance_pro_tip": "Pro-tip on query folding, LOD grain, context transition, or indexing."\n'
+    "}"
+)
+
+
+@app.route('/bi_formula')
+@login_required
+def bi_formula_page():
+    return render_template('bi_formula.html', current_user=current_user)
+
+
+@app.route('/bi_formula_generate', methods=['POST'])
+@login_required
+def bi_formula_generate():
+    try:
+        data = request.get_json() or {}
+        requirement = data.get('requirement', '').strip()
+        platform = data.get('platform', 'Power BI (DAX)')
+
+        if not requirement:
+            return jsonify({'status': 'error', 'error': 'Please describe your metric or calculation requirement.'}), 400
+
+        prompt = f"""
+        TARGET PLATFORM / BI TOOL: {platform}
+        CALCULATION / BUSINESS LOGIC REQUIREMENT:
+        \"\"\"{requirement}\"\"\"
+
+        Generate the optimal calculation, measure, or calculated field with full architectural breakdown.
+        """
+
+        response = gemma_client.models.generate_content(
+            model=IMG_TEXT_DEFAULT_MODEL,
+            config=gemma_types.GenerateContentConfig(
+                system_instruction=BI_FORMULA_SYSTEM_INSTRUCTION,
+                temperature=0.1
+            ),
+            contents=prompt
+        )
+
+        clean_text = response.text.strip()
+        if clean_text.startswith("```json"):
+            clean_text = clean_text[7:]
+        elif clean_text.startswith("```"):
+            clean_text = clean_text[3:]
+        if clean_text.endswith("```"):
+            clean_text = clean_text[:-3]
+
+        formula_data = json.loads(clean_text.strip())
+
+        return jsonify({
+            "status": "success",
+            "data": formula_data
+        })
+
+    except Exception as e:
+        print("--- BI FORMULA ERROR ---")
+        traceback.print_exc()
+        return jsonify({'status': 'error', 'error': str(e)}), 500
+
+  #4. State Reset Utility Endpoint
+@app.route('/reset_bi_formula', methods=['POST'])
+@login_required
+def reset_ bi_formula_page():
+    return jsonify({"status": "cleared"})
+
 # --- NEW: Change Password Route ---
 @app.route('/change_password', methods=['GET', 'POST'])
 @login_required
