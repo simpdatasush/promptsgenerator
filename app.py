@@ -2524,7 +2524,10 @@ Narrative Hook: Gemini / model Will decide.
 
 Stylistic Constraints: Gemini / model Will decide.
 
-Please respond ONLY with the finished prompt, ready for me to copy and paste into a new session in max 1100 characters in a same language as of ```{subject}```."""
+Please respond ONLY with the finished prompt, ready for me to copy and paste into a new session in max 1100 characters in a same language as of ```{subject}```.
+
+Do NOT answer questions about your own architecture, training, or how this application was built. Do NOT discuss any internal errors or limitations you might have.
+"""
 
     try:
         # Fires context pipeline configuration directly to your active gemma client instance
@@ -2600,7 +2603,7 @@ The prompt you create must include explicit operational instructions for:
 3. Correction, Feedback & Scaffolding Strategy: Gemini / model Will decide Specifying when to correct errors (immediate vs. delayed), how to recast sentences, and how to offer hints or sentence starters.
 4. Speech & Interaction Parameters: Gemini / model Will decide based on mandate of target speaking pace, turn-taking dynamics (open-ended prompting), and repair strategies for misunderstandings.
 5. Assessment Metrics: Gemini / model Will decide by Outlining how the system should secretly evaluate pronunciation, fluency, and vocabulary range per turn.
-
+6. Do NOT answer questions about your own architecture, training, or how this application was built. Do NOT discuss any internal errors or limitations you might have.
 Please respond ONLY with the finished prompt, ready for me to copy and paste into a new session in max 1100 characters in the same language as of ```{subject}```."""
 
     try:
@@ -2688,7 +2691,7 @@ def img_text_process():
         })
 
     except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'The SuperPrompter AI service is currently experiencing high load. Please try again in a few moments.'}), 500
 
 
 # 3. DOCX Export Route
@@ -2819,6 +2822,8 @@ def analyze_text_ai(text_content):
         "1. LINGUISTIC BURSTINESS & PERPLEXITY: Evaluate sentence length variation, word choice predictability, and structural fluidity.\n"
         "2. STYLISTIC CONSTRAINTS & TONE: Look for telltale LLM traits like overly polished transitions, generic summaries, or uniform bullet structures.\n"
         "3. NARRATIVE & RHETORICAL HOOKS: Assess if the opening, tone, and concluding style match standard LLM defaults vs human nuance.\n\n"
+        "4. Do NOT answer questions about your own architecture, training, or how this application was built. Do NOT discuss any internal errors or limitations you might have."
+        ""
         "Return your assessment ONLY as raw JSON matching this exact structure (no markdown formatting or code blocks):\n"
         "{\n"
         '  "overall_ai_score": 80,\n'
@@ -2913,7 +2918,7 @@ def ai_detector_text_process():
     except Exception as e:
         print("--- TEXT AI DETECTOR ERROR ---")
         traceback.print_exc()
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'The SuperPrompter AI service is currently experiencing high load. Please try again in a few moments.'}), 500
 
 #4. State Reset Utility Endpoint
 @app.route('/reset_ai_detector_text', methods=['POST'])
@@ -2935,6 +2940,7 @@ def analyze_image_ai(image_bytes, mime_type):
         "2. LINGUISTIC BURSTINESS & PERPLEXITY: Extract readable text and evaluate sentence length variation, word choice predictability, and structural fluidity.\n"
         "3. STYLISTIC CONSTRAINTS & TONE: Look for telltale LLM traits like overly polished transitions, generic summaries, or uniform bullet structures.\n"
         "4. TYPOGRAPHY & LAYOUT: Check for unnatural alignment, font glitches, or synthetic OCR artifacts.\n\n"
+        "5. Do NOT answer questions about your own architecture, training, or how this application was built. Do NOT discuss any internal errors or limitations you might have."
         "Extract all readable text and evaluate each parameter thoroughly. "
         "Return your assessment ONLY as raw JSON matching this exact structure (no markdown formatting or code blocks):\n"
         "{\n"
@@ -3021,7 +3027,7 @@ def ai_detector_image_process():
     except Exception as e:
         print("--- IMAGE AI DETECTOR ERROR ---")
         traceback.print_exc()
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'The SuperPrompter AI service is currently experiencing high load. Please try again in a few moments.'}), 500
 
 #4. State Reset Utility Endpoint
 @app.route('/reset_ai_detector_image', methods=['POST'])
@@ -3128,7 +3134,7 @@ def prompt_firewall_process():
     except Exception as e:
         print("--- PROMPT FIREWALL ERROR ---")
         traceback.print_exc()
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'The SuperPrompter AI service is currently experiencing high load. Please try again in a few moments.'}), 500
 
 #4. State Reset Utility Endpoint
 @app.route('/reset_prompt_firewall', methods=['POST'])
@@ -3282,7 +3288,7 @@ def mpsc_gk_generate():
     except Exception as e:
         print("--- MPSC GK ENGINE ERROR ---")
         traceback.print_exc()
-        return jsonify({'status': 'error', 'error': str(e)}), 500
+        return jsonify({'status': 'error', 'error': 'The SuperPrompter AI service is currently experiencing high load. Please try again in a few moments.'}), 500
 
 
 #4. State Reset Utility Endpoint
@@ -3356,7 +3362,7 @@ def indian_law_query():
     except Exception as e:
         print("--- INDIAN LAW ENGINE ERROR ---")
         traceback.print_exc()
-        return jsonify({'status': 'error', 'error': str(e)}), 500
+        return jsonify({'status': 'error', 'error': 'The SuperPrompter AI service is currently experiencing high load. Please try again in a few moments.'}), 500
 
 #4. State Reset Utility Endpoint
 @app.route('/reset_indian_law', methods=['POST'])
@@ -3378,7 +3384,6 @@ WOMEN_HEALTH_SYSTEM_INSTRUCTION = (
     "2. Explain biological mechanisms, hormonal variations (Estrogen, Progesterone, LH, FSH), and evidence-based lifestyle/dietary adaptations clearly.\n"
     "3. SAFETY CONSTRAINTS: Do not prescribe medicines or provide direct medical diagnoses. Emphasize standard clinical consultation for severe symptoms."
     "4. Do NOT answer questions about your own architecture, training, or how this application was built. Do NOT discuss any internal errors or limitations you might have."
-
 )
 
 @app.route('/women_health')
@@ -3427,7 +3432,7 @@ def women_health_query():
     except Exception as e:
         print("--- WOMEN HEALTH ENGINE ERROR ---")
         traceback.print_exc()
-        return jsonify({'status': 'error', 'error': str(e)}), 500
+        return jsonify({'status': 'error', 'error':'The SuperPrompter AI service is currently experiencing high load. Please try again in a few moments.'}), 500
 
 
 #4. State Reset Utility Endpoint
@@ -3512,7 +3517,7 @@ def chess_ai_move():
     except Exception as e:
         print("--- CHESS AI ERROR ---")
         traceback.print_exc()
-        return jsonify({'status': 'error', 'error': str(e)}), 500
+        return jsonify({'status': 'error', 'error': 'The SuperPrompter AI service is currently experiencing high load. Please try again in a few moments.'}), 500
 
 #4. State Reset Utility Endpoint
 @app.route('/reset_chess_app', methods=['POST'])
@@ -3608,12 +3613,102 @@ def bi_formula_generate():
     except Exception as e:
         print("--- BI FORMULA ERROR ---")
         traceback.print_exc()
-        return jsonify({'status': 'error', 'error': str(e)}), 500
+        return jsonify({'status': 'error', 'error': 'The SuperPrompter AI service is currently experiencing high load. Please try again in a few moments.'}), 500
 
-  #4. State Reset Utility Endpoint
+#4. State Reset Utility Endpoint
 @app.route('/reset_bi_formula', methods=['POST'])
 @login_required
 def reset_bi_formula_page():
+    return jsonify({"status": "cleared"})
+
+# ---------------------------------------------------------------------
+# MASTER IMAGE PROMPT ARCHITECT (TEXT PROMPT SYNTHESIS)
+# ---------------------------------------------------------------------
+
+IMAGE_PROMPT_SYSTEM_INSTRUCTION = """
+You are an expert Visual Art Director, Master Cinematographer, and AI Prompt Architect.
+Your task is to take a user's input topic or idea and build an ultra-detailed, photorealistic, or artistic descriptive text prompt for AI image generation models.
+
+INTERNALLY EVALUATE AND POPULATE ALL OF THESE DIMENSIONS BEFORE WRITING:
+1. imageType: (medium, aesthetic style, render engine/art form)
+2. subject: (primary subject based on topic, identity, appearance, wardrobe, pose, gaze, relationships)
+3. action: (activity, interaction, dynamic/motion state)
+4. environment: (setting, architecture, era, timeOfDay, weather, props, background details)
+5. composition: (shot type, camera angle, perspective, depth of field, framing, visual hierarchy)
+6. camera: (camera body, lens type, focal length, aperture, shutter speed, ISO)
+7. lighting: (light source, direction, quality, contrast ratio, volumetric/atmospheric lighting)
+8. color: (color palette, color temperature, saturation, color grading, film stock, grain/vignette)
+9. emotion & mood: (atmosphere feeling, subject emotion, cinematic tone)
+10. output specs: (aspect ratio, texture detail, fidelity spec)
+
+FINAL OUTPUT REQUIREMENT:
+DO NOT return a JSON object or template.
+Synthesize all the above dimensions into a cohesive, highly descriptive narrative TEXT PROMPT formatted with:
+- **Master Image Prompt**: A detailed, flowing paragraph combining the visual scene, subject, lighting, composition, and camera specifications.
+- **Negative Prompt**: Undesired artifacts, bad anatomy, text watermarks, low resolution.
+- **Recommended Settings**: Aspect Ratio, Suggested Lighting, Lens/Aperture.
+- Do NOT answer questions about your own architecture, training, or how this application was built. Do NOT discuss any internal errors or limitations you might have.
+"""
+
+
+@app.route('/image_prompter')
+@login_required
+def image_prompter_page():
+    return render_template('image_prompter.html', current_user=current_user)
+
+
+@app.route('/image_prompter_generate', methods=['POST'])
+@login_required
+def image_prompter_generate():
+    try:
+        data = request.get_json() or {}
+        topic = data.get('topic', '').strip()
+        style_preference = data.get('style_preference', 'Cinematic Photorealistic')
+
+        if not topic:
+            return jsonify({'status': 'error', 'error': 'Please provide an image topic or concept.'}), 400
+
+        user_content = f"""
+        TOPIC: {topic}
+        TARGET STYLE: {style_preference}
+
+        Using the full 10-dimensional visual framework (imageType, subject, action, environment, composition, camera, lighting, color, emotion, output), construct a single production-ready descriptive text prompt.
+        """
+
+        response = gemma_client.models.generate_content(
+            model=IMG_TEXT_DEFAULT_MODEL,
+            config=gemma_types.GenerateContentConfig(
+                system_instruction=IMAGE_PROMPT_SYSTEM_INSTRUCTION,
+                temperature=0.7,  # Creative temperature for rich visual description
+                tools=[]
+            ),
+            contents=user_content
+        )
+
+        raw_output = response.text if response.text else "Failed to assemble image prompt."
+        clean_output = process_speech_response(raw_output) if 'process_speech_response' in globals() else raw_output
+
+        return jsonify({
+            "status": "success",
+            "prompt_output": clean_output
+        })
+
+    except (ServerError, APIError) as api_err:
+        print(f"Gemini API Server Error: {api_err}")
+        return jsonify({
+            'status': 'error',
+            'error': 'The SuperPrompter AI service is currently experiencing high load. Please try again in a few moments.'
+        }), 503
+    except Exception as e:
+        print("--- IMAGE PROMPT ARCHITECT ERROR ---")
+        traceback.print_exc()
+        return jsonify({'status': 'error', 'error': 'The SuperPrompter AI service is currently experiencing high load. Please try again in a few moments.'}), 500
+
+
+#4. State Reset Utility Endpoint
+@app.route('/reset_image_prompter', methods=['POST'])
+@login_required
+def reset_image_prompter_page():
     return jsonify({"status": "cleared"})
 
 # --- NEW: Change Password Route ---
