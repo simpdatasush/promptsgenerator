@@ -22,6 +22,7 @@ import random # NEW: For generating random username suggestions
 import string # NEW: For string manipulation in username generation
 from google import genai as gemma_genai
 from google.genai import types as gemma_types   # Required for GenerateContentConfig
+from google.api_core.exceptions import GoogleAPIError as APIError, ServerError
 from zai import ZaiClient as ZhipuAI
 
 # 1. Use absolute import
@@ -3770,7 +3771,7 @@ def verify_identity_consistency():
 
             content_parts.append(f"--- IMAGE {idx} ---")
             content_parts.append(
-                types.Part.from_bytes(
+                gemma_types.Part.from_bytes(
                     data=file_bytes,
                     mime_type=file.mimetype or 'image/jpeg'
                 )
