@@ -3711,6 +3711,118 @@ def image_prompter_generate():
 def reset_image_prompter_page():
     return jsonify({"status": "cleared"})
 
+
+# ---------------------------------------------------------------------
+# MULTI-IMAGE IDENTITY CONSISTENCY CHECKER
+# ---------------------------------------------------------------------
+
+IDENTITY_CHECK_SYSTEM_INSTRUCTION = (
+    "You are an expert biometric forensic examiner and cross-image facial consistency analyst. "
+    "You will be provided with 4 images labeled: Image 1, Image 2, Image 3, and Image 4.\n\n"
+    "YOUR TASK:\n"
+    "1. Analyze the primary subject in each image based on invariant facial landmarks: cranial structure, "
+    "inter-pupillary distance, eye contour, nasal bridge structure, ear geometry, and facial proportions.\n"
+    "2. Determine whether all 4 images depict the EXACT SAME person, or if any image does NOT belong to that person.\n"
+    "3. Return ONLY a valid JSON object matching this exact schema (no markdown, no backticks):\n"
+    "{\n"
+    '  "all_same_person": true | false,\n'
+    '  "confidence_score": 92,\n'
+    '  "mismatch_detected": true | false,\n'
+    '  "mismatched_image": "Image 3" | null,\n'
+    '  "verdict_summary": "Images 1, 2, and 4 depict the same individual. Image 3 is a different person.",\n'
+    '  "landmark_analysis": {\n'
+    '    "facial_structure": "Explanation of structural alignment or divergence...",\n'
+    '    "eyes_and_brows": "Comparison across all 4 images...",\n'
+    '    "nose_and_jawline": "Comparison across all 4 images..."\n'
+    '  }\n'
+    "}"
+)
+
+
+@app.route('/identity_verifier')
+@login_required
+def identity_verifier_page():
+    return render_template('identity_verifier.html', current_user=current_user)
+
+
+@app.route('/verify_identity_consistency', methods=['POST'])
+@login_required
+def verify_identity_consistency():
+    try:
+        files = [
+            request.files.get('image_1'),
+            request.files.get('image_2'),
+            request.files.get('image_3'),
+            request.files.get('image_4')
+        ]
+
+        # Verify all 4 images are uploaded
+        if any(f is None or f.filename == '' for f in files):
+            return jsonify({'status': 'error', 'error': 'Please upload all 4 images to proceed with verification.'}), 400
+
+        MAX_SIZE = 5 * 1024 * 1024  # 5 MB per image limit
+        content_parts = []
+
+        for idx, file in enumerate(files, start=1):
+            file_bytes = file.read()
+            if len(file_bytes) > MAX_SIZE:
+                return jsonify({'status': 'error', 'error': f'Image {idx} exceeds the 5 MB limit.'}), 400
+
+            content_parts.append(f"--- IMAGE {idx} ---")
+            content_parts.append(
+                types.Part.from_bytes(
+                    data=file_bytes,
+                    mime_type=file.mimetype or 'image/jpeg'
+                )
+            )
+
+        content_parts.append(
+            "Perform a rigorous biometric facial landmark comparison across all 4 images. "
+            "Identify if all 4 images are the same person or if one (or more) do not match."
+        )
+
+        response = gemma_client.models.generate_content(
+            model=IMG_TEXT_DEFAULT_MODEL,
+            config=gemma_types.GenerateContentConfig(
+                system_instruction=IDENTITY_CHECK_SYSTEM_INSTRUCTION,
+                temperature=0.1,  # Low temperature for analytical consistency
+                tools=[]
+            ),
+            contents=content_parts
+        )
+
+        raw_text = response.text.strip()
+        if raw_text.startswith("```json"):
+            raw_text = raw_text[7:]
+        elif raw_text.startswith("```"):
+            raw_text = raw_text[3:]
+        if raw_text.endswith("```"):
+            raw_text = raw_text[:-3]
+
+        verdict_data = json.loads(raw_text.strip())
+
+        return jsonify({
+            "status": "success",
+            "verdict": verdict_data
+        })
+
+    except (ServerError, APIError) as api_err:
+        print(f"Gemini API Server Error: {api_err}")
+        return jsonify({
+            'status': 'error',
+            'error': 'The verification service is experiencing high traffic. Please retry in a few moments.'
+        }), 503
+    except Exception as e:
+        print("--- IDENTITY VERIFICATION ERROR ---")
+        traceback.print_exc()
+        return jsonify({'status': 'error', 'error': str(e)}), 500
+
+#4. State Reset Utility Endpoint
+@app.route('/reset_identity_verifier', methods=['POST'])
+@login_required
+def reset_identity_verifier_page():
+    return jsonify({"status": "cleared"})
+
 # --- NEW: Change Password Route ---
 @app.route('/change_password', methods=['GET', 'POST'])
 @login_required
