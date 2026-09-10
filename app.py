@@ -3824,6 +3824,129 @@ def verify_identity_consistency():
 def reset_identity_verifier_page():
     return jsonify({"status": "cleared"})
 
+
+# ---------------------------------------------------------------------
+# MULTI-EXAM CHEMISTRY QUESTION ENGINE (CET / NEET / JEE)
+# ---------------------------------------------------------------------
+
+CHEM_ENGINE_SYSTEM_INSTRUCTION = (
+    "You are an expert Indian Engineering & Medical Entrance Examination Chemistry Paper Setter.\n"
+    "Your objective is to generate exam-accurate, high-yield Multiple Choice Questions (MCQs) "
+    "calibrated to the exact syllabus, question pattern, and cognitive difficulty of the chosen exam.\n\n"
+    "EXAM BLUEPRINT STANDARDS:\n"
+    "1. MHT-CET:\n"
+    "   - Follow the Maharashtra State Board (HSC/Balbharati) textbook standard strictly.\n"
+    "   - Focus on direct formula applications, unit conversions, textbook named organic reactions, and factual inorganic trends.\n"
+    "2. NEET (UG):\n"
+    "   - Follow NCERT line-by-line.\n"
+    "   - Prioritize Assertion-Reasoning, Statement I & Statement II evaluations, and NCERT-specific biological/inorganic exceptions.\n"
+    "3. JEE Main:\n"
+    "   - Focus on multi-step numerical problem solving, graphical interpretations, and combined-concept physical chemistry questions.\n"
+    "   - Include plausible calculation traps (e.g., standard state conventions, degree of dissociation approximations).\n"
+    "4. JEE Advanced:\n"
+    "   - Focus on advanced multi-step organic reaction mechanisms (stereochemistry, regioselectivity), complex coordination equilibria, and deep physical thermodynamics.\n"
+    "   - Formulate questions that test deep conceptual reasoning and multi-concept synthesis.\n\n"
+    "DIFFICULTY LEVEL RULES:\n"
+    "- Low: Direct definition, standard formula substitution, single-step reaction.\n"
+    "- Medium: Typical exam average question requiring 2-3 steps or standard exceptions.\n"
+    "- High: Multi-concept integration, tricky distractors, deep analytical mechanisms.\n\n"
+    "OUTPUT SCHEMA (Return ONLY a raw JSON array matching this schema, no markdown codeblocks):\n"
+    "[\n"
+    "  {\n"
+    '    "id": 1,\n'
+    '    "question_type": "Single Correct" | "Assertion-Reason" | "Statement-Based",\n'
+    '    "question": "Question statement using clean chemical formulas (e.g., H2SO4, [Fe(CN)6]4-)...",\n'
+    '    "options": {\n'
+    '      "A": "Option A text",\n'
+    '      "B": "Option B text",\n'
+    '      "C": "Option C text",\n'
+    '      "D": "Option D text"\n'
+    "    },\n"
+    '    "correct_option": "A",\n'
+    '    "explanation": "Step-by-step chemical derivation, reaction mechanism, or textbook citation.",\n'
+    '    "exam_source_pattern": "Historical pattern reference (e.g., JEE Main 2022-2024 repeat pattern / NCERT Exemplar)"\n'
+    "  }\n"
+    "]"
+)
+
+
+@app.route('/chem_engine')
+@login_required
+def chem_engine_page():
+    return render_template('chem_engine.html', current_user=current_user)
+
+
+@app.route('/chem_engine_generate', methods=['POST'])
+@login_required
+def chem_engine_generate():
+    try:
+        data = request.get_json() or {}
+        topic = data.get('topic', '').strip()
+        exam = data.get('exam', 'JEE Main')
+        difficulty = data.get('difficulty', 'Medium')
+        count = data.get('count', 3)
+
+        if not topic:
+            return jsonify({'status': 'error', 'error': 'Please enter a Chemistry topic or chapter name.'}), 400
+
+        prompt = f"""
+        TARGET ENTRANCE EXAM: {exam}
+        DIFFICULTY LEVEL: {difficulty}
+        CHEMISTRY CHAPTER / TOPIC: "{topic}"
+        QUESTION COUNT: {count}
+
+        Synthesize {count} authentic, non-random Chemistry MCQs tailored strictly to the {exam} standard at {difficulty} difficulty.
+        Return ONLY a valid JSON array matching the provided schema.
+        """
+
+
+        response = gemma_client.models.generate_content(
+            model=IMG_TEXT_DEFAULT_MODEL,
+            config=gemma_types.GenerateContentConfig(
+                system_instruction=CHEM_ENGINE_SYSTEM_INSTRUCTION,
+                temperature=0.15,
+                tools=[]
+            ),
+            contents=prompt
+        )
+
+        clean_text = response.text.strip()
+        if clean_text.startswith("```json"):
+            clean_text = clean_text[7:]
+        elif clean_text.startswith("```"):
+            clean_text = clean_text[3:]
+        if clean_text.endswith("```"):
+            clean_text = clean_text[:-3]
+
+        mcq_data = json.loads(clean_text.strip())
+
+        return jsonify({
+            "status": "success",
+            "exam": exam,
+            "difficulty": difficulty,
+            "topic": topic,
+            "mcqs": mcq_data
+        })
+
+    except (ServerError, APIError) as api_err:
+        print(f"Gemini API Server Error: {api_err}")
+        return jsonify({
+            'status': 'error',
+            'error': 'Exam generation service is under high load. Please try again shortly.'
+        }), 503
+    except Exception as e:
+        print("--- CHEM ENGINE ERROR ---")
+        traceback.print_exc()
+        return jsonify({'status': 'error', 'error': str(e)}), 500
+
+
+#4. State Reset Utility Endpoint
+@app.route('/reset_chem_engine', methods=['POST'])
+@login_required
+def reset_chem_engine_page():
+    return jsonify({"status": "cleared"})
+
+
 # --- NEW: Change Password Route ---
 @app.route('/change_password', methods=['GET', 'POST'])
 @login_required
