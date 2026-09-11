@@ -3946,6 +3946,118 @@ def chem_engine_generate():
 def reset_chem_engine_page():
     return jsonify({"status": "cleared"})
 
+# ---------------------------------------------------------------------
+# CHEMISTRY EXAM PREDICTOR & TEST SIMULATOR ENGINE
+# ---------------------------------------------------------------------
+
+CHEM_PREDICTOR_SYSTEM_INSTRUCTION = (
+    "You are a Senior Chemistry Exam Paper Architect for MHT-CET, NEET (UG), JEE Main, and JEE Advanced.\n"
+    "Your objective is to generate HIGH-PROBABILITY PREDICTED MCQs based on historical recurring question patterns.\n\n"
+    "BLUEPRINT RECURRENCE GUIDELINES:\n"
+    "1. MHT-CET:\n"
+    "   - Maharashtra State Board (HSC) textbook standard.\n"
+    "   - Direct formula evaluations (Colligative properties, Nernst cell potentials, First-order rate equations) and State Board named organic reactions.\n"
+    "2. NEET (UG):\n"
+    "   - Strict NCERT line-by-line focus.\n"
+    "   - Assertion-Reason, Statement I & Statement II evaluations, coordination isomerism, and inorganic anomaly trends (ionization enthalpy, acidic strength order).\n"
+    "3. JEE Main:\n"
+    "   - Numerical-conceptual physical chemistry, thermodynamics cycles, chemical equilibria, and organic reaction pathways with subtle stereochemical distractors.\n"
+    "4. JEE Advanced:\n"
+    "   - Multi-step organic cascades, carbocation rearrangements, stereospecific additions, and coordination field stabilization equilibria.\n\n"
+    "OUTPUT FORMAT: Return ONLY a valid JSON array of question objects (no markdown, no backticks):\n"
+    "[\n"
+    "  {\n"
+    '    "id": 1,\n'
+    '    "question_type": "Single Choice" | "Assertion-Reason" | "Statement-Based",\n'
+    '    "question": "Clear problem statement using plain chemical formulas (e.g., KMnO4, [Co(NH3)5Cl]Cl2)...",\n'
+    '    "options": {\n'
+    '      "A": "Option text",\n'
+    '      "B": "Option text",\n'
+    '      "C": "Option text",\n'
+    '      "D": "Option text"\n'
+    "    },\n"
+    '    "correct_option": "A",\n'
+    '    "prediction_basis": "Why this is predicted (e.g., Frequently asked concept in MHT-CET 2021-2024 shifts / NCERT Exemplar)",\n'
+    '    "explanation": "Detailed step-by-step mechanism, numerical derivation, or textbook fact."\n'
+    "  }\n"
+    "]"
+)
+
+
+@app.route('/chem_test_simulator')
+@login_required
+def chem_test_simulator_page():
+    return render_template('chem_test_simulator.html', current_user=current_user)
+
+
+@app.route('/generate_predicted_test', methods=['POST'])
+@login_required
+def generate_predicted_test():
+    try:
+        data = request.get_json() or {}
+        topic = data.get('topic', '').strip()
+        exam = data.get('exam', 'MHT-CET')
+        difficulty = data.get('difficulty', 'Medium')
+        count = int(data.get('count', 5))
+
+        if not topic:
+            return jsonify({'status': 'error', 'error': 'Please provide a chemistry topic.'}), 400
+
+        prompt = f"""
+        TARGET EXAM: {exam}
+        DIFFICULTY: {difficulty}
+        CHEMISTRY CHAPTER: "{topic}"
+        QUESTION COUNT: {count}
+
+        Synthesize {count} high-probability predicted Chemistry MCQs reflecting past exam data patterns for {exam} at {difficulty} level.
+        Return ONLY the raw JSON array.
+        """
+
+        response = gemma_client.models.generate_content(
+            model=IMG_TEXT_DEFAULT_MODEL,
+            config=gemma_types.GenerateContentConfig(
+                system_instruction=CHEM_PREDICTOR_SYSTEM_INSTRUCTION,
+                temperature=0.2,
+                tools=[]
+            ),
+            contents=prompt
+        )
+
+        clean_text = response.text.strip()
+        if clean_text.startswith("```json"):
+            clean_text = clean_text[7:]
+        elif clean_text.startswith("```"):
+            clean_text = clean_text[3:]
+        if clean_text.endswith("```"):
+            clean_text = clean_text[:-3]
+
+        questions = json.loads(clean_text.strip())
+
+        return jsonify({
+            "status": "success",
+            "exam": exam,
+            "difficulty": difficulty,
+            "topic": topic,
+            "questions": questions
+        })
+
+    except (ServerError, APIError) as api_err:
+        print(f"Gemini API Server Error: {api_err}")
+        return jsonify({
+            'status': 'error',
+            'error': 'SuperPrompter AI is experiencing high load. Please try again shortly.'
+        }), 503
+    except Exception as e:
+        print("--- TEST PREDICTOR ERROR ---")
+        traceback.print_exc()
+        return jsonify({'status': 'error', 'error': str(e)}), 500
+
+
+@app.route('/reset_chem_test_simulator', methods=['POST'])
+@login_required
+def reset_chem_test_simulator_page():
+    return jsonify({"status": "cleared"})
+
 
 # --- NEW: Change Password Route ---
 @app.route('/change_password', methods=['GET', 'POST'])
