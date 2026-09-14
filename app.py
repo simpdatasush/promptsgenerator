@@ -4058,6 +4058,139 @@ def generate_predicted_test():
 def reset_chem_test_simulator_page():
     return jsonify({"status": "cleared"})
 
+# ---------------------------------------------------------------------
+# SMART CHART ADVISOR & RENDERER ENGINE
+# ---------------------------------------------------------------------
+
+CHART_ADVISOR_SYSTEM_INSTRUCTION = (
+    "You are an expert Data Visualization Architect and Business Intelligence Consultant.\n"
+    "Your task is to analyze a user's data scenario or uploaded tabular dataset, recommend the most "
+    "effective chart type (e.g., Line, Bar, Stacked Bar, Scatter, Doughnut, Radar), explain the rationale, "
+    "and output a complete, valid Chart.js configuration object with ready-to-plot data.\n\n"
+    "VISUALIZATION SELECTION HEURISTICS:\n"
+    "- Trends over time: Line or Area Chart.\n"
+    "- Discrete categorical comparisons: Bar or Column Chart.\n"
+    "- Part-to-whole / composition (<= 5 categories): Doughnut or Stacked Bar.\n"
+    "- Correlation between two continuous numerical variables: Scatter Plot.\n"
+    "- Multi-variable profile / skill assessment: Radar Chart.\n\n"
+    "RETURN ONLY A RAW JSON OBJECT (no markdown, no backticks) MATCHING THIS SCHEMA:\n"
+    "{\n"
+    '  "recommended_chart": "Line Chart" | "Bar Chart" | "Doughnut Chart" | "Scatter Plot" | "Radar Chart",\n'
+    '  "recommendation_reason": "Clear 2-sentence explanation of why this chart type best communicates this data pattern.",\n'
+    '  "chartjs_type": "line" | "bar" | "doughnut" | "scatter" | "radar",\n'
+    '  "chart_config": {\n'
+    '    "labels": ["Jan", "Feb", "Mar", ...],\n'
+    '    "datasets": [\n'
+    '      {\n'
+    '        "label": "Metric Name",\n'
+    '        "data": [120, 190, 300, ...],\n'
+    '        "backgroundColor": "rgba(56, 189, 248, 0.4)",\n'
+    '        "borderColor": "#38bdf8",\n'
+    '        "borderWidth": 2\n'
+    '      }\n'
+    '    ]\n'
+    '  },\n'
+    '  "design_best_practices": [\n'
+    '    "Guideline 1 for labeling or axes...",\n'
+    '    "Guideline 2 on readability or color choice..."\n'
+    '  ]\n'
+    "}"
+)
+
+
+@app.route('/chart_advisor')
+@login_required
+def chart_advisor_page():
+    return render_template('chart_advisor.html', current_user=current_user)
+
+
+@app.route('/generate_chart_advice', methods=['POST'])
+@login_required
+def generate_chart_advice():
+    try:
+        scenario = request.form.get('scenario', '').strip()
+        uploaded_file = request.files.get('dataset_file')
+
+        data_summary = ""
+
+        # Handle optional CSV/JSON data file (up to 2MB)
+        if uploaded_file and uploaded_file.filename != '':
+            file_bytes = uploaded_file.read()
+            if len(file_bytes) > 2 * 1024 * 1024:
+                return jsonify({'status': 'error', 'error': 'Uploaded file exceeds the 2 MB limit.'}), 400
+
+            filename = uploaded_file.filename.lower()
+            try:
+                if filename.endswith('.csv'):
+                    df = pd.read_csv(io.BytesIO(file_bytes))
+                elif filename.endswith('.json'):
+                    df = pd.read_json(io.BytesIO(file_bytes))
+                else:
+                    return jsonify({'status': 'error', 'error': 'Unsupported file format. Please upload CSV or JSON.'}), 400
+
+                # Extract schema and sample preview
+                data_summary = (
+                    f"DATASET PREVIEW ({len(df)} rows, columns: {list(df.columns)}):\n"
+                    f"Data Types:\n{df.dtypes.to_string()}\n"
+                    f"First 5 Rows:\n{df.head(5).to_dict(orient='records')}\n"
+                )
+            except Exception as read_err:
+                return jsonify({'status': 'error', 'error': f'Failed to parse data file: {str(read_err)}'}), 400
+
+        if not scenario and not data_summary:
+            return jsonify({'status': 'error', 'error': 'Please provide a scenario description or upload sample data.'}), 400
+
+        prompt = f"""
+        USER SCENARIO / QUESTION:
+        \"\"\"{scenario if scenario else 'Determine best visualization for the attached dataset'}\"\"\"
+
+        {data_summary}
+
+        Recommend the ideal chart type, provide actionable best practices, and return the complete Chart.js configuration data points.
+        Return ONLY the raw JSON object.
+        """
+
+        response = gemma_client.models.generate_content(
+            model=IMG_TEXT_DEFAULT_MODEL,
+            config=gemma_types.GenerateContentConfig(
+                system_instruction=CHART_ADVISOR_SYSTEM_INSTRUCTION,
+                temperature=0.15,
+                tools=[]
+            ),
+            contents=prompt
+        )
+
+        clean_text = response.text.strip()
+        if clean_text.startswith("```json"):
+            clean_text = clean_text[7:]
+        elif clean_text.startswith("```"):
+            clean_text = clean_text[3:]
+        if clean_text.endswith("```"):
+            clean_text = clean_text[:-3]
+
+        chart_data = json.loads(clean_text.strip())
+
+        return jsonify({
+            "status": "success",
+            "data": chart_data
+        })
+
+    except (ServerError, APIError) as api_err:
+        print(f"Gemini API Server Error: {api_err}")
+        return jsonify({
+            'status': 'error',
+            'error': 'The SuperPrompter AI visualization service is temporarily busy. Please retry shortly.'
+        }), 503
+    except Exception as e:
+        print("--- CHART ADVISOR ERROR ---")
+        traceback.print_exc()
+        return jsonify({'status': 'error', 'error': str(e)}), 500
+
+@app.route('/reset_chart_advisor', methods=['POST'])
+@login_required
+def reset_chart_advisor_page():
+    return jsonify({"status": "cleared"})
+
 
 # --- NEW: Change Password Route ---
 @app.route('/change_password', methods=['GET', 'POST'])
