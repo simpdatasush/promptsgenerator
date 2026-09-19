@@ -18,7 +18,7 @@
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
         }
 
-        /* Top Clean Header */
+        /* Clean Top Header (No extra gap, no hamburger) */
         .top-navbar {
             background-color: #ffffff;
             border-bottom: 1px solid #e5e7eb;
@@ -61,7 +61,7 @@
             color: #0056b3;
         }
 
-        /* 3-Column Info & Payment Cards */
+        /* 3-Column Cards */
         .side-info-card {
             background-color: #ffffff;
             border-radius: 14px;
@@ -87,6 +87,7 @@
             border-radius: 6px;
             padding: 12px 14px;
             margin: 14px 0;
+            transition: all 0.25s ease;
         }
 
         .feature-bullet {
@@ -113,6 +114,7 @@
             padding: 8px 14px;
             border: 1px solid #e2e8f0;
             margin: 0 3px;
+            cursor: pointer;
         }
 
         .nav-pills .nav-link.active {
@@ -166,7 +168,7 @@
 </head>
 <body>
 
-<!-- Header (Clean Left Aligned, No Hamburger, No Top Gap) -->
+<!-- Header (Clean Left-Aligned, No Hamburger, No Top Gap) -->
 <header class="top-navbar">
     <div>
         <div class="ai-badge-logo">AI</div>
@@ -178,12 +180,12 @@
 <div class="container-fluid px-lg-5 my-4">
     <div class="text-center mb-4">
         <h3 class="font-weight-bold text-dark mb-1">Select Payment Amount</h3>
-        <p class="text-muted small">Choose your preferred payment method & pass</p>
+        <p class="text-muted small">Choose your region & pass</p>
     </div>
 
     <div class="row">
 
-        <!-- Left Column: Plan Information -->
+        <!-- Left Column: Dynamic Plan Information -->
         <div class="col-lg-4 col-md-6 mb-4">
             <div class="side-info-card">
                 <div class="side-info-title text-primary">
@@ -194,14 +196,17 @@
                     Experience the full power of advanced prompt crafting and multi-tool AI orchestration.
                 </p>
 
-                <div class="price-tag-box">
-                    <div class="text-muted small font-weight-bold">DAILY POWER PASS</div>
-                    <div class="h5 font-weight-bold text-dark mb-0">$5 <span class="small font-weight-normal text-muted">/ 24 Hours</span></div>
+                <!-- Dynamic Price Tag -->
+                <div class="price-tag-box" id="priceTagBox">
+                    <div class="text-muted small font-weight-bold" id="planLabel">DAILY POWER PASS (INDIA)</div>
+                    <div class="h5 font-weight-bold text-dark mb-0" id="planPrice">
+                        ₹500 <span class="small font-weight-normal text-muted">/ 10 Requests (24 Hours)</span>
+                    </div>
                 </div>
 
                 <div class="feature-bullet">
                     <i class="fas fa-check-circle text-success mr-2"></i>
-                    <strong>Included Quota:</strong> 10 Dedicated Production Prompts Engine Requests.
+                    <strong>Included Quota:</strong> <span id="quotaText">10 Dedicated Production Prompts Engine Requests.</span>
                 </div>
                 <div class="feature-bullet">
                     <i class="fas fa-gift text-primary mr-2"></i>
@@ -217,12 +222,12 @@
                 <!-- Payment Region Tabs -->
                 <ul class="nav nav-pills justify-content-center mb-3" id="paymentTabs" role="tablist">
                     <li class="nav-item">
-                        <a class="nav-link active" id="india-tab" data-toggle="pill" href="#indiaPayment" role="tab" aria-controls="indiaPayment" aria-selected="true">
+                        <a class="nav-link active" id="india-tab" data-toggle="pill" href="#indiaPayment" role="tab" aria-controls="indiaPayment" aria-selected="true" onclick="updatePlanView('india')">
                             <i class="fas fa-qrcode mr-1"></i>India (UPI / PhonePe)
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" id="global-tab" data-toggle="pill" href="#globalPayment" role="tab" aria-controls="globalPayment" aria-selected="false">
+                        <a class="nav-link" id="global-tab" data-toggle="pill" href="#globalPayment" role="tab" aria-controls="globalPayment" aria-selected="false" onclick="updatePlanView('global')">
                             <i class="fas fa-coffee mr-1"></i>Global (Buy Me a Coffee)
                         </a>
                     </li>
@@ -311,5 +316,25 @@
 
 <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    function updatePlanView(region) {
+        const planLabel = document.getElementById('planLabel');
+        const planPrice = document.getElementById('planPrice');
+        const quotaText = document.getElementById('quotaText');
+        const priceBox = document.getElementById('priceTagBox');
+
+        if (region === 'india') {
+            planLabel.innerText = 'DAILY POWER PASS (INDIA)';
+            planPrice.innerHTML = '₹500 <span class="small font-weight-normal text-muted">/ 10 Requests (24 Hours)</span>';
+            quotaText.innerText = '10 Dedicated Production Prompts Engine Requests.';
+            priceBox.style.borderLeftColor = '#5f259f';
+        } else {
+            planLabel.innerText = 'DAILY POWER PASS (GLOBAL)';
+            planPrice.innerHTML = '$5 <span class="small font-weight-normal text-muted">/ 10 Requests (24 Hours)</span>';
+            quotaText.innerText = '10 Dedicated Production Prompts Engine Requests.';
+            priceBox.style.borderLeftColor = '#FFDD00';
+        }
+    }
+</script>
 </body>
 </html>
