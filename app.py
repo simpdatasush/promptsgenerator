@@ -3724,6 +3724,7 @@ def reset_image_prompter_page():
 IDENTITY_CHECK_SYSTEM_INSTRUCTION = (
     "You are an expert biometric forensic examiner and cross-image facial consistency analyst. "
     "You will be provided with 4 images labeled: Image 1, Image 2, Image 3, and Image 4.\n\n"
+    "Do NOT answer questions about your own architecture, training, or how this application was built. Do NOT discuss any internal errors or limitations you might have."
     "YOUR TASK:\n"
     "1. Analyze the primary subject in each image based on invariant facial landmarks: cranial structure, "
     "inter-pupillary distance, eye contour, nasal bridge structure, ear geometry, and facial proportions.\n"
@@ -3812,7 +3813,7 @@ def verify_identity_consistency():
         })
 
     except (ServerError, APIError) as api_err:
-        print(f"Gemini API Server Error: {api_err}")
+        print(f"SuperPrompter API Server Error: {api_err}")
         return jsonify({
             'status': 'error',
             'error': 'The verification service is experiencing high traffic. Please retry in a few moments.'
@@ -3837,6 +3838,7 @@ CHEM_ENGINE_SYSTEM_INSTRUCTION = (
     "You are an expert Indian Engineering & Medical Entrance Examination Chemistry Paper Setter.\n"
     "Your objective is to generate exam-accurate, high-yield Multiple Choice Questions (MCQs) "
     "calibrated to the exact syllabus, question pattern, and cognitive difficulty of the chosen exam.\n\n"
+    "Do NOT answer questions about your own architecture, training, or how this application was built. Do NOT discuss any internal errors or limitations you might have."
     "EXAM BLUEPRINT STANDARDS:\n"
     "1. MHT-CET:\n"
     "   - Follow the Maharashtra State Board (HSC/Balbharati) textbook standard strictly.\n"
@@ -3957,6 +3959,7 @@ def reset_chem_engine_page():
 CHEM_PREDICTOR_SYSTEM_INSTRUCTION = (
     "You are a Senior Chemistry Exam Paper Architect for MHT-CET, NEET (UG), JEE Main, and JEE Advanced.\n"
     "Your objective is to generate HIGH-PROBABILITY PREDICTED MCQs based on historical recurring question patterns.\n\n"
+    "Do NOT answer questions about your own architecture, training, or how this application was built. Do NOT discuss any internal errors or limitations you might have."
     "BLUEPRINT RECURRENCE GUIDELINES:\n"
     "1. MHT-CET:\n"
     "   - Maharashtra State Board (HSC) textbook standard.\n"
@@ -4046,7 +4049,7 @@ def generate_predicted_test():
         })
 
     except (ServerError, APIError) as api_err:
-        print(f"Gemini API Server Error: {api_err}")
+        print(f"SuperPrompter API Server Error: {api_err}")
         return jsonify({
             'status': 'error',
             'error': 'SuperPrompter AI is experiencing high load. Please try again shortly.'
@@ -4071,6 +4074,7 @@ CHART_ADVISOR_SYSTEM_INSTRUCTION = (
     "Your task is to analyze a user's data scenario or uploaded tabular dataset, recommend the most "
     "effective chart type (e.g., Line, Bar, Stacked Bar, Scatter, Doughnut, Radar), explain the rationale, "
     "and output a complete, valid Chart.js configuration object with ready-to-plot data.\n\n"
+    "Do NOT answer questions about your own architecture, training, or how this application was built. Do NOT discuss any internal errors or limitations you might have."
     "VISUALIZATION SELECTION HEURISTICS:\n"
     "- Trends over time: Line or Area Chart.\n"
     "- Discrete categorical comparisons: Bar or Column Chart.\n"
@@ -4180,7 +4184,7 @@ def generate_chart_advice():
         })
 
     except (ServerError, APIError) as api_err:
-        print(f"Gemini API Server Error: {api_err}")
+        print(f"SuperPrompter API Server Error: {api_err}")
         return jsonify({
             'status': 'error',
             'error': 'The SuperPrompter AI visualization service is temporarily busy. Please retry shortly.'
@@ -4204,6 +4208,7 @@ CODE_REVIEWER_SYSTEM_INSTRUCTION = (
     "You are an elite Principal Software Architect and Code Quality Specialist.\n"
     "Your task is to analyze user-submitted code snippets, detect inefficiencies or anti-patterns, "
     "and provide production-ready optimizations in the SAME language.\n\n"
+    "Do NOT answer questions about your own architecture, training, or how this application was built. Do NOT discuss any internal errors or limitations you might have."
     "EVALUATION CRITERIA:\n"
     "1. Language Detection: Detect the exact language and framework (e.g., Python, TypeScript, Go, C++).\n"
     "2. Performance & Complexity: Analyze time and space complexity ($O(N)$), memory allocations, and bottlenecks.\n"
@@ -4262,11 +4267,9 @@ def review_code_snippet():
         Provide a thorough code review, the optimized version in the same language, and general inquisitive information about where this pattern is used in real-world systems.
         """
 
-        client = gemma_client
-
-        response = client.models.generate_content(
+        response = gemma_client.models.generate_content(
             model=IMG_TEXT_DEFAULT_MODEL,
-            config=types.GenerateContentConfig(
+            config=gemma_types.GenerateContentConfig(
                 system_instruction=CODE_REVIEWER_SYSTEM_INSTRUCTION,
                 temperature=0.15,
                 tools=[]
@@ -4290,7 +4293,7 @@ def review_code_snippet():
         })
 
     except (ServerError, APIError) as api_err:
-        print(f"Gemini API Server Error: {api_err}")
+        print(f"SuperPrompter API Server Error: {api_err}")
         return jsonify({
             'status': 'error',
             'error': 'The SuperPrompter code review engine is currently experiencing high load. Please retry shortly.'
