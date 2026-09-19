@@ -3,20 +3,74 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SuperPrompter AI - Support & Payment</title>
+    <title>SuperPrompter AI - Support & Payments</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
     <link rel="apple-touch-icon" href="{{ url_for('static', filename='favicon.png') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <style>
+        /* Exact Header Bar Styling */
+        .top-navbar {
+            background-color: #ffffff;
+            border-bottom: 1px solid #e5e7eb;
+            padding: 12px 20px 16px 20px;
+        }
+
+        .ai-badge-logo {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #007bff;
+            color: #ffffff;
+            font-weight: 700;
+            font-size: 1.1rem;
+            width: 38px;
+            height: 38px;
+            border-radius: 6px;
+            margin-bottom: 8px;
+        }
+
+        .brand-title {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #1f2937;
+            letter-spacing: -0.5px;
+            line-height: 1.1;
+            margin-bottom: 6px;
+        }
+
+        .home-link {
+            color: #007bff;
+            text-decoration: none;
+            font-size: 0.95rem;
+            font-weight: 500;
+        }
+
+        .home-link:hover {
+            text-decoration: underline;
+            color: #0056b3;
+        }
+
+        .nav-toggle-box {
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            padding: 6px 10px;
+            background: transparent;
+            cursor: pointer;
+            height: 38px;
+            width: 44px;
+        }
+
+        /* Payment Content Styling */
         .payment-card {
-            max-width: 480px;
+            max-width: 460px;
             border-radius: 16px;
             border: none;
             overflow: hidden;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
         }
+
         .nav-pills .nav-link {
             border-radius: 10px;
             font-weight: 600;
@@ -25,16 +79,19 @@
             border: 1px solid #e9ecef;
             margin: 0 4px;
         }
+
         .nav-pills .nav-link.active {
             background-color: #5f259f;
             color: #ffffff;
             border-color: #5f259f;
         }
+
         .nav-pills .nav-link#global-tab.active {
             background-color: #FFDD00;
             color: #000000;
             border-color: #FFDD00;
         }
+
         .btn-bmc {
             background-color: #FFDD00;
             color: #000000;
@@ -49,11 +106,13 @@
             text-decoration: none !important;
             box-shadow: 0 4px 12px rgba(255, 221, 0, 0.4);
         }
+
         .btn-bmc:hover {
             background-color: #ffea55;
             color: #000000;
             transform: translateY(-2px);
         }
+
         .qr-frame {
             border-radius: 12px;
             border: 1px solid #e9ecef;
@@ -63,18 +122,29 @@
 </head>
 <body class="bg-light">
 
-<header class="app-header d-flex justify-content-between align-items-center p-3 px-md-4 bg-white border-bottom shadow-sm">
-    <div class="logo-section d-flex align-items-center">
-        <img src="https://placehold.co/40x40/007bff/ffffff?text=AI" alt="SuperPrompter Logo" class="app-logo mr-2 rounded">
-        <h1 class="header-title h4 mb-0 font-weight-bold">SuperPrompter</h1>
+<header class="top-navbar">
+    <div class="d-flex justify-content-between align-items-start">
+        
+        <div>
+            <div class="ai-badge-logo">AI</div>
+            <div class="brand-title">SuperPrompter</div>
+            <a href="{{ url_for('landing') }}" class="home-link">Home</a>
+        </div>
+
+        <button class="nav-toggle-box" type="button" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon d-flex flex-column justify-content-around h-100">
+                <span style="height: 2px; background-color: #6b7280; width: 100%;"></span>
+                <span style="height: 2px; background-color: #6b7280; width: 100%;"></span>
+                <span style="height: 2px; background-color: #6b7280; width: 100%;"></span>
+            </span>
+        </button>
+
     </div>
-    <nav class="auth-section">
-        <a href="/" class="btn btn-outline-secondary btn-sm">Home</a>
-    </nav>
 </header>
 
+<!-- Main Payment Body -->
 <div class="container text-center my-5">
-    <h2 class="font-weight-bold text-dark mb-2">Subscription</h2>
+    <h2 class="font-weight-bold text-dark mb-2">Select Payment Amount</h2>
     <p class="text-muted mb-4">Choose your preferred payment method</p>
 
     <!-- Payment Region Selector Tabs -->
@@ -99,7 +169,7 @@
             <div class="card payment-card mx-auto p-4 bg-white">
                 <div class="card-body p-0">
                     <h5 class="font-weight-bold mb-3" style="color: #5f259f;">
-                        <i class="fas fa-mobile-alt mr-2"></i>Scan & Pay via UPI
+                        <i class="fas fa-mobile-alt mr-2"></i>Scan to Pay via PhonePe
                     </h5>
                     
                     <img src="{{ url_for('static', filename='donate_qr.jpeg') }}" 
@@ -107,9 +177,9 @@
                     
                     <div class="alert alert-light border text-left p-3 mb-3" style="font-size: 0.88rem;">
                         <strong>SuperPrompter AI</strong><br>
-                        <span class="text-muted">Accepted apps: PhonePe, Google Pay, Paytm, BHIM UPI</span>
+                        <span class="text-muted">Scan using any UPI App (PhonePe, GPay, Paytm, BHIM)</span>
                     </div>
-                    <p class="text-muted small mb-0">Welcome to the SuperPrompter family! ❤️</p>
+                    <p class="text-muted small mb-0">Welcome to SuperPrompter Family! ❤️</p>
                 </div>
             </div>
         </div>
@@ -127,10 +197,10 @@
                             <i class="fas fa-mug-hot fa-3x" style="color: #FFDD00;"></i>
                         </div>
                         <p class="text-muted small px-3">
-                            Support our development with credit card, debit card, Apple Pay, or Google Pay via Buy Me a Coffee.
+                            Support development via credit card, debit card, Apple Pay, or Google Pay.
                         </p>
                         
-                        <a href="https://buymeacoffee.com/superprompter" target="_blank" rel="noopener noreferrer" class="btn btn-bmc btn-block">
+                        <a href="https://buymeacoffee.com/superprompterE" target="_blank" rel="noopener noreferrer" class="btn btn-bmc btn-block">
                             <i class="fas fa-coffee mr-2"></i>Buy Me a Coffee
                         </a>
                     </div>
@@ -139,7 +209,7 @@
                         <i class="fas fa-shield-alt text-success mr-1"></i>
                         <span class="text-muted">Secure 256-bit encrypted checkout powered by Buy Me a Coffee.</span>
                     </div>
-                    <p class="text-muted small mb-0">Thank you for supporting open AI innovation! 🚀</p>
+                    <p class="text-muted small mb-0">Thank you for supporting SuperPrompter! 🚀</p>
                 </div>
             </div>
         </div>
@@ -147,7 +217,7 @@
     </div>
 
     <div class="mt-4">
-        <a href="/" class="btn btn-link text-secondary">&larr; Back to Home</a>
+        <a href="{{ url_for('landing') }}" class="btn btn-link text-secondary">&larr; Back to Home</a>
     </div>
 </div>
 
@@ -155,4 +225,3 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
-
