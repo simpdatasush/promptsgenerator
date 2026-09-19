@@ -4196,6 +4196,115 @@ def reset_chart_advisor_page():
     return jsonify({"status": "cleared"})
 
 
+# ---------------------------------------------------------------------
+# CODE REVIEWER & ARCHITECTURAL INSIGHTS ENGINE
+# ---------------------------------------------------------------------
+
+CODE_REVIEWER_SYSTEM_INSTRUCTION = (
+    "You are an elite Principal Software Architect and Code Quality Specialist.\n"
+    "Your task is to analyze user-submitted code snippets, detect inefficiencies or anti-patterns, "
+    "and provide production-ready optimizations in the SAME language.\n\n"
+    "EVALUATION CRITERIA:\n"
+    "1. Language Detection: Detect the exact language and framework (e.g., Python, TypeScript, Go, C++).\n"
+    "2. Performance & Complexity: Analyze time and space complexity ($O(N)$), memory allocations, and bottlenecks.\n"
+    "3. Refactored Code: Write clean, idiomatic, fully working refactored code in the exact same language.\n"
+    "4. Industry Applications & Inquisitive Context: Explain where and why this pattern, data structure, or algorithm "
+    "is typically deployed in modern real-world production systems (e.g., high-frequency trading pipelines, distributed caches, ETL workflows).\n\n"
+    "RETURN OUTPUT ONLY AS RAW JSON (no markdown wrapping, no backticks):\n"
+    "{\n"
+    '  "detected_language": "Python 3.11",\n'
+    '  "code_quality_score": 78,\n'
+    '  "complexity_analysis": {\n'
+    '    "original_complexity": "O(N^2) Time | O(N) Space",\n'
+    '    "optimized_complexity": "O(N log N) Time | O(1) Space"\n'
+    "  },\n"
+    '  "key_issues": [\n'
+    '    "Inefficient quadratic iteration over nested lists...",\n'
+    '    "Missing boundary checks on empty collections..."\n'
+    "  ],\n"
+    '  "optimized_code": "def optimized_function(...):\\n    ...",\n'
+    '  "improvements_summary": [\n'
+    '    "Replaced nested loop with hash map lookup...",\n'
+    '    "Leveraged vectorized generator expressions for minimal memory footprint..."\n'
+    "  ],\n"
+    '  "industry_use_cases": {\n'
+    '    "domain": "Fintech / High-Throughput Stream Processing",\n'
+    '    "explanation": "This specific pattern is commonly implemented in order-matching engines and telemetry aggregators where microsecond latency is critical."\n'
+    "  }\n"
+    "}"
+)
+
+
+@app.route('/code_reviewer')
+@login_required
+def code_reviewer_page():
+    return render_template('code_reviewer.html', current_user=current_user)
+
+
+@app.route('/review_code_snippet', methods=['POST'])
+@login_required
+def review_code_snippet():
+    try:
+        data = request.get_json() or {}
+        code_text = data.get('code', '').strip()
+        custom_query = data.get('query', '').strip()
+
+        if not code_text:
+            return jsonify({'status': 'error', 'error': 'Please provide a code snippet for analysis.'}), 400
+
+        prompt = f"""
+        USER CODE SNIPPET:
+        \"\"\"{code_text}\"\"\"
+
+        ADDITIONAL USER INSTRUCTIONS / QUERY:
+        \"\"\"{custom_query if custom_query else 'Review for performance, idiomatic improvements, and real-world application context.'}\"\"\"
+
+        Provide a thorough code review, the optimized version in the same language, and general inquisitive information about where this pattern is used in real-world systems.
+        """
+
+        client = gemma_client
+
+        response = client.models.generate_content(
+            model=IMG_TEXT_DEFAULT_MODEL,
+            config=types.GenerateContentConfig(
+                system_instruction=CODE_REVIEWER_SYSTEM_INSTRUCTION,
+                temperature=0.15,
+                tools=[]
+            ),
+            contents=prompt
+        )
+
+        clean_text = response.text.strip()
+        if clean_text.startswith("```json"):
+            clean_text = clean_text[7:]
+        elif clean_text.startswith("```"):
+            clean_text = clean_text[3:]
+        if clean_text.endswith("```"):
+            clean_text = clean_text[:-3]
+
+        review_data = json.loads(clean_text.strip())
+
+        return jsonify({
+            "status": "success",
+            "data": review_data
+        })
+
+    except (ServerError, APIError) as api_err:
+        print(f"Gemini API Server Error: {api_err}")
+        return jsonify({
+            'status': 'error',
+            'error': 'The SuperPrompter code review engine is currently experiencing high load. Please retry shortly.'
+        }), 503
+    except Exception as e:
+        print("--- CODE REVIEWER ERROR ---")
+        traceback.print_exc()
+        return jsonify({'status': 'error', 'error': str(e)}), 500
+
+@app.route('/reset_code_reviewer', methods=['POST'])
+@login_required
+def reset_code_reviewer_page():
+    return jsonify({"status": "cleared"})
+
 # --- NEW: Change Password Route ---
 @app.route('/change_password', methods=['GET', 'POST'])
 @login_required
