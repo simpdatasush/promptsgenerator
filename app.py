@@ -4200,6 +4200,28 @@ def reset_chart_advisor_page():
     return jsonify({"status": "cleared"})
 
 
+def sanitize_json_payload(obj):
+    """
+    Recursively strips unicode spaces and markdown formatting 
+    from string values inside dictionaries and lists.
+    """
+    if isinstance(obj, dict):
+        return {k: sanitize_json_payload(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [sanitize_json_payload(item) for item in obj]
+    elif isinstance(obj, str):
+        # 1. Normalize non-breaking spaces (\u00a0) and zero-width spaces to regular space
+        cleaned = re.sub(r'[\u00a0\u1680\u180e\u2000-\u200b\u202f\u205f\u3000\ufeff]', ' ', obj)
+        # 2. Strip Markdown bold and italics (**text** or *text*)
+        cleaned = re.sub(r'\*{1,3}(.*?)\*{1,3}', r'\1', cleaned)
+        # 3. Strip backticks (`code`)
+        cleaned = re.sub(r'`+(.*?)`+', r'\1', cleaned)
+        # 4. Clean up multiple spaces left behind
+        cleaned = re.sub(r' {2,}', ' ', cleaned)
+        return cleaned.strip()
+    return obj
+
+
 # ---------------------------------------------------------------------
 # CODE REVIEWER & ARCHITECTURAL INSIGHTS ENGINE
 # ---------------------------------------------------------------------
@@ -4287,9 +4309,11 @@ def review_code_snippet():
 
         review_data = json.loads(clean_text.strip())
 
+        sanitized_data = sanitize_json_payload(review_data)
+
         return jsonify({
             "status": "success",
-            "data": review_data
+            "data": sanitized_data
         })
 
     except (ServerError, APIError) as api_err:
