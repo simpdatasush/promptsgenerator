@@ -3,18 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SuperPrompter AI - Support & Payments</title>
+    <title>SuperPrompter AI - Secure Payments & Plans</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
     <link rel="apple-touch-icon" href="{{ url_for('static', filename='favicon.png') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <style>
-        /* Exact Header Bar Styling */
+        body {
+            background-color: #f8fafc;
+            color: #1e293b;
+            margin-top: 0;
+            padding-top: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+
+        /* Top Clean Header */
         .top-navbar {
             background-color: #ffffff;
             border-bottom: 1px solid #e5e7eb;
-            padding: 12px 20px 16px 20px;
+            padding: 12px 24px;
+            margin-top: 0;
         }
 
         .ai-badge-logo {
@@ -28,7 +37,7 @@
             width: 38px;
             height: 38px;
             border-radius: 6px;
-            margin-bottom: 8px;
+            margin-bottom: 6px;
         }
 
         .brand-title {
@@ -37,7 +46,7 @@
             color: #1f2937;
             letter-spacing: -0.5px;
             line-height: 1.1;
-            margin-bottom: 6px;
+            margin-bottom: 4px;
         }
 
         .home-link {
@@ -52,32 +61,58 @@
             color: #0056b3;
         }
 
-        .nav-toggle-box {
-            border: 1px solid #d1d5db;
-            border-radius: 6px;
-            padding: 6px 10px;
-            background: transparent;
-            cursor: pointer;
-            height: 38px;
-            width: 44px;
+        /* 3-Column Info & Payment Cards */
+        .side-info-card {
+            background-color: #ffffff;
+            border-radius: 14px;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.04);
+            padding: 24px;
+            height: 100%;
+            text-align: left;
         }
 
-        /* Payment Content Styling */
+        .side-info-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #0f172a;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+        }
+
+        .price-tag-box {
+            background-color: #f1f5f9;
+            border-left: 4px solid #007bff;
+            border-radius: 6px;
+            padding: 12px 14px;
+            margin: 14px 0;
+        }
+
+        .feature-bullet {
+            font-size: 0.88rem;
+            margin-bottom: 10px;
+            color: #334155;
+            line-height: 1.5;
+        }
+
+        /* Center Payment Card */
         .payment-card {
-            max-width: 460px;
             border-radius: 16px;
-            border: none;
+            border: 1px solid #e2e8f0;
             overflow: hidden;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.06);
+            background: #ffffff;
         }
 
         .nav-pills .nav-link {
-            border-radius: 10px;
+            border-radius: 8px;
             font-weight: 600;
-            color: #495057;
-            padding: 10px 20px;
-            border: 1px solid #e9ecef;
-            margin: 0 4px;
+            font-size: 0.86rem;
+            color: #475569;
+            padding: 8px 14px;
+            border: 1px solid #e2e8f0;
+            margin: 0 3px;
         }
 
         .nav-pills .nav-link.active {
@@ -92,120 +127,184 @@
             border-color: #FFDD00;
         }
 
+        .qr-frame {
+            border-radius: 10px;
+            border: 1px solid #e2e8f0;
+            max-width: 220px;
+        }
+
         .btn-bmc {
             background-color: #FFDD00;
             color: #000000;
             font-weight: 700;
             border-radius: 10px;
-            padding: 12px 24px;
-            font-size: 1.05rem;
+            padding: 10px 18px;
+            font-size: 0.95rem;
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            transition: all 0.2s ease;
             text-decoration: none !important;
-            box-shadow: 0 4px 12px rgba(255, 221, 0, 0.4);
+            box-shadow: 0 4px 12px rgba(255, 221, 0, 0.35);
         }
 
         .btn-bmc:hover {
             background-color: #ffea55;
             color: #000000;
-            transform: translateY(-2px);
         }
 
-        .qr-frame {
-            border-radius: 12px;
-            border: 1px solid #e9ecef;
-            max-width: 240px;
+        .tag-pill {
+            display: inline-block;
+            background: #f1f5f9;
+            color: #64748b;
+            font-size: 0.75rem;
+            font-weight: 600;
+            padding: 3px 8px;
+            border-radius: 6px;
+            margin: 2px 1px;
         }
     </style>
 </head>
-<body class="bg-light" style="margin-top: 0; padding-top: 0;">
+<body>
 
-<!-- Header without Hamburger Menu and Extra Top Whitespace -->
-<header class="top-navbar" style="background-color: #ffffff; border-bottom: 1px solid #e5e7eb; padding: 12px 24px; margin-top: 0;">
+<!-- Header (Clean Left Aligned, No Hamburger, No Top Gap) -->
+<header class="top-navbar">
     <div>
-        <div class="ai-badge-logo" style="display: inline-flex; align-items: center; justify-content: center; background-color: #007bff; color: #ffffff; font-weight: 700; font-size: 1.1rem; width: 38px; height: 38px; border-radius: 6px; margin-bottom: 6px;">AI</div>
-        <div class="brand-title" style="font-size: 2rem; font-weight: 700; color: #1f2937; letter-spacing: -0.5px; line-height: 1.1; margin-bottom: 4px;">SuperPrompter</div>
-        <a href="{{ url_for('landing') }}" class="home-link" style="color: #007bff; text-decoration: none; font-size: 0.95rem; font-weight: 500;">Home</a>
+        <div class="ai-badge-logo">AI</div>
+        <div class="brand-title">SuperPrompter</div>
+        <a href="{{ url_for('landing') }}" class="home-link">Home</a>
     </div>
 </header>
 
-<!-- Main Payment Body -->
-<div class="container text-center my-5">
-    <h2 class="font-weight-bold text-dark mb-2">Select Payment Amount</h2>
-    <p class="text-muted mb-4">Choose your preferred payment method</p>
+<div class="container-fluid px-lg-5 my-4">
+    <div class="text-center mb-4">
+        <h3 class="font-weight-bold text-dark mb-1">Select Payment Amount</h3>
+        <p class="text-muted small">Choose your preferred payment method & pass</p>
+    </div>
 
-    <!-- Payment Region Selector Tabs -->
-    <ul class="nav nav-pills justify-content-center mb-4" id="paymentTabs" role="tablist">
-        <li class="nav-item">
-            <a class="nav-link active" id="india-tab" data-toggle="pill" href="#indiaPayment" role="tab" aria-controls="indiaPayment" aria-selected="true">
-                <i class="fas fa-qrcode mr-2"></i>India (UPI / PhonePe)
-            </a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link" id="global-tab" data-toggle="pill" href="#globalPayment" role="tab" aria-controls="globalPayment" aria-selected="false">
-                <i class="fas fa-coffee mr-2"></i>Global (Buy Me a Coffee)
-            </a>
-        </li>
-    </ul>
+    <div class="row">
 
-    <!-- Payment Tab Panes -->
-    <div class="tab-content">
-        
-        <!-- India Tab: UPI / PhonePe -->
-        <div class="tab-pane fade show active" id="indiaPayment" role="tabpanel" aria-labelledby="india-tab">
-            <div class="card payment-card mx-auto p-4 bg-white">
-                <div class="card-body p-0">
-                    <h5 class="font-weight-bold mb-3" style="color: #5f259f;">
-                        <i class="fas fa-mobile-alt mr-2"></i>Scan to Pay via PhonePe
-                    </h5>
-                    
-                    <img src="{{ url_for('static', filename='donate_qr.jpeg') }}" 
-                         alt="PhonePe QR Code" class="img-fluid qr-frame mb-3">
-                    
-                    <div class="alert alert-light border text-left p-3 mb-3" style="font-size: 0.88rem;">
-                        <strong>SuperPrompter AI</strong><br>
-                        <span class="text-muted">Scan using any UPI App (PhonePe, GPay, Paytm, BHIM)</span>
-                    </div>
-                    <p class="text-muted small mb-0">Welcome to SuperPrompter Family! ❤️</p>
+        <!-- Left Column: Plan Information -->
+        <div class="col-lg-4 col-md-6 mb-4">
+            <div class="side-info-card">
+                <div class="side-info-title text-primary">
+                    <i class="fas fa-bolt mr-2 text-warning"></i>Plan Details
+                </div>
+                <h6 class="font-weight-bold text-dark mb-1">SuperPrompter App Access: Prompts Engine Pass</h6>
+                <p class="text-muted small mb-2">
+                    Experience the full power of advanced prompt crafting and multi-tool AI orchestration.
+                </p>
+
+                <div class="price-tag-box">
+                    <div class="text-muted small font-weight-bold">DAILY POWER PASS</div>
+                    <div class="h5 font-weight-bold text-dark mb-0">$5 <span class="small font-weight-normal text-muted">/ 24 Hours</span></div>
+                </div>
+
+                <div class="feature-bullet">
+                    <i class="fas fa-check-circle text-success mr-2"></i>
+                    <strong>Included Quota:</strong> 10 Dedicated Production Prompts Engine Requests.
+                </div>
+                <div class="feature-bullet">
+                    <i class="fas fa-gift text-primary mr-2"></i>
+                    <strong>Bonus Perk:</strong> Includes 7 days of unlimited free access to all companion apps and tools across the platform.
                 </div>
             </div>
         </div>
 
-        <!-- Global Tab: Buy Me a Coffee -->
-        <div class="tab-pane fade" id="globalPayment" role="tabpanel" aria-labelledby="global-tab">
-            <div class="card payment-card mx-auto p-4 bg-white">
-                <div class="card-body p-0">
-                    <h5 class="font-weight-bold mb-3 text-dark">
-                        <i class="fas fa-globe-americas mr-2 text-primary"></i>International Card & PayPal
-                    </h5>
-
-                    <div class="my-4">
-                        <div class="mb-3">
-                            <i class="fas fa-mug-hot fa-3x" style="color: #FFDD00;"></i>
-                        </div>
-                        <p class="text-muted small px-3">
-                            Support development via credit card, debit card, Apple Pay, or Google Pay.
-                        </p>
-                        
-                        <a href="https://buymeacoffee.com/superprompterE" target="_blank" rel="noopener noreferrer" class="btn btn-bmc btn-block">
-                            <i class="fas fa-coffee mr-2"></i>Buy Me a Coffee
+        <!-- Center Column: Payment Selector (India & Global) -->
+        <div class="col-lg-4 col-md-6 mb-4">
+            <div class="payment-card p-3 text-center">
+                
+                <!-- Payment Region Tabs -->
+                <ul class="nav nav-pills justify-content-center mb-3" id="paymentTabs" role="tablist">
+                    <li class="nav-item">
+                        <a class="nav-link active" id="india-tab" data-toggle="pill" href="#indiaPayment" role="tab" aria-controls="indiaPayment" aria-selected="true">
+                            <i class="fas fa-qrcode mr-1"></i>India (UPI / PhonePe)
                         </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" id="global-tab" data-toggle="pill" href="#globalPayment" role="tab" aria-controls="globalPayment" aria-selected="false">
+                            <i class="fas fa-coffee mr-1"></i>Global (Buy Me a Coffee)
+                        </a>
+                    </li>
+                </ul>
+
+                <div class="tab-content">
+                    <!-- India: PhonePe UPI -->
+                    <div class="tab-pane fade show active" id="indiaPayment" role="tabpanel" aria-labelledby="india-tab">
+                        <h6 class="font-weight-bold mb-2" style="color: #5f259f;">
+                            <i class="fas fa-mobile-alt mr-1"></i>Scan to Pay via PhonePe
+                        </h6>
+                        <img src="{{ url_for('static', filename='donate_qr.jpeg') }}" 
+                             alt="PhonePe QR Code" class="img-fluid qr-frame mb-3">
+                        <div class="alert alert-light border py-2 px-3 text-left small mb-2">
+                            <strong>SuperPrompter AI</strong><br>
+                            <span class="text-muted" style="font-size: 0.78rem;">Scan using any UPI App (PhonePe, GPay, Paytm, BHIM)</span>
+                        </div>
+                        <p class="text-muted small mb-0" style="font-size: 0.78rem;">Welcome to SuperPrompter Family! ❤️</p>
                     </div>
 
-                    <div class="alert alert-light border text-left p-3 mb-3" style="font-size: 0.85rem;">
-                        <i class="fas fa-shield-alt text-success mr-1"></i>
-                        <span class="text-muted">Secure 256-bit encrypted checkout powered by Buy Me a Coffee.</span>
+                    <!-- Global: Buy Me a Coffee -->
+                    <div class="tab-pane fade" id="globalPayment" role="tabpanel" aria-labelledby="global-tab">
+                        <h6 class="font-weight-bold mb-2 text-dark">
+                            <i class="fas fa-globe-americas mr-1 text-primary"></i>International Card & PayPal
+                        </h6>
+                        <div class="my-4">
+                            <i class="fas fa-mug-hot fa-3x mb-3" style="color: #FFDD00;"></i>
+                            <p class="text-muted small mb-3 px-2">
+                                Support development via credit/debit card, Apple Pay, or Google Pay.
+                            </p>
+                            <a href="https://buymeacoffee.com/superprompter" target="_blank" rel="noopener noreferrer" class="btn btn-bmc btn-block">
+                                <i class="fas fa-coffee mr-2"></i>Buy Me a Coffee
+                            </a>
+                        </div>
+                        <div class="alert alert-light border py-2 px-3 text-left small mb-2" style="font-size: 0.78rem;">
+                            <i class="fas fa-shield-alt text-success mr-1"></i>
+                            <span class="text-muted">Secure 256-bit encrypted checkout.</span>
+                        </div>
+                        <p class="text-muted small mb-0" style="font-size: 0.78rem;">Thank you for supporting SuperPrompter! 🚀</p>
                     </div>
-                    <p class="text-muted small mb-0">Thank you for supporting SuperPrompter! 🚀</p>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Right Column: Important Information -->
+        <div class="col-lg-4 col-md-12 mb-4">
+            <div class="side-info-card">
+                <div class="side-info-title text-warning">
+                    <i class="fas fa-info-circle mr-2 text-warning"></i>Important Information
+                </div>
+
+                <div class="feature-bullet">
+                    <strong>Activation Timeline:</strong> Subscriptions and ad placements are manually verified and activated within 24 hours of successful payment confirmation.
+                </div>
+
+                <div class="feature-bullet">
+                    <strong>Cancellations:</strong> Subscriptions can be cancelled at any time without lock-in. Please send an email request prior to your next billing cycle.
+                </div>
+
+                <div class="feature-bullet">
+                    <strong>Support & Inquiries:</strong> For questions, custom enterprise packages, or refund requests, reach our team directly at <a href="mailto:info@promptsgenerator.ai" class="font-weight-bold text-primary">info@promptsgenerator.ai</a>.
+                </div>
+
+                <hr class="my-3">
+
+                <div>
+                    <div class="text-muted small font-weight-bold mb-2">TAGS</div>
+                    <span class="tag-pill">#AI</span>
+                    <span class="tag-pill">#LLM</span>
+                    <span class="tag-pill">#PromptEngineering</span>
+                    <span class="tag-pill">#AINews</span>
+                    <span class="tag-pill">#AIJobs</span>
+                    <span class="tag-pill">#TechHiring</span>
+                    <span class="tag-pill">#GenerativeAI</span>
                 </div>
             </div>
         </div>
 
     </div>
 
-    <div class="mt-4">
+    <div class="text-center mt-3">
         <a href="{{ url_for('landing') }}" class="btn btn-link text-secondary">&larr; Back to Home</a>
     </div>
 </div>
