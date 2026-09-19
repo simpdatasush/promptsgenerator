@@ -542,6 +542,7 @@
             {% if current_user.is_authenticated %}
                 <span class="mr-3">Welcome, <strong class="username">{{ current_user.username }}</strong>!</span>
                 <a href="{{ url_for('change_password') }}" class="btn btn-outline-light btn-sm mr-2">Change Password</a>
+                <a href="{{ url_for('subscription') }}" class="btn btn-outline-light btn-sm mr-2">Get Subscription</a>
                 <a href="{{ url_for('landing') }}" class="btn btn-outline-light btn-sm mr-2">Home</a>
                 <a href="{{ url_for('dashboard') }}" class="btn btn-outline-light btn-sm mr-2">Dashboard🌟</a>
                 <a href="{{ url_for('all_news') }}" class="btn btn-outline-light btn-sm mr-2">AI News</a>
