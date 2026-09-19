@@ -2223,6 +2223,10 @@ def merchandise():
 def secure_payments():
     return render_template('secure_payments.html')
 
+@app.route('/subscription')
+def subscription():
+    return render_template('subscription.html')
+
 # 1. Public Marketplace View
 @app.route('/prompts')
 def prompts_marketplace():
