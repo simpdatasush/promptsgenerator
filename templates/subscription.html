@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SuperPrompter AI - Support & Payment</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='favicon.png') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        .payment-card {
+            max-width: 480px;
+            border-radius: 16px;
+            border: none;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+        }
+        .nav-pills .nav-link {
+            border-radius: 10px;
+            font-weight: 600;
+            color: #495057;
+            padding: 10px 20px;
+            border: 1px solid #e9ecef;
+            margin: 0 4px;
+        }
+        .nav-pills .nav-link.active {
+            background-color: #5f259f;
+            color: #ffffff;
+            border-color: #5f259f;
+        }
+        .nav-pills .nav-link#global-tab.active {
+            background-color: #FFDD00;
+            color: #000000;
+            border-color: #FFDD00;
+        }
+        .btn-bmc {
+            background-color: #FFDD00;
+            color: #000000;
+            font-weight: 700;
+            border-radius: 10px;
+            padding: 12px 24px;
+            font-size: 1.05rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            text-decoration: none !important;
+            box-shadow: 0 4px 12px rgba(255, 221, 0, 0.4);
+        }
+        .btn-bmc:hover {
+            background-color: #ffea55;
+            color: #000000;
+            transform: translateY(-2px);
+        }
+        .qr-frame {
+            border-radius: 12px;
+            border: 1px solid #e9ecef;
+            max-width: 240px;
+        }
+    </style>
+</head>
+<body class="bg-light">
+
+<header class="app-header d-flex justify-content-between align-items-center p-3 px-md-4 bg-white border-bottom shadow-sm">
+    <div class="logo-section d-flex align-items-center">
+        <img src="https://placehold.co/40x40/007bff/ffffff?text=AI" alt="SuperPrompter Logo" class="app-logo mr-2 rounded">
+        <h1 class="header-title h4 mb-0 font-weight-bold">SuperPrompter</h1>
+    </div>
+    <nav class="auth-section">
+        <a href="/" class="btn btn-outline-secondary btn-sm">Home</a>
+    </nav>
+</header>
+
+<div class="container text-center my-5">
+    <h2 class="font-weight-bold text-dark mb-2">Subscription</h2>
+    <p class="text-muted mb-4">Choose your preferred payment method</p>
+
+    <!-- Payment Region Selector Tabs -->
+    <ul class="nav nav-pills justify-content-center mb-4" id="paymentTabs" role="tablist">
+        <li class="nav-item">
+            <a class="nav-link active" id="india-tab" data-toggle="pill" href="#indiaPayment" role="tab" aria-controls="indiaPayment" aria-selected="true">
+                <i class="fas fa-qrcode mr-2"></i>India (UPI / PhonePe)
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" id="global-tab" data-toggle="pill" href="#globalPayment" role="tab" aria-controls="globalPayment" aria-selected="false">
+                <i class="fas fa-coffee mr-2"></i>Global (Buy Me a Coffee)
+            </a>
+        </li>
+    </ul>
+
+    <!-- Payment Tab Panes -->
+    <div class="tab-content">
+        
+        <!-- India Tab: UPI / PhonePe -->
+        <div class="tab-pane fade show active" id="indiaPayment" role="tabpanel" aria-labelledby="india-tab">
+            <div class="card payment-card mx-auto p-4 bg-white">
+                <div class="card-body p-0">
+                    <h5 class="font-weight-bold mb-3" style="color: #5f259f;">
+                        <i class="fas fa-mobile-alt mr-2"></i>Scan & Pay via UPI
+                    </h5>
+                    
+                    <img src="{{ url_for('static', filename='donate_qr.jpeg') }}" 
+                         alt="PhonePe QR Code" class="img-fluid qr-frame mb-3">
+                    
+                    <div class="alert alert-light border text-left p-3 mb-3" style="font-size: 0.88rem;">
+                        <strong>SuperPrompter AI</strong><br>
+                        <span class="text-muted">Accepted apps: PhonePe, Google Pay, Paytm, BHIM UPI</span>
+                    </div>
+                    <p class="text-muted small mb-0">Welcome to the SuperPrompter family! ❤️</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Global Tab: Buy Me a Coffee -->
+        <div class="tab-pane fade" id="globalPayment" role="tabpanel" aria-labelledby="global-tab">
+            <div class="card payment-card mx-auto p-4 bg-white">
+                <div class="card-body p-0">
+                    <h5 class="font-weight-bold mb-3 text-dark">
+                        <i class="fas fa-globe-americas mr-2 text-primary"></i>International Card & PayPal
+                    </h5>
+
+                    <div class="my-4">
+                        <div class="mb-3">
+                            <i class="fas fa-mug-hot fa-3x" style="color: #FFDD00;"></i>
+                        </div>
+                        <p class="text-muted small px-3">
+                            Support our development with credit card, debit card, Apple Pay, or Google Pay via Buy Me a Coffee.
+                        </p>
+                        
+                        <a href="https://buymeacoffee.com/superprompter" target="_blank" rel="noopener noreferrer" class="btn btn-bmc btn-block">
+                            <i class="fas fa-coffee mr-2"></i>Buy Me a Coffee
+                        </a>
+                    </div>
+
+                    <div class="alert alert-light border text-left p-3 mb-3" style="font-size: 0.85rem;">
+                        <i class="fas fa-shield-alt text-success mr-1"></i>
+                        <span class="text-muted">Secure 256-bit encrypted checkout powered by Buy Me a Coffee.</span>
+                    </div>
+                    <p class="text-muted small mb-0">Thank you for supporting open AI innovation! 🚀</p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="mt-4">
+        <a href="/" class="btn btn-link text-secondary">&larr; Back to Home</a>
+    </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
+
