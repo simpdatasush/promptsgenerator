@@ -4403,7 +4403,7 @@ def generate_video_prompt():
         })
 
     except (ServerError, APIError) as api_err:
-        return jsonify({'status': 'error', 'error': 'AI service busy. Please try again shortly.'}), 503
+        return jsonify({'status': 'error', 'error': 'The SuperPrompter AI is currently experiencing high load. Please retry shortly.'.'}), 503
     except Exception as e:
         traceback.print_exc()
         return jsonify({'status': 'error', 'error': str(e)}), 500
