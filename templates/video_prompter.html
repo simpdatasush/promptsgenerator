@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SuperPrompter AI - AI Video Prompt Architect</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --bg-canvas: #090d16;
+            --surface-card: #111827;
+            --surface-subtle: #1e293b;
+            --border-subtle: #334155;
+            --accent-cyan: #38bdf8;
+            --text-primary: #f8fafc;
+            --text-muted: #94a3b8;
+            --font-main: 'Plus Jakarta Sans', sans-serif;
+            --font-code: 'Fira Code', monospace;
+        }
+
+        body {
+            font-family: var(--font-main);
+            background-color: var(--bg-canvas);
+            color: var(--text-primary);
+            min-height: 100vh;
+            margin: 0;
+            padding: 0;
+        }
+
+        .top-navbar {
+            background-color: #ffffff;
+            border-bottom: 1px solid #e5e7eb;
+            padding: 12px 24px;
+        }
+
+        .ai-badge-logo {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #007bff;
+            color: #ffffff;
+            font-weight: 700;
+            font-size: 1.1rem;
+            width: 38px;
+            height: 38px;
+            border-radius: 6px;
+            margin-bottom: 4px;
+        }
+
+        .brand-title {
+            font-size: 1.9rem;
+            font-weight: 700;
+            color: #1f2937;
+            letter-spacing: -0.5px;
+            line-height: 1.1;
+            margin-bottom: 4px;
+        }
+
+        .home-link {
+            color: #007bff;
+            text-decoration: none;
+            font-size: 0.95rem;
+            font-weight: 500;
+        }
+
+        .main-shell {
+            background-color: var(--surface-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: 16px;
+            box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.7);
+        }
+
+        .shell-header {
+            padding: 20px 28px;
+            border-bottom: 1px solid var(--border-subtle);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .badge-hud {
+            background: rgba(56, 189, 248, 0.1);
+            color: var(--accent-cyan);
+            border: 1px solid rgba(56, 189, 248, 0.3);
+            border-radius: 9999px;
+            padding: 6px 14px;
+            font-size: 0.8rem;
+            font-weight: 700;
+        }
+
+        .section-label {
+            font-size: 0.75rem;
+            font-weight: 700;
+            letter-spacing: 0.8px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+        }
+
+        .input-dark {
+            background-color: #0b1120 !important;
+            border: 1px solid var(--border-subtle) !important;
+            color: var(--text-primary) !important;
+            border-radius: 8px;
+            font-size: 0.95rem;
+        }
+
+        .btn-generate {
+            background: linear-gradient(135deg, #0284c7 0%, #2563eb 100%);
+            color: #ffffff !important;
+            border: none;
+            border-radius: 10px;
+            padding: 14px 20px;
+            font-weight: 700;
+            box-shadow: 0 4px 15px rgba(37, 99, 235, 0.35);
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+
+        .output-box {
+            background-color: #060a12;
+            border: 1px solid rgba(56, 189, 248, 0.3);
+            border-radius: 12px;
+            padding: 24px;
+            position: relative;
+            line-height: 1.6;
+            font-size: 0.95rem;
+            white-space: pre-wrap;
+            color: #e2e8f0;
+        }
+
+        .btn-copy {
+            position: absolute;
+            top: 12px;
+            right: 14px;
+            background: var(--surface-subtle);
+            border: 1px solid var(--border-subtle);
+            color: var(--text-muted);
+            border-radius: 6px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            padding: 5px 12px;
+        }
+    </style>
+</head>
+<body>
+
+<header class="top-navbar">
+    <div>
+        <div class="ai-badge-logo">AI</div>
+        <div class="brand-title">SuperPrompter</div>
+        <a href="{{ url_for('landing') }}" class="home-link">Home</a>
+    </div>
+</header>
+
+<div class="container py-5" style="max-width: 1000px;">
+    <div class="main-shell">
+        <div class="shell-header">
+            <div>
+                <h4 class="mb-1 font-weight-bold d-flex align-items-center">
+                    <i class="fa-solid fa-video text-info mr-3"></i>AI Video Prompt Architect
+                </h4>
+                <div class="text-muted small">Generates cinematic, time-sequenced video generation prompts</div>
+            </div>
+            <span class="badge-hud"><i class="fa-solid fa-film mr-1"></i> Veo / Runway / Sora Ready</span>
+        </div>
+
+        <div class="p-4 p-md-5">
+            <div class="form-row mb-4">
+                <div class="form-group col-lg-6 mb-3 mb-lg-0">
+                    <label class="section-label mb-2">Video Scene Concept & Action</label>
+                    <textarea id="conceptInput" class="form-control input-dark" rows="3" placeholder="e.g., A vintage steam locomotive racing through a snowstorm in the Swiss Alps at dusk..."></textarea>
+                </div>
+                <div class="form-group col-lg-3 col-6">
+                    <label class="section-label mb-2">Camera Motion</label>
+                    <select id="motionSelect" class="form-control input-dark" style="height: calc(1.5em + 1.6rem + 2px);">
+                        <option value="Smooth Cinematic Dolly" selected>Cinematic Dolly In</option>
+                        <option value="Sweeping Aerial Drone Orbit">Aerial Drone Orbit</option>
+                        <option value="Dynamic Handheld Tracking">Handheld Tracking</option>
+                        <option value="FPV High-Speed Fly-through">FPV Fly-through</option>
+                        <option value="Static Tripod Fixed Focus">Static Tripod</option>
+                    </select>
+                </div>
+                <div class="form-group col-lg-3 col-6">
+                    <label class="section-label mb-2">Duration & Aspect</label>
+                    <select id="durationSelect" class="form-control input-dark mb-2" style="height: calc(1.5em + 1.6rem + 2px);">
+                        <option value="5 seconds" selected>5s Clip</option>
+                        <option value="10 seconds">10s Extended</option>
+                    </select>
+                    <select id="ratioSelect" class="form-control input-dark" style="height: calc(1.5em + 1.6rem + 2px);">
+                        <option value="16:9" selected>16:9 Landscape</option>
+                        <option value="9:16">9:16 Vertical</option>
+                    </select>
+                </div>
+            </div>
+
+            <button id="generateBtn" type="button" class="btn btn-generate btn-block mb-4" onclick="generateVideoPrompt()">
+                <i class="fa-solid fa-wand-magic-sparkles mr-2"></i> Generate AI Video Prompt
+            </button>
+
+            <div id="resultsPanel" style="display: none;">
+                <div class="section-label mb-2 text-info">Synthesized Video Prompt</div>
+                <div class="output-box mb-3">
+                    <button class="btn btn-copy" onclick="copyPrompt()">
+                        <i class="fa-regular fa-copy mr-1"></i> <span id="copyBtnLabel">Copy Prompt</span>
+                    </button>
+                    <div id="outputContent"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    async function generateVideoPrompt() {
+        const concept = document.getElementById('conceptInput').value.trim();
+        const motion_style = document.getElementById('motionSelect').value;
+        const duration = document.getElementById('durationSelect').value;
+        const aspect_ratio = document.getElementById('ratioSelect').value;
+        const btn = document.getElementById('generateBtn');
+        const results = document.getElementById('resultsPanel');
+        const output = document.getElementById('outputContent');
+
+        if (!concept) {
+            alert('Please enter a video scene concept.');
+            return;
+        }
+
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin mr-2"></i> Synthesizing Video Directives...';
+
+        try {
+            const res = await fetch('/generate_video_prompt', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ concept, motion_style, duration, aspect_ratio })
+            });
+
+            const data = await res.json();
+            if (data.status === 'success') {
+                output.innerText = data.prompt_output;
+                results.style.display = 'block';
+                results.scrollIntoView({ behavior: 'smooth' });
+            } else {
+                alert('Error: ' + data.error);
+            }
+        } catch (e) {
+            alert('Connection Error: ' + e.message);
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles mr-2"></i> Generate AI Video Prompt';
+        }
+    }
+
+    function copyPrompt() {
+        const text = document.getElementById('outputContent').innerText;
+        navigator.clipboard.writeText(text).then(() => {
+            const label = document.getElementById('copyBtnLabel');
+            label.innerText = 'Copied!';
+            setTimeout(() => label.innerText = 'Copy Prompt', 2000);
+        });
+    }
+</script>
+</body>
+</html>
