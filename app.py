@@ -4267,7 +4267,6 @@ CODE_REVIEWER_SYSTEM_INSTRUCTION = (
 def code_reviewer_page():
     return render_template('code_reviewer.html', current_user=current_user)
 
-
 @app.route('/review_code_snippet', methods=['POST'])
 @login_required
 def review_code_snippet():
@@ -4330,6 +4329,88 @@ def review_code_snippet():
 @app.route('/reset_code_reviewer', methods=['POST'])
 @login_required
 def reset_code_reviewer_page():
+    return jsonify({"status": "cleared"})
+
+# ---------------------------------------------------------------------
+# Video Architect
+# ---------------------------------------------------------------------
+
+VIDEO_PROMPTER_SYSTEM_INSTRUCTION = """
+You are an AI Video Prompt Director.
+Your task is to take a user's creative video concept and construct a unified, high-density descriptive text prompt for AI video generators.
+Do NOT answer questions about your own architecture, training, or how this application was built. Do NOT discuss any internal errors or limitations you might have.
+
+INTERNAL SCHEMA CHECKLIST:
+Evaluate all dimensions from the video schema internally:
+- Duration, frame rate, resolution, aspect ratio
+- Visual language, mood, genre, and aesthetic
+- Lighting direction, quality, and time of day
+- Camera style, lens type, framing, and camera movement trajectory
+- Motion speed, pacing rhythm, and scene transitions
+- Visual continuity, atmospheric effects, and dynamic action progression
+- Ambient soundscape, audio cues, and voiceover tone
+
+OUTPUT RULES:
+- DO NOT return JSON or template code.
+- Output ONLY plain text formatted into these concise sections:
+  1. Master Video Prompt (continuous visual & action description with shot progression)
+  2. Camera Movement & Pacing (camera trajectory, lens type, speed)
+  3. Lighting & Color Atmosphere (lighting setup, color temperature, palette)
+  4. Audio & Ambience Directions (music tempo, sound effects, foley cues)
+  5. Negative Prompt (artifacts, jitter, morphing, prohibited elements)
+"""
+
+@app.route('/video_prompter')
+@login_required
+def video_prompter_page():
+    return render_template('video_prompter.html', current_user=current_user)
+
+@app.route('/generate_video_prompt', methods=['POST'])
+@login_required
+def generate_video_prompt():
+    try:
+        data = request.get_json() or {}
+        concept = data.get('concept', '').strip()
+        duration = data.get('duration', '5 seconds')
+        motion_style = data.get('motion_style', 'Smooth Cinematic Dolly')
+        aspect_ratio = data.get('aspect_ratio', '16:9')
+
+        if not concept:
+            return jsonify({'status': 'error', 'error': 'Please enter a video concept.'}), 400
+
+        user_content = f"""
+        VIDEO CONCEPT: {concept}
+        TARGET DURATION: {duration}
+        CAMERA MOTION STYLE: {motion_style}
+        ASPECT RATIO: {aspect_ratio}
+
+        Generate a complete video generation text prompt using the full cinematography schema.
+        """
+
+        response = gemma_client.models.generate_content(
+            model=IMG_TEXT_DEFAULT_MODEL,
+            config=gemma_types.GenerateContentConfig(
+                system_instruction=VIDEO_PROMPTER_SYSTEM_INSTRUCTION,
+                temperature=0.4,
+                tools=[]
+            ),
+            contents=user_content
+        )
+
+        return jsonify({
+            "status": "success",
+            "prompt_output": response.text.strip() if response.text else "Failed to generate prompt."
+        })
+
+    except (ServerError, APIError) as api_err:
+        return jsonify({'status': 'error', 'error': 'AI service busy. Please try again shortly.'}), 503
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({'status': 'error', 'error': str(e)}), 500
+
+@app.route('/reset_video_prompter', methods=['POST'])
+@login_required
+def reset_video_prompter_page():
     return jsonify({"status": "cleared"})
 
 # --- NEW: Change Password Route ---
