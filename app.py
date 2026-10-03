@@ -24,6 +24,7 @@ from google import genai as gemma_genai
 from google.genai import types as gemma_types   # Required for GenerateContentConfig
 from google.api_core.exceptions import GoogleAPIError as APIError, ServerError
 from zai import ZaiClient as ZhipuAI
+from PIL import Image
 
 # 1. Use absolute import
 import secrets
