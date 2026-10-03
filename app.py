@@ -4526,7 +4526,7 @@ def extract_photo_signature():
         width, height = orig_image.size
 
         content_parts = [
-            types.Part.from_bytes(data=file_bytes, mime_type=file.mimetype or 'image/jpeg'),
+            gemma_types.Part.from_bytes(data=file_bytes, mime_type=file.mimetype or 'image/jpeg'),
             "Locate the normalized bounding boxes for candidate's photo and signature in this document image."
         ]
 
