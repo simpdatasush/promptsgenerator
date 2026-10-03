@@ -4420,12 +4420,15 @@ def reset_video_prompter_page():
 
 DOC_EXTRACTOR_SYSTEM_INSTRUCTION = (
     "You are an expert document visual parser and bounding box locator.\n"
-    "Your task is to detect the exact location of:\n"
+    "Your task is to detect the COMPLETE boundary of:\n"
     "1. The candidate/person's portrait photo ('photo')\n"
     "2. The candidate's handwritten signature ('signature')\n\n"
-    "Return bounding boxes using normalized integer coordinates on a scale of 0 to 1000:\n"
-    "[ymin, xmin, ymax, xmax].\n\n"
-    "Return ONLY valid JSON matching this schema (no markdown, no backticks):\n"
+    "CRITICAL FOR SIGNATURE:\n"
+    "- If the signature is inside a box or rectangular line, detect the FULL outer rectangle.\n"
+    "- Ensure all ascenders, descenders, underline flourishes, dots, and initials are fully included.\n"
+    "- Do NOT clip any stroke.\n\n"
+    "Return coordinates as normalized integers from 0 to 1000: [ymin, xmin, ymax, xmax].\n"
+    "Output raw JSON only:\n"
     "{\n"
     '  "photo_found": true | false,\n'
     '  "photo_box": [ymin, xmin, ymax, xmax] | null,\n'
@@ -4435,42 +4438,36 @@ DOC_EXTRACTOR_SYSTEM_INSTRUCTION = (
 )
 
 
-def compress_under_target_kb(image, target_kb=20, out_format="JPEG"):
+def expand_box_with_padding(box, width, height, padding_pct=0.08):
     """
-    Iteratively resizes and adjusts quality/palette to strictly stay below target_kb
-    for both JPEG and PNG formats.
+    Expands the bounding box by a safety margin percentage to avoid cutoffs.
     """
-    target_bytes = target_kb * 1024
+    ymin, xmin, ymax, xmax = box
+    box_w = xmax - xmin
+    box_h = ymax - ymin
+
+    pad_x = box_w * padding_pct
+    pad_y = box_h * padding_pct
+
+    new_xmin = max(0, int((xmin - pad_x) * width / 1000))
+    new_ymin = max(0, int((ymin - pad_y) * height / 1000))
+    new_xmax = min(width, int((xmax + pad_x) * width / 1000))
+    new_ymax = min(height, int((ymax + pad_y) * height / 1000))
+
+    return (new_xmin, new_ymin, new_xmax, new_ymax)
+
+
+def compress_in_target_range(image, min_kb=10, max_kb=25, out_format="JPEG"):
+    """
+    Guarantees the image file size lands strictly between min_kb and max_kb.
+    """
+    min_bytes = int(min_kb * 1024)
+    max_bytes = int(max_kb * 1024)
     img = image.copy()
     fmt = "PNG" if out_format.upper() == "PNG" else "JPEG"
 
-    # Pre-constrain oversized dimensions
-    max_dim = 600
-    if max(img.size) > max_dim:
-        img.thumbnail((max_dim, max_dim), Image.Resampling.LANCZOS)
-
-    buffer = io.BytesIO()
-
-    if fmt == "PNG":
-        # PNG lossless save
-        img.save(buffer, format="PNG", optimize=True)
-
-        # If PNG exceeds limit, convert to adaptive 8-bit palette (256 colors) for drastic size reduction
-        if buffer.tell() > target_bytes:
-            buffer = io.BytesIO()
-            img_p = img.convert("P", palette=Image.Palette.ADAPTIVE, colors=256)
-            img_p.save(buffer, format="PNG", optimize=True)
-
-        # If still over limit, downscale dimensions progressively
-        current_img = img_p if 'img_p' in locals() else img
-        while buffer.tell() > target_bytes and max(current_img.size) > 100:
-            buffer = io.BytesIO()
-            new_size = (int(current_img.size[0] * 0.85), int(current_img.size[1] * 0.85))
-            current_img = current_img.resize(new_size, Image.Resampling.LANCZOS)
-            current_img.save(buffer, format="PNG", optimize=True)
-
-    else:
-        # JPEG requires RGB mode
+    # Ensure format compatibility
+    if fmt == "JPEG":
         if img.mode in ("RGBA", "P"):
             bg = Image.new("RGB", img.size, (255, 255, 255))
             if img.mode == "RGBA":
@@ -4481,19 +4478,66 @@ def compress_under_target_kb(image, target_kb=20, out_format="JPEG"):
         elif img.mode != "RGB":
             img = img.convert("RGB")
 
-        quality = 85
-        img.save(buffer, format="JPEG", quality=quality, optimize=True)
+    buffer = io.BytesIO()
 
-        while buffer.tell() > target_bytes and quality > 20:
+    if fmt == "PNG":
+        img.save(buffer, format="PNG", optimize=True)
+
+        # Scale down if it exceeds maximum
+        if buffer.tell() > max_bytes:
+            # Reduce palette
             buffer = io.BytesIO()
-            quality -= 8
+            img_p = img.convert("P", palette=Image.Palette.ADAPTIVE, colors=256)
+            img_p.save(buffer, format="PNG", optimize=True)
+            current_img = img_p
+
+            while buffer.tell() > max_bytes and max(current_img.size) > 120:
+                buffer = io.BytesIO()
+                new_size = (int(current_img.size[0] * 0.88), int(current_img.size[1] * 0.88))
+                current_img = current_img.resize(new_size, Image.Resampling.LANCZOS)
+                current_img.save(buffer, format="PNG", optimize=True)
+
+        # Upscale dimensions gently if it is below minimum
+        elif buffer.tell() < min_bytes:
+            current_img = img
+            while buffer.tell() < min_bytes and max(current_img.size) < 1200:
+                buffer = io.BytesIO()
+                new_size = (int(current_img.size[0] * 1.15), int(current_img.size[1] * 1.15))
+                current_img = current_img.resize(new_size, Image.Resampling.BICUBIC)
+                current_img.save(buffer, format="PNG", optimize=False)
+
+    else:
+        # JPEG Mode
+        quality = 85
+        img.save(buffer, format="JPEG", quality=quality, optimize=True, subsampling=0)
+
+        # If too large, lower quality then reduce size
+        while buffer.tell() > max_bytes and quality > 25:
+            buffer = io.BytesIO()
+            quality -= 5
             img.save(buffer, format="JPEG", quality=quality, optimize=True)
 
-        while buffer.tell() > target_bytes and max(img.size) > 100:
+        while buffer.tell() > max_bytes and max(img.size) > 100:
             buffer = io.BytesIO()
-            new_size = (int(img.size[0] * 0.85), int(img.size[1] * 0.85))
+            new_size = (int(img.size[0] * 0.88), int(img.size[1] * 0.88))
             img = img.resize(new_size, Image.Resampling.LANCZOS)
             img.save(buffer, format="JPEG", quality=quality, optimize=True)
+
+        # If below min_bytes, upscale quality/dimensions without exceeding max_bytes
+        if buffer.tell() < min_bytes:
+            quality = 95
+            buffer = io.BytesIO()
+            img.save(buffer, format="JPEG", quality=quality, subsampling=0)
+
+            while buffer.tell() < min_bytes and max(img.size) < 1400:
+                new_size = (int(img.size[0] * 1.15), int(img.size[1] * 1.15))
+                test_img = img.resize(new_size, Image.Resampling.BICUBIC)
+                test_buffer = io.BytesIO()
+                test_img.save(test_buffer, format="JPEG", quality=quality, subsampling=0)
+                if test_buffer.tell() > max_bytes:
+                    break
+                img = test_img
+                buffer = test_buffer
 
     final_bytes = buffer.getvalue()
     return final_bytes, len(final_bytes)
@@ -4504,15 +4548,25 @@ def compress_under_target_kb(image, target_kb=20, out_format="JPEG"):
 def doc_extractor_page():
     return render_template('doc_extractor.html', current_user=current_user)
 
+
 @app.route('/extract_photo_signature', methods=['POST'])
 @login_required
 def extract_photo_signature():
     try:
         file = request.files.get('document_image')
         out_format = request.form.get('format', 'JPEG').upper()
-        if out_format not in ['JPEG', 'JPG', 'PNG']:
-            out_format = 'JPEG'
-        if out_format == 'JPG':
+        size_range = request.form.get('size_range', '10-25')  # '10-25', '20-50', '50-100', 'under-20'
+
+        # Map size brackets
+        size_map = {
+            '10-25': (10, 25),
+            'under-20': (5, 20),
+            '20-50': (20, 50),
+            '50-100': (50, 100)
+        }
+        min_kb, max_kb = size_map.get(size_range, (10, 25))
+
+        if out_format not in ['JPEG', 'PNG']:
             out_format = 'JPEG'
 
         if not file or file.filename == '':
@@ -4525,9 +4579,10 @@ def extract_photo_signature():
         orig_image = Image.open(io.BytesIO(file_bytes))
         width, height = orig_image.size
 
+        # Gemini Object Locator
         content_parts = [
             gemma_types.Part.from_bytes(data=file_bytes, mime_type=file.mimetype or 'image/jpeg'),
-            "Locate the normalized bounding boxes for candidate's photo and signature in this document image."
+            "Locate full bounding boxes for photo and signature. If signature is inside a box, include the full box border without clipping."
         ]
 
         response = gemma_client.models.generate_content(
@@ -4551,17 +4606,11 @@ def extract_photo_signature():
         parsed = json.loads(clean_text.strip())
         extracted_results = {}
 
-        # Process Photo
+        # 1. Candidate Photo (4% padding)
         if parsed.get('photo_found') and parsed.get('photo_box'):
-            ymin, xmin, ymax, xmax = parsed['photo_box']
-            box_px = (
-                max(0, int(xmin * width / 1000)),
-                max(0, int(ymin * height / 1000)),
-                min(width, int(xmax * width / 1000)),
-                min(height, int(ymax * height / 1000))
-            )
-            cropped_photo = orig_image.crop(box_px)
-            photo_bytes, photo_size = compress_under_target_kb(cropped_photo, target_kb=20, out_format=out_format)
+            photo_coords = expand_box_with_padding(parsed['photo_box'], width, height, padding_pct=0.04)
+            cropped_photo = orig_image.crop(photo_coords)
+            photo_bytes, photo_size = compress_in_target_range(cropped_photo, min_kb=min_kb, max_kb=max_kb, out_format=out_format)
             extracted_results['photo'] = {
                 'found': True,
                 'data_b64': base64.b64encode(photo_bytes).decode('utf-8'),
@@ -4571,17 +4620,11 @@ def extract_photo_signature():
         else:
             extracted_results['photo'] = {'found': False}
 
-        # Process Signature
+        # 2. Candidate Signature (10% safety margin for stroke containment)
         if parsed.get('signature_found') and parsed.get('signature_box'):
-            ymin, xmin, ymax, xmax = parsed['signature_box']
-            box_px = (
-                max(0, int(xmin * width / 1000)),
-                max(0, int(ymin * height / 1000)),
-                min(width, int(xmax * width / 1000)),
-                min(height, int(ymax * height / 1000))
-            )
-            cropped_sig = orig_image.crop(box_px)
-            sig_bytes, sig_size = compress_under_target_kb(cropped_sig, target_kb=20, out_format=out_format)
+            sig_coords = expand_box_with_padding(parsed['signature_box'], width, height, padding_pct=0.10)
+            cropped_sig = orig_image.crop(sig_coords)
+            sig_bytes, sig_size = compress_in_target_range(cropped_sig, min_kb=min_kb, max_kb=max_kb, out_format=out_format)
             extracted_results['signature'] = {
                 'found': True,
                 'data_b64': base64.b64encode(sig_bytes).decode('utf-8'),
@@ -4591,10 +4634,15 @@ def extract_photo_signature():
         else:
             extracted_results['signature'] = {'found': False}
 
-        return jsonify({'status': 'success', 'results': extracted_results, 'format': out_format})
+        return jsonify({
+            'status': 'success',
+            'results': extracted_results,
+            'format': out_format,
+            'range': f"{min_kb}-{max_kb} KB"
+        })
 
     except (ServerError, APIError) as api_err:
-        return jsonify({'status': 'error', 'error': 'SuperPrompter SI is busy. Please retry shortly.'}), 503
+        return jsonify({'status': 'error', 'error': 'SuperPrompter SI engine busy. Please retry shortly.'}), 503
     except Exception as e:
         traceback.print_exc()
         return jsonify({'status': 'error', 'error': str(e)}), 500
