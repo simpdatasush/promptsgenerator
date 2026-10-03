@@ -147,11 +147,11 @@
 
         .extracted-img {
             max-width: 100%;
-            max-height: 220px;
+            max-height: 200px;
             object-fit: contain;
             border-radius: 8px;
             background: #ffffff;
-            padding: 8px;
+            padding: 6px;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
         }
 
@@ -160,7 +160,7 @@
             color: #86efac;
             border: 1px solid var(--accent-green);
             font-weight: 700;
-            font-size: 0.82rem;
+            font-size: 0.8rem;
             padding: 4px 10px;
             border-radius: 6px;
             display: inline-block;
@@ -171,8 +171,6 @@
             color: #ffffff !important;
             border: 1px solid var(--border-subtle) !important;
             border-radius: 8px;
-            font-weight: 600;
-            font-size: 0.9rem;
         }
     </style>
 </head>
@@ -193,15 +191,15 @@
                 <h4 class="mb-1 font-weight-bold d-flex align-items-center">
                     <i class="fa-solid fa-crop-simple text-info mr-3"></i>Photo & Signature Separator
                 </h4>
-                <div class="text-muted small">Intelligent bounding box extraction with safety margin padding and dual-bound size optimization</div>
+                <div class="text-muted small">Extracts candidate portrait and signature, optimized strictly under 20 KB in JPG or PNG</div>
             </div>
-            <span class="badge-hud"><i class="fa-solid fa-sliders mr-1"></i> Custom Size & Format</span>
+            <span class="badge-hud"><i class="fa-solid fa-gauge-high mr-1"></i> Strict &lt; 20 KB (JPG / PNG)</span>
         </div>
 
         <div class="p-4 p-md-5">
             
             <div class="row mb-4">
-                <div class="col-lg-7 mb-3 mb-lg-0">
+                <div class="col-lg-8 mb-3 mb-lg-0">
                     <div class="upload-dropzone" onclick="document.getElementById('docFile').click()">
                         <input type="file" id="docFile" accept="image/*" style="display: none;" onchange="handleDocUpload(event)">
                         <i class="fa-solid fa-cloud-arrow-up fa-3x text-info mb-3"></i>
@@ -209,47 +207,31 @@
                         <p class="text-muted small mb-0">Supports Aadhaar, PAN, Hall Ticket, Marksheet, or Application Form</p>
                     </div>
                 </div>
-                
-                <!-- Dual Selectors: Format & Size Range -->
-                <div class="col-lg-5">
+                <div class="col-lg-4">
                     <div class="p-3 rounded h-100 d-flex flex-column justify-content-between" style="background: #0b1120; border: 1px solid var(--border-subtle);">
                         <div>
-                            <div class="row">
-                                <div class="col-6 mb-2">
-                                    <label class="text-muted small font-weight-bold text-uppercase">Format</label>
-                                    <select id="formatSelect" class="form-control input-dark">
-                                        <option value="JPEG" selected>JPG / JPEG</option>
-                                        <option value="PNG">PNG</option>
-                                    </select>
-                                </div>
-                                <div class="col-6 mb-2">
-                                    <label class="text-muted small font-weight-bold text-uppercase">Target Size</label>
-                                    <select id="sizeSelect" class="form-control input-dark">
-                                        <option value="10-25" selected>10 KB - 25 KB</option>
-                                        <option value="under-20">Strict &lt; 20 KB</option>
-                                        <option value="20-50">20 KB - 50 KB</option>
-                                        <option value="50-100">50 KB - 100 KB</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <small class="text-muted d-block mt-2">
-                                <i class="fa-solid fa-circle-check text-success mr-1"></i> Adds margin padding to prevent cropped signature strokes while keeping binary size strictly within range[cite: 6].
+                            <label class="text-muted small font-weight-bold text-uppercase">Export Format</label>
+                            <select id="formatSelect" class="form-control input-dark mb-3">
+                                <option value="JPEG" selected>JPG / JPEG (&lt; 20 KB)</option>
+                                <option value="PNG">PNG (&lt; 20 KB)</option>
+                            </select>
+                            <small class="text-muted d-block">
+                                <i class="fa-solid fa-circle-check text-success mr-1"></i> Formatted to fulfill online admission and government exam portal criteria.
                             </small>
                         </div>
                         <button id="extractBtn" class="btn btn-extract btn-block mt-3" onclick="processExtraction()">
-                            <i class="fa-solid fa-wand-magic-sparkles mr-1"></i> Extract & Optimize
+                            <i class="fa-solid fa-wand-magic-sparkles mr-1"></i> Extract & Compress
                         </button>
                     </div>
                 </div>
             </div>
 
-            <!-- Output Results -->
             <div id="resultsContainer" style="display: none;">
                 <hr class="border-secondary mb-4">
-                <h5 class="font-weight-bold text-white mb-3" id="resultsTitle">Extracted Assets</h5>
+                <h5 class="font-weight-bold text-white mb-3" id="resultsTitle">Separated & Compressed Assets</h5>
 
                 <div class="row">
-                    <!-- Candidate Photo -->
+                    <!-- Photo Card -->
                     <div class="col-md-6 mb-3">
                         <div class="preview-box">
                             <div>
@@ -268,12 +250,12 @@
                         </div>
                     </div>
 
-                    <!-- Candidate Signature -->
+                    <!-- Signature Card -->
                     <div class="col-md-6 mb-3">
                         <div class="preview-box">
                             <div>
                                 <div class="d-flex justify-content-between align-items-center mb-3">
-                                    <h6 class="font-weight-bold text-white mb-0"><i class="fa-solid fa-signature mr-2 text-warning"></i>Signature (Complete Box)</h6>
+                                    <h6 class="font-weight-bold text-white mb-0"><i class="fa-solid fa-signature mr-2 text-warning"></i>Signature</h6>
                                     <span class="size-badge" id="sigSizeBadge">-</span>
                                 </div>
                                 <div class="mb-3 text-center">
@@ -282,7 +264,7 @@
                                 </div>
                             </div>
                             <a id="sigDownloadBtn" href="#" download="candidate_signature.jpg" class="btn btn-outline-warning btn-block btn-sm font-weight-bold">
-                                <i class="fa-solid fa-download mr-1"></i> Download Complete Signature
+                                <i class="fa-solid fa-download mr-1"></i> Download Signature
                             </a>
                         </div>
                     </div>
@@ -311,16 +293,14 @@
 
         const btn = document.getElementById('extractBtn');
         const format = document.getElementById('formatSelect').value;
-        const sizeRange = document.getElementById('sizeSelect').value;
         const results = document.getElementById('resultsContainer');
 
         btn.disabled = true;
-        btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin mr-2"></i> Analyzing Strokes & Boundaries...';
+        btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin mr-2"></i> Detecting & Compressing...';
 
         const formData = new FormData();
         formData.append('document_image', currentFile);
         formData.append('format', format);
-        formData.append('size_range', sizeRange);
 
         try {
             const res = await fetch('/extract_photo_signature', {
@@ -340,9 +320,9 @@
                 const mime = isPng ? 'image/png' : 'image/jpeg';
                 const formatLabel = isPng ? 'PNG' : 'JPG';
 
-                document.getElementById('resultsTitle').innerText = `Extracted Assets (${formatLabel}, Target: ${data.range})`;
+                document.getElementById('resultsTitle').innerText = `Separated & Compressed Assets (${formatLabel})`;
 
-                // Photo Rendering
+                // Photo Handling
                 if (photo && photo.found) {
                     const photoSrc = `data:${mime};base64,${photo.data_b64}`;
                     document.getElementById('photoImg').src = photoSrc;
@@ -352,7 +332,7 @@
                     
                     const pBtn = document.getElementById('photoDownloadBtn');
                     pBtn.href = photoSrc;
-                    pBtn.download = `photo_${photo.size_kb}KB.${ext}`;
+                    pBtn.download = `candidate_photo_${photo.size_kb}KB.${ext}`;
                     pBtn.style.display = 'block';
                 } else {
                     document.getElementById('photoImg').style.display = 'none';
@@ -361,7 +341,7 @@
                     document.getElementById('photoDownloadBtn').style.display = 'none';
                 }
 
-                // Signature Rendering
+                // Signature Handling
                 if (sig && sig.found) {
                     const sigSrc = `data:${mime};base64,${sig.data_b64}`;
                     document.getElementById('sigImg').src = sigSrc;
@@ -371,7 +351,7 @@
 
                     const sBtn = document.getElementById('sigDownloadBtn');
                     sBtn.href = sigSrc;
-                    sBtn.download = `signature_${sig.size_kb}KB.${ext}`;
+                    sBtn.download = `candidate_signature_${sig.size_kb}KB.${ext}`;
                     sBtn.style.display = 'block';
                 } else {
                     document.getElementById('sigImg').style.display = 'none';
@@ -388,7 +368,7 @@
             alert('Connection Error: ' + e.message);
         } finally {
             btn.disabled = false;
-            btn.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles mr-1"></i> Extract & Optimize';
+            btn.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles mr-1"></i> Extract & Compress';
         }
     }
 </script>
