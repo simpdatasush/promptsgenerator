@@ -3,44 +3,42 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SuperPrompter AI - Document Photo & Signature Separator</title>
+    <title>Photo & Signature Extractor - SuperPrompter AI</title>
     
-    <!-- Bootstrap 4, FontAwesome 6 & Typography -->
-    <link rel="stylesheet" href="[https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css](https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css)">
-    <link rel="stylesheet" href="[https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css](https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css)">
-    <link rel="preconnect" href="[https://fonts.googleapis.com](https://fonts.googleapis.com)">
-    <link rel="preconnect" href="[https://fonts.gstatic.com](https://fonts.gstatic.com)" crossorigin>
-    <link href="[https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap](https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap)" rel="stylesheet">
+    <!-- Bootstrap 4, FontAwesome 6 & Fonts -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
 
     <style>
         :root {
-            --bg-canvas: #090d16;
-            --surface-card: #111827;
-            --surface-subtle: #1e293b;
-            --border-subtle: #334155;
-            --accent-cyan: #38bdf8;
+            --bg-body: #0d121f;
+            --card-bg: #121929;
+            --card-inner: #0a0f1d;
+            --border-color: #1e293b;
+            --accent-blue: #38bdf8;
+            --accent-pink: #f43f5e;
             --accent-green: #22c55e;
-            --text-primary: #f8fafc;
-            --text-muted: #94a3b8;
-            --font-main: 'Plus Jakarta Sans', sans-serif;
-            --font-code: 'Fira Code', monospace;
+            --text-main: #f8fafc;
+            --text-sub: #94a3b8;
         }
 
         body {
-            font-family: var(--font-main);
-            background-color: var(--bg-canvas);
-            color: var(--text-primary);
-            min-height: 100vh;
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            font-family: 'Plus Jakarta Sans', sans-serif;
             margin: 0;
             padding: 0;
         }
 
+        /* Top Header */
         .top-navbar {
             background-color: #ffffff;
             border-bottom: 1px solid #e5e7eb;
-            padding: 12px 24px;
+            padding: 10px 24px;
         }
-
         .ai-badge-logo {
             display: inline-flex;
             align-items: center;
@@ -48,129 +46,217 @@
             background-color: #007bff;
             color: #ffffff;
             font-weight: 700;
-            font-size: 1.1rem;
-            width: 38px;
-            height: 38px;
+            font-size: 1rem;
+            width: 34px;
+            height: 34px;
             border-radius: 6px;
-            margin-bottom: 4px;
+            margin-bottom: 2px;
         }
-
         .brand-title {
-            font-size: 1.9rem;
+            font-size: 1.6rem;
             font-weight: 700;
             color: #1f2937;
             letter-spacing: -0.5px;
             line-height: 1.1;
-            margin-bottom: 4px;
+            margin-bottom: 2px;
         }
-
         .home-link {
             color: #007bff;
             text-decoration: none;
-            font-size: 0.95rem;
+            font-size: 0.88rem;
             font-weight: 500;
         }
 
-        .home-link:hover {
-            text-decoration: underline;
-            color: #0056b3;
+        /* Dark Container & Cards */
+        .extractor-container {
+            max-width: 960px;
+            margin: 28px auto;
+            padding: 0 16px;
+        }
+        .main-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
         }
 
-        .main-shell {
-            background-color: var(--surface-card);
-            border: 1px solid var(--border-subtle);
-            border-radius: 16px;
-            box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.7);
+        /* Toolbar Buttons */
+        .btn-tool {
+            background: #1e293b;
+            color: #cbd5e1;
+            border: 1px solid #334155;
+            border-radius: 6px;
+            padding: 6px 14px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            transition: all 0.15s ease;
+        }
+        .btn-tool:hover {
+            color: #ffffff;
+            background: #334155;
+        }
+        .btn-mark-photo.active {
+            background: rgba(56, 189, 248, 0.2);
+            color: var(--accent-blue);
+            border-color: var(--accent-blue);
+        }
+        .btn-mark-sig.active {
+            background: rgba(244, 63, 94, 0.2);
+            color: var(--accent-pink);
+            border-color: var(--accent-pink);
         }
 
-        .shell-header {
-            padding: 20px 28px;
-            border-bottom: 1px solid var(--border-subtle);
+        /* Thumbnails strip */
+        .thumb-strip {
             display: flex;
-            justify-content: space-between;
+            gap: 10px;
+            margin-top: 14px;
+            overflow-x: auto;
+            padding-bottom: 6px;
+        }
+        .thumb-item {
+            width: 58px;
+            height: 48px;
+            border-radius: 4px;
+            border: 2px solid transparent;
+            object-fit: cover;
+            cursor: pointer;
+            background: #000;
+        }
+        .thumb-item.active {
+            border-color: var(--accent-blue);
+        }
+
+        /* Canvas Stage */
+        .canvas-viewport {
+            background-color: #05070d;
+            border: 1px solid #1e293b;
+            border-radius: 8px;
+            position: relative;
+            overflow: auto;
+            max-height: 540px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-top: 14px;
+            cursor: crosshair;
+        }
+        #viewportCanvas {
+            display: block;
+            max-width: 100%;
+        }
+
+        .canvas-hint {
+            font-size: 0.8rem;
+            color: var(--text-sub);
+            margin-top: 8px;
+            display: flex;
             align-items: center;
         }
 
-        .badge-hud {
-            background: rgba(34, 197, 94, 0.12);
-            color: var(--accent-green);
-            border: 1px solid rgba(34, 197, 94, 0.3);
-            border-radius: 9999px;
-            padding: 6px 14px;
-            font-size: 0.8rem;
-            font-weight: 700;
+        /* Settings Bar */
+        .settings-bar {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 12px 18px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 20px;
         }
-
-        .upload-dropzone {
-            background-color: #0b1120;
-            border: 2px dashed var(--border-subtle);
-            border-radius: 12px;
-            padding: 30px 20px;
+        .settings-bar label {
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: #94a3b8;
+            margin: 0;
+        }
+        .input-limit {
+            background: #0b1120;
+            border: 1px solid #334155;
+            color: #ffffff;
+            border-radius: 6px;
+            width: 65px;
+            padding: 4px 8px;
+            font-size: 0.85rem;
             text-align: center;
-            cursor: pointer;
-            transition: all 0.2s ease;
+            font-weight: 600;
         }
 
-        .upload-dropzone:hover {
-            border-color: var(--accent-cyan);
-            background-color: rgba(56, 189, 248, 0.04);
-        }
-
-        .btn-extract {
-            background: linear-gradient(135deg, #0284c7 0%, #2563eb 100%);
-            color: #ffffff !important;
-            border: none;
-            border-radius: 10px;
-            padding: 14px 22px;
-            font-weight: 700;
-            box-shadow: 0 4px 15px rgba(37, 99, 235, 0.35);
-            transition: all 0.2s ease;
-            cursor: pointer;
-        }
-
-        .btn-extract:hover {
-            background: linear-gradient(135deg, #0369a1 0%, #1d4ed8 100%);
-            transform: translateY(-1px);
-        }
-
-        .preview-box {
-            background: var(--surface-subtle);
-            border: 1px solid var(--border-subtle);
+        /* Result Cards */
+        .result-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
             border-radius: 12px;
-            padding: 20px;
-            text-align: center;
-            height: 100%;
+            padding: 18px;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
+            height: 100%;
         }
-
-        .extracted-img {
-            max-width: 100%;
-            max-height: 200px;
-            object-fit: contain;
-            border-radius: 8px;
+        .result-preview-box {
             background: #ffffff;
-            padding: 6px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-        }
-
-        .size-badge {
-            background: rgba(34, 197, 94, 0.2);
-            color: #86efac;
-            border: 1px solid var(--accent-green);
-            font-weight: 700;
-            font-size: 0.8rem;
-            padding: 4px 10px;
-            border-radius: 6px;
-            display: inline-block;
-        }
-
-        .input-dark {
-            background-color: #1e293b !important;
-            color: #ffffff !important;
-            border: 1px solid var(--border-subtle) !important;
             border-radius: 8px;
+            height: 220px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 12px;
+            margin-bottom: 14px;
+            overflow: hidden;
+        }
+        .result-preview-box img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+        .meta-stats {
+            font-size: 0.8rem;
+            color: #cbd5e1;
+            font-family: 'Fira Code', monospace;
+            margin-bottom: 2px;
+        }
+        .status-badge {
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: var(--accent-green);
+            margin-bottom: 12px;
+        }
+        .status-badge.error {
+            color: #f87171;
+        }
+        .btn-download-photo {
+            background: #0284c7;
+            color: #ffffff;
+            border: none;
+            border-radius: 6px;
+            padding: 8px 14px;
+            font-weight: 700;
+            font-size: 0.85rem;
+        }
+        .btn-download-sig {
+            background: #8b5cf6;
+            color: #ffffff;
+            border: none;
+            border-radius: 6px;
+            padding: 8px 14px;
+            font-weight: 700;
+            font-size: 0.85rem;
+        }
+        .btn-download-photo:hover, .btn-download-sig:hover {
+            color: #fff;
+            filter: brightness(1.1);
+        }
+        .select-fmt {
+            background: #0b1120;
+            border: 1px solid #334155;
+            color: #ffffff;
+            border-radius: 6px;
+            font-size: 0.78rem;
+            padding: 3px 6px;
+            font-weight: 600;
+            width: 80px;
         }
     </style>
 </head>
@@ -184,192 +270,401 @@
     </div>
 </header>
 
-<div class="container py-5" style="max-width: 1060px;">
-    <div class="main-shell">
-        <div class="shell-header">
-            <div>
-                <h4 class="mb-1 font-weight-bold d-flex align-items-center">
-                    <i class="fa-solid fa-crop-simple text-info mr-3"></i>Photo & Signature Separator
-                </h4>
-                <div class="text-muted small">Extracts candidate portrait and signature, optimized strictly under 20 KB in JPG or PNG</div>
+<div class="extractor-container">
+    <div class="mb-4">
+        <h3 class="font-weight-bold mb-1">Photo &amp; Signature Extractor</h3>
+        <p class="text-muted small mb-0">Upload photos of your document. Mark the person's photo and the signature, then download each as a JPG or PNG sized between your limits. Everything runs directly in your browser.</p>
+    </div>
+
+    <!-- Main Workspace Stage -->
+    <div class="main-card">
+        <!-- Toolbar -->
+        <div class="d-flex flex-wrap align-items-center justify-content-between">
+            <div class="d-flex align-items-center flex-wrap" style="gap: 8px;">
+                <label class="btn-tool mb-0" style="cursor: pointer;">
+                    <i class="fa-solid fa-folder-open mr-1"></i> Choose files
+                    <input type="file" id="filePicker" accept="image/*" multiple style="display: none;" onchange="handleFiles(event)">
+                </label>
+                <span id="currentFileName" class="text-muted small font-weight-bold ml-1">No file chosen</span>
             </div>
-            <span class="badge-hud"><i class="fa-solid fa-gauge-high mr-1"></i> Strict &lt; 20 KB (JPG / PNG)</span>
+
+            <div class="d-flex align-items-center mt-2 mt-sm-0" style="gap: 8px;">
+                <button type="button" class="btn-tool" onclick="rotateImage(90)">
+                    <i class="fa-solid fa-rotate mr-1"></i> Rotate 90°
+                </button>
+                <button type="button" id="btnMarkPhoto" class="btn-tool btn-mark-photo active" onclick="setMode('photo')">
+                    <i class="fa-regular fa-square mr-1"></i> Mark photo
+                </button>
+                <button type="button" id="btnMarkSig" class="btn-tool btn-mark-sig" onclick="setMode('signature')">
+                    <i class="fa-solid fa-signature mr-1"></i> Mark signature
+                </button>
+            </div>
         </div>
 
-        <div class="p-4 p-md-5">
-            
-            <div class="row mb-4">
-                <div class="col-lg-8 mb-3 mb-lg-0">
-                    <div class="upload-dropzone" onclick="document.getElementById('docFile').click()">
-                        <input type="file" id="docFile" accept="image/*" style="display: none;" onchange="handleDocUpload(event)">
-                        <i class="fa-solid fa-cloud-arrow-up fa-3x text-info mb-3"></i>
-                        <h6 class="font-weight-bold text-white mb-1" id="fileNameLabel">Upload Document Photo or Screenshot</h6>
-                        <p class="text-muted small mb-0">Supports Aadhaar, PAN, Hall Ticket, Marksheet, or Application Form</p>
+        <!-- Thumbnail Strip -->
+        <div class="thumb-strip" id="thumbStrip" style="display: none;"></div>
+
+        <!-- Canvas Viewport with Drawing Overlay -->
+        <div class="canvas-viewport" id="viewportContainer">
+            <canvas id="viewportCanvas"></canvas>
+        </div>
+
+        <div class="canvas-hint">
+            <i class="fa-solid fa-arrow-pointer mr-2 text-info"></i>
+            Drag a box on the image around the item you are marking. Boxes can be drawn on different images.
+        </div>
+    </div>
+
+    <!-- Limits Bar -->
+    <div class="settings-bar">
+        <label>Min size (KB)</label>
+        <input type="number" id="minSizeInput" class="input-limit" value="10" min="1" max="500" onchange="recompressAll()">
+        <label>Max size (KB)</label>
+        <input type="number" id="maxSizeInput" class="input-limit" value="25" min="2" max="500" onchange="recompressAll()">
+    </div>
+
+    <!-- Dual Result Cards -->
+    <div class="row">
+        <!-- Photo Result -->
+        <div class="col-md-6 mb-4">
+            <div class="result-card">
+                <div>
+                    <h6 class="font-weight-bold mb-3 text-white">Photo</h6>
+                    <div class="result-preview-box">
+                        <img id="photoResultImg" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100' fill='%23ccc'><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-family='sans-serif' font-size='12'>No Photo Marked</text></svg>" alt="Extracted Photo">
                     </div>
-                </div>
-                <div class="col-lg-4">
-                    <div class="p-3 rounded h-100 d-flex flex-column justify-content-between" style="background: #0b1120; border: 1px solid var(--border-subtle);">
-                        <div>
-                            <label class="text-muted small font-weight-bold text-uppercase">Export Format</label>
-                            <select id="formatSelect" class="form-control input-dark mb-3">
-                                <option value="JPEG" selected>JPG / JPEG (&lt; 20 KB)</option>
-                                <option value="PNG">PNG (&lt; 20 KB)</option>
-                            </select>
-                            <small class="text-muted d-block">
-                                <i class="fa-solid fa-circle-check text-success mr-1"></i> Formatted to fulfill online admission and government exam portal criteria.
-                            </small>
-                        </div>
-                        <button id="extractBtn" class="btn btn-extract btn-block mt-3" onclick="processExtraction()">
-                            <i class="fa-solid fa-wand-magic-sparkles mr-1"></i> Extract & Compress
-                        </button>
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <select id="photoFormat" class="select-fmt" onchange="recompressPhoto()">
+                            <option value="JPG" selected>JPG</option>
+                            <option value="PNG">PNG</option>
+                        </select>
                     </div>
+                    <div id="photoMeta" class="meta-stats">- &times; - px &middot; - KB</div>
+                    <div id="photoStatus" class="status-badge">Awaiting selection</div>
                 </div>
+                <a id="photoDownloadBtn" href="#" download="candidate_photo.jpg" class="btn btn-download-photo btn-block text-center mt-2" style="pointer-events: none; opacity: 0.5;">
+                    Download photo
+                </a>
             </div>
+        </div>
 
-            <div id="resultsContainer" style="display: none;">
-                <hr class="border-secondary mb-4">
-                <h5 class="font-weight-bold text-white mb-3" id="resultsTitle">Separated & Compressed Assets</h5>
-
-                <div class="row">
-                    <!-- Photo Card -->
-                    <div class="col-md-6 mb-3">
-                        <div class="preview-box">
-                            <div>
-                                <div class="d-flex justify-content-between align-items-center mb-3">
-                                    <h6 class="font-weight-bold text-white mb-0"><i class="fa-solid fa-user mr-2 text-info"></i>Candidate Photo</h6>
-                                    <span class="size-badge" id="photoSizeBadge">-</span>
-                                </div>
-                                <div class="mb-3 text-center">
-                                    <img id="photoImg" class="extracted-img" alt="Extracted Photo">
-                                    <div id="photoNotFound" class="text-muted small py-4" style="display: none;">No candidate photo detected.</div>
-                                </div>
-                            </div>
-                            <a id="photoDownloadBtn" href="#" download="candidate_photo.jpg" class="btn btn-outline-info btn-block btn-sm font-weight-bold">
-                                <i class="fa-solid fa-download mr-1"></i> Download Photo
-                            </a>
-                        </div>
+        <!-- Signature Result -->
+        <div class="col-md-6 mb-4">
+            <div class="result-card">
+                <div>
+                    <h6 class="font-weight-bold mb-3 text-white">Signature</h6>
+                    <div class="result-preview-box">
+                        <img id="sigResultImg" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100' fill='%23ccc'><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-family='sans-serif' font-size='12'>No Signature Marked</text></svg>" alt="Extracted Signature">
                     </div>
-
-                    <!-- Signature Card -->
-                    <div class="col-md-6 mb-3">
-                        <div class="preview-box">
-                            <div>
-                                <div class="d-flex justify-content-between align-items-center mb-3">
-                                    <h6 class="font-weight-bold text-white mb-0"><i class="fa-solid fa-signature mr-2 text-warning"></i>Signature</h6>
-                                    <span class="size-badge" id="sigSizeBadge">-</span>
-                                </div>
-                                <div class="mb-3 text-center">
-                                    <img id="sigImg" class="extracted-img" alt="Extracted Signature">
-                                    <div id="sigNotFound" class="text-muted small py-4" style="display: none;">No signature detected.</div>
-                                </div>
-                            </div>
-                            <a id="sigDownloadBtn" href="#" download="candidate_signature.jpg" class="btn btn-outline-warning btn-block btn-sm font-weight-bold">
-                                <i class="fa-solid fa-download mr-1"></i> Download Signature
-                            </a>
-                        </div>
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <select id="sigFormat" class="select-fmt" onchange="recompressSig()">
+                            <option value="JPG" selected>JPG</option>
+                            <option value="PNG">PNG</option>
+                        </select>
                     </div>
+                    <div id="sigMeta" class="meta-stats">- &times; - px &middot; - KB</div>
+                    <div id="sigStatus" class="status-badge">Awaiting selection</div>
                 </div>
+                <a id="sigDownloadBtn" href="#" download="candidate_signature.jpg" class="btn btn-download-sig btn-block text-center mt-2" style="pointer-events: none; opacity: 0.5;">
+                    Download signature
+                </a>
             </div>
-
         </div>
     </div>
 </div>
 
 <script>
-    let currentFile = null;
+    // State management
+    let loadedImages = [];
+    let currentIdx = 0;
+    let rotationDegrees = 0;
+    let activeMode = 'photo'; // 'photo' or 'signature'
 
-    function handleDocUpload(e) {
-        const file = e.target.files[0];
-        if (!file) return;
-        currentFile = file;
-        document.getElementById('fileNameLabel').innerText = file.name + ` (${(file.size / 1024).toFixed(1)} KB)`;
+    // Selection Boxes { x, y, w, h } stored in normalized scale (0..1)
+    let photoBox = null;
+    let sigBox = null;
+
+    // Canvas & Dragging
+    const canvas = document.getElementById('viewportCanvas');
+    const ctx = canvas.getContext('2d');
+    let isDrawing = false;
+    let startX = 0, startY = 0;
+
+    // Cache of source elements for compression
+    let croppedPhotoCanvas = null;
+    let croppedSigCanvas = null;
+
+    function handleFiles(event) {
+        const files = Array.from(event.target.files);
+        if (!files.length) return;
+
+        loadedImages = [];
+        const strip = document.getElementById('thumbStrip');
+        strip.innerHTML = '';
+        strip.style.display = files.length > 1 ? 'flex' : 'none';
+
+        let loadedCount = 0;
+        files.forEach((f, idx) => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    loadedImages[idx] = { img, file: f };
+                    loadedCount++;
+                    if (loadedCount === files.length) {
+                        selectImage(0);
+                    }
+                };
+                img.src = e.target.result;
+
+                // Build thumbnail
+                const thumb = document.createElement('img');
+                thumb.className = `thumb-item ${idx === 0 ? 'active' : ''}`;
+                thumb.src = e.target.result;
+                thumb.onclick = () => selectImage(idx);
+                strip.appendChild(thumb);
+            };
+            reader.readAsDataURL(f);
+        });
     }
 
-    async function processExtraction() {
-        if (!currentFile) {
-            alert('Please select a document image or screenshot first.');
-            return;
+    function selectImage(idx) {
+        currentIdx = idx;
+        rotationDegrees = 0;
+        document.querySelectorAll('.thumb-item').forEach((t, i) => {
+            t.classList.toggle('active', i === idx);
+        });
+        document.getElementById('currentFileName').innerText = loadedImages[idx].file.name;
+        renderCanvas();
+    }
+
+    function rotateImage(deg) {
+        if (!loadedImages.length) return;
+        rotationDegrees = (rotationDegrees + deg) % 360;
+        renderCanvas();
+    }
+
+    function setMode(mode) {
+        activeMode = mode;
+        document.getElementById('btnMarkPhoto').classList.toggle('active', mode === 'photo');
+        document.getElementById('btnMarkSig').classList.toggle('active', mode === 'signature');
+    }
+
+    function renderCanvas() {
+        if (!loadedImages.length) return;
+        const current = loadedImages[currentIdx].img;
+
+        const isRotated = rotationDegrees === 90 || rotationDegrees === 270;
+        const width = isRotated ? current.height : current.width;
+        const height = isRotated ? current.width : current.height;
+
+        canvas.width = width;
+        canvas.height = height;
+
+        ctx.clearRect(0, 0, width, height);
+        ctx.save();
+        ctx.translate(width / 2, height / 2);
+        ctx.rotate((rotationDegrees * Math.PI) / 180);
+        ctx.drawImage(current, -current.width / 2, -current.height / 2);
+        ctx.restore();
+
+        // Draw selection overlays
+        if (photoBox && photoBox.idx === currentIdx) {
+            drawBox(photoBox, '#38bdf8', 'Photo');
+        }
+        if (sigBox && sigBox.idx === currentIdx) {
+            drawBox(sigBox, '#f43f5e', 'Signature');
+        }
+    }
+
+    function drawBox(b, strokeColor, label) {
+        ctx.strokeStyle = strokeColor;
+        ctx.lineWidth = Math.max(3, canvas.width * 0.003);
+        ctx.strokeRect(b.x, b.y, b.w, b.h);
+
+        ctx.fillStyle = strokeColor;
+        ctx.font = `bold ${Math.max(12, canvas.width * 0.015)}px sans-serif`;
+        ctx.fillRect(b.x, Math.max(0, b.y - 20), ctx.measureText(label).width + 12, 20);
+
+        ctx.fillStyle = '#ffffff';
+        ctx.fillText(label, b.x + 6, Math.max(14, b.y - 5));
+    }
+
+    // Interactive Dragging on Canvas
+    canvas.addEventListener('mousedown', (e) => {
+        if (!loadedImages.length) return;
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+
+        isDrawing = true;
+        startX = (e.clientX - rect.left) * scaleX;
+        startY = (e.clientY - rect.top) * scaleY;
+    });
+
+    canvas.addEventListener('mousemove', (e) => {
+        if (!isDrawing) return;
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+
+        const currentX = (e.clientX - rect.left) * scaleX;
+        const currentY = (e.clientY - rect.top) * scaleY;
+
+        renderCanvas();
+
+        const w = currentX - startX;
+        const h = currentY - startY;
+
+        ctx.strokeStyle = activeMode === 'photo' ? '#38bdf8' : '#f43f5e';
+        ctx.lineWidth = Math.max(3, canvas.width * 0.003);
+        ctx.strokeRect(startX, startY, w, h);
+    });
+
+    canvas.addEventListener('mouseup', (e) => {
+        if (!isDrawing) return;
+        isDrawing = false;
+
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+
+        const endX = (e.clientX - rect.left) * scaleX;
+        const endY = (e.clientY - rect.top) * scaleY;
+
+        const x = Math.min(startX, endX);
+        const y = Math.min(startY, endY);
+        const w = Math.abs(endX - startX);
+        const h = Math.abs(endY - startY);
+
+        if (w < 10 || h < 10) return; // ignore accidental clicks
+
+        const box = { x, y, w, h, idx: currentIdx };
+        if (activeMode === 'photo') {
+            photoBox = box;
+            croppedPhotoCanvas = cropFromCanvas(box);
+            recompressPhoto();
+            setMode('signature'); // Auto advance to signature mode for convenience
+        } else {
+            sigBox = box;
+            croppedSigCanvas = cropFromCanvas(box);
+            recompressSig();
         }
 
-        const btn = document.getElementById('extractBtn');
-        const format = document.getElementById('formatSelect').value;
-        const results = document.getElementById('resultsContainer');
+        renderCanvas();
+    });
 
-        btn.disabled = true;
-        btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin mr-2"></i> Detecting & Compressing...';
+    function cropFromCanvas(box) {
+        const temp = document.createElement('canvas');
+        temp.width = box.w;
+        temp.height = box.h;
+        const tctx = temp.getContext('2d');
+        tctx.drawImage(canvas, box.x, box.y, box.w, box.h, 0, 0, box.w, box.h);
+        return temp;
+    }
 
-        const formData = new FormData();
-        formData.append('document_image', currentFile);
-        formData.append('format', format);
+    // Binary search compression directly inside browser canvas
+    async function compressToTarget(sourceCanvas, format, minKb, maxKb) {
+        const minBytes = minKb * 1024;
+        const maxBytes = maxKb * 1024;
+        const mime = format === 'PNG' ? 'image/png' : 'image/jpeg';
 
-        try {
-            const res = await fetch('/extract_photo_signature', {
-                method: 'POST',
-                body: formData
-            });
+        let currentCanvas = sourceCanvas;
+        let quality = 0.92;
+        let blob = await canvasToBlob(currentCanvas, mime, quality);
 
-            const data = await res.json();
-
-            if (data.status === 'success') {
-                results.style.display = 'block';
-
-                const photo = data.results.photo;
-                const sig = data.results.signature;
-                const isPng = (data.format || format).toUpperCase() === 'PNG';
-                const ext = isPng ? 'png' : 'jpg';
-                const mime = isPng ? 'image/png' : 'image/jpeg';
-                const formatLabel = isPng ? 'PNG' : 'JPG';
-
-                document.getElementById('resultsTitle').innerText = `Separated & Compressed Assets (${formatLabel})`;
-
-                // Photo Handling
-                if (photo && photo.found) {
-                    const photoSrc = `data:${mime};base64,${photo.data_b64}`;
-                    document.getElementById('photoImg').src = photoSrc;
-                    document.getElementById('photoImg').style.display = 'inline-block';
-                    document.getElementById('photoNotFound').style.display = 'none';
-                    document.getElementById('photoSizeBadge').innerText = `${photo.size_kb} KB (${formatLabel})`;
-                    
-                    const pBtn = document.getElementById('photoDownloadBtn');
-                    pBtn.href = photoSrc;
-                    pBtn.download = `candidate_photo_${photo.size_kb}KB.${ext}`;
-                    pBtn.style.display = 'block';
-                } else {
-                    document.getElementById('photoImg').style.display = 'none';
-                    document.getElementById('photoNotFound').style.display = 'block';
-                    document.getElementById('photoSizeBadge').innerText = 'Not Found';
-                    document.getElementById('photoDownloadBtn').style.display = 'none';
-                }
-
-                // Signature Handling
-                if (sig && sig.found) {
-                    const sigSrc = `data:${mime};base64,${sig.data_b64}`;
-                    document.getElementById('sigImg').src = sigSrc;
-                    document.getElementById('sigImg').style.display = 'inline-block';
-                    document.getElementById('sigNotFound').style.display = 'none';
-                    document.getElementById('sigSizeBadge').innerText = `${sig.size_kb} KB (${formatLabel})`;
-
-                    const sBtn = document.getElementById('sigDownloadBtn');
-                    sBtn.href = sigSrc;
-                    sBtn.download = `candidate_signature_${sig.size_kb}KB.${ext}`;
-                    sBtn.style.display = 'block';
-                } else {
-                    document.getElementById('sigImg').style.display = 'none';
-                    document.getElementById('sigNotFound').style.display = 'block';
-                    document.getElementById('sigSizeBadge').innerText = 'Not Found';
-                    document.getElementById('sigDownloadBtn').style.display = 'none';
-                }
-
-                results.scrollIntoView({ behavior: 'smooth' });
-            } else {
-                alert('Error: ' + data.error);
+        // Downscale loop if exceeding max
+        if (blob.size > maxBytes) {
+            while (blob.size > maxBytes && quality > 0.3) {
+                quality -= 0.1;
+                blob = await canvasToBlob(currentCanvas, mime, quality);
             }
-        } catch (e) {
-            alert('Connection Error: ' + e.message);
-        } finally {
-            btn.disabled = false;
-            btn.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles mr-1"></i> Extract & Compress';
+            while (blob.size > maxBytes && (currentCanvas.width > 80 || currentCanvas.height > 80)) {
+                currentCanvas = resizeCanvas(currentCanvas, 0.88);
+                blob = await canvasToBlob(currentCanvas, mime, quality);
+            }
+        } 
+        // Upscale loop if below min
+        else if (blob.size < minBytes) {
+            while (blob.size < minBytes && currentCanvas.width < 1200) {
+                const scaled = resizeCanvas(currentCanvas, 1.15);
+                const testBlob = await canvasToBlob(scaled, mime, 0.95);
+                if (testBlob.size > maxBytes) break;
+                currentCanvas = scaled;
+                blob = testBlob;
+            }
         }
+
+        return {
+            blob,
+            dataUrl: URL.createObjectURL(blob),
+            sizeKb: (blob.size / 1024).toFixed(1),
+            width: currentCanvas.width,
+            height: currentCanvas.height,
+            valid: blob.size >= minBytes && blob.size <= maxBytes
+        };
+    }
+
+    function canvasToBlob(cvs, mime, q) {
+        return new Promise(resolve => cvs.toBlob(resolve, mime, q));
+    }
+
+    function resizeCanvas(orig, factor) {
+        const res = document.createElement('canvas');
+        res.width = Math.round(orig.width * factor);
+        res.height = Math.round(orig.height * factor);
+        const rctx = res.getContext('2d');
+        rctx.drawImage(orig, 0, 0, res.width, res.height);
+        return res;
+    }
+
+    async function recompressPhoto() {
+        if (!croppedPhotoCanvas) return;
+        const min = parseInt(document.getElementById('minSizeInput').value) || 10;
+        const max = parseInt(document.getElementById('maxSizeInput').value) || 25;
+        const fmt = document.getElementById('photoFormat').value;
+
+        const res = await compressToTarget(croppedPhotoCanvas, fmt, min, max);
+
+        document.getElementById('photoResultImg').src = res.dataUrl;
+        document.getElementById('photoMeta').innerText = `${res.width} × ${res.height} px · ${res.sizeKb} KB`;
+
+        const st = document.getElementById('photoStatus');
+        st.innerText = res.valid ? 'Within the size limits' : 'Outside size limits';
+        st.className = `status-badge ${res.valid ? '' : 'error'}`;
+
+        const dl = document.getElementById('photoDownloadBtn');
+        dl.href = res.dataUrl;
+        dl.download = `photo_${res.sizeKb}KB.${fmt.toLowerCase()}`;
+        dl.style.pointerEvents = 'auto';
+        dl.style.opacity = '1';
+    }
+
+    async function recompressSig() {
+        if (!croppedSigCanvas) return;
+        const min = parseInt(document.getElementById('minSizeInput').value) || 10;
+        const max = parseInt(document.getElementById('maxSizeInput').value) || 25;
+        const fmt = document.getElementById('sigFormat').value;
+
+        const res = await compressToTarget(croppedSigCanvas, fmt, min, max);
+
+        document.getElementById('sigResultImg').src = res.dataUrl;
+        document.getElementById('sigMeta').innerText = `${res.width} × ${res.height} px · ${res.sizeKb} KB`;
+
+        const st = document.getElementById('sigStatus');
+        st.innerText = res.valid ? 'Within the size limits' : 'Outside size limits';
+        st.className = `status-badge ${res.valid ? '' : 'error'}`;
+
+        const dl = document.getElementById('sigDownloadBtn');
+        dl.href = res.dataUrl;
+        dl.download = `signature_${res.sizeKb}KB.${fmt.toLowerCase()}`;
+        dl.style.pointerEvents = 'auto';
+        dl.style.opacity = '1';
+    }
+
+    function recompressAll() {
+        recompressPhoto();
+        recompressSig();
     }
 </script>
 </body>
