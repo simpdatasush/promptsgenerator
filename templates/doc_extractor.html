@@ -5,18 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SuperPrompter SI - Photo & Signature Extractor</title>
     
-    <!-- Bootstrap 4, FontAwesome 6 & Fonts -->
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="[https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css](https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css)">
+    <link rel="stylesheet" href="[https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css](https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css)">
+    <link rel="preconnect" href="[https://fonts.googleapis.com](https://fonts.googleapis.com)">
+    <link rel="preconnect" href="[https://fonts.gstatic.com](https://fonts.gstatic.com)" crossorigin>
+    <link href="[https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap](https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap)" rel="stylesheet">
 
     <style>
         :root {
             --bg-body: #0d121f;
             --card-bg: #121929;
-            --card-inner: #0a0f1d;
             --border-color: #1e293b;
             --accent-blue: #38bdf8;
             --accent-pink: #f43f5e;
@@ -33,7 +31,6 @@
             padding: 0;
         }
 
-        /* Top Header */
         .top-navbar {
             background-color: #ffffff;
             border-bottom: 1px solid #e5e7eb;
@@ -67,10 +64,9 @@
             font-weight: 500;
         }
 
-        /* Dark Container & Cards */
         .extractor-container {
-            max-width: 960px;
-            margin: 28px auto;
+            max-width: 980px;
+            margin: 24px auto;
             padding: 0 16px;
         }
         .main-card {
@@ -81,20 +77,28 @@
             margin-bottom: 20px;
         }
 
-        /* Toolbar Buttons */
         .btn-tool {
             background: #1e293b;
             color: #cbd5e1;
             border: 1px solid #334155;
             border-radius: 6px;
             padding: 6px 14px;
-            font-size: 0.85rem;
+            font-size: 0.84rem;
             font-weight: 600;
             transition: all 0.15s ease;
         }
         .btn-tool:hover {
             color: #ffffff;
             background: #334155;
+        }
+        .btn-ai-magic {
+            background: linear-gradient(135deg, #2563eb, #7c3aed);
+            color: #ffffff;
+            border: none;
+        }
+        .btn-ai-magic:hover {
+            background: linear-gradient(135deg, #1d4ed8, #6d28d9);
+            color: #ffffff;
         }
         .btn-mark-photo.active {
             background: rgba(56, 189, 248, 0.2);
@@ -107,7 +111,6 @@
             border-color: var(--accent-pink);
         }
 
-        /* Thumbnails strip */
         .thumb-strip {
             display: flex;
             gap: 10px;
@@ -128,14 +131,13 @@
             border-color: var(--accent-blue);
         }
 
-        /* Canvas Stage */
         .canvas-viewport {
             background-color: #05070d;
             border: 1px solid #1e293b;
             border-radius: 8px;
             position: relative;
             overflow: auto;
-            max-height: 540px;
+            max-height: 520px;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -147,15 +149,6 @@
             max-width: 100%;
         }
 
-        .canvas-hint {
-            font-size: 0.8rem;
-            color: var(--text-sub);
-            margin-top: 8px;
-            display: flex;
-            align-items: center;
-        }
-
-        /* Settings Bar */
         .settings-bar {
             background: var(--card-bg);
             border: 1px solid var(--border-color);
@@ -184,7 +177,6 @@
             font-weight: 600;
         }
 
-        /* Result Cards */
         .result-card {
             background: var(--card-bg);
             border: 1px solid var(--border-color);
@@ -244,10 +236,6 @@
             font-weight: 700;
             font-size: 0.85rem;
         }
-        .btn-download-photo:hover, .btn-download-sig:hover {
-            color: #fff;
-            filter: brightness(1.1);
-        }
         .select-fmt {
             background: #0b1120;
             border: 1px solid #334155;
@@ -273,12 +261,11 @@
 <div class="extractor-container">
     <div class="mb-4">
         <h3 class="font-weight-bold mb-1">Photo &amp; Signature Extractor</h3>
-        <p class="text-muted small mb-0">Upload photos of your document. Mark the person's photo and the signature, then download each as a JPG or PNG sized between your limits. Everything runs directly in your browser.</p>
+        <p class="text-muted small mb-0">Use AI to automatically locate the person's photo and signature, or drag custom boxes manually. Set your size limits and download directly[cite: 7].</p>
     </div>
 
     <!-- Main Workspace Stage -->
     <div class="main-card">
-        <!-- Toolbar -->
         <div class="d-flex flex-wrap align-items-center justify-content-between">
             <div class="d-flex align-items-center flex-wrap" style="gap: 8px;">
                 <label class="btn-tool mb-0" style="cursor: pointer;">
@@ -288,34 +275,35 @@
                 <span id="currentFileName" class="text-muted small font-weight-bold ml-1">No file chosen</span>
             </div>
 
+            <!-- Toolbar Controls: AI Auto-Detect, Rotate, Mark Photo, Mark Signature, Refresh -->
             <div class="d-flex align-items-center mt-2 mt-sm-0" style="gap: 8px;">
-    <button type="button" class="btn-tool" onclick="rotateImage(90)">
-        <i class="fa-solid fa-rotate mr-1"></i> Rotate 90°
-    </button>
-    <button type="button" id="btnMarkPhoto" class="btn-tool btn-mark-photo active" onclick="setMode('photo')">
-        <i class="fa-regular fa-square mr-1"></i> Mark photo
-    </button>
-    <button type="button" id="btnMarkSig" class="btn-tool btn-mark-sig" onclick="setMode('signature')">
-        <i class="fa-solid fa-signature mr-1"></i> Mark signature
-    </button>
-    <!-- Refresh Button -->
-    <button type="button" class="btn-tool text-warning" onclick="resetSelections()" title="Clear boxes and redraw">
-        <i class="fa-solid fa-arrows-rotate mr-1"></i> Refresh
-    </button>
-</div>
+                <button type="button" id="btnAiDetect" class="btn-tool btn-ai-magic" onclick="runAiDetection()">
+                    <i class="fa-solid fa-wand-magic-sparkles mr-1"></i> AI Auto-Detect
+                </button>
+                <button type="button" class="btn-tool" onclick="rotateImage(90)">
+                    <i class="fa-solid fa-rotate mr-1"></i> Rotate 90°
+                </button>
+                <button type="button" id="btnMarkPhoto" class="btn-tool btn-mark-photo active" onclick="setMode('photo')">
+                    <i class="fa-regular fa-square mr-1"></i> Mark photo
+                </button>
+                <button type="button" id="btnMarkSig" class="btn-tool btn-mark-sig" onclick="setMode('signature')">
+                    <i class="fa-solid fa-signature mr-1"></i> Mark signature
+                </button>
+                <button type="button" class="btn-tool text-warning" onclick="resetSelections()" title="Reset boxes">
+                    <i class="fa-solid fa-arrows-rotate mr-1"></i> Refresh
+                </button>
+            </div>
         </div>
 
-        <!-- Thumbnail Strip -->
         <div class="thumb-strip" id="thumbStrip" style="display: none;"></div>
 
-        <!-- Canvas Viewport with Drawing Overlay -->
         <div class="canvas-viewport" id="viewportContainer">
             <canvas id="viewportCanvas"></canvas>
         </div>
 
-        <div class="canvas-hint">
-            <i class="fa-solid fa-arrow-pointer mr-2 text-info"></i>
-            Drag a box on the image around the item you are marking. Boxes can be drawn on different images.
+        <div class="d-flex justify-content-between align-items-center mt-2">
+            <small class="text-muted"><i class="fa-solid fa-lightbulb text-warning mr-1"></i> Tip: Use <b>AI Auto-Detect</b> for 1-click positioning, or drag manually to adjust[cite: 7].</small>
+            <small id="aiStatusNotice" class="text-info font-weight-bold"></small>
         </div>
     </div>
 
@@ -335,7 +323,7 @@
                 <div>
                     <h6 class="font-weight-bold mb-3 text-white">Photo</h6>
                     <div class="result-preview-box">
-                        <img id="photoResultImg" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100' fill='%23ccc'><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-family='sans-serif' font-size='12'>No Photo Marked</text></svg>" alt="Extracted Photo">
+                        <img id="photoResultImg" src="data:image/svg+xml;utf8,<svg xmlns='[http://www.w3.org/2000/svg](http://www.w3.org/2000/svg)' width='100' height='100' fill='%23ccc'><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-family='sans-serif' font-size='12'>No Photo Marked</text></svg>" alt="Extracted Photo">
                     </div>
                     <div class="d-flex justify-content-between align-items-center mb-2">
                         <select id="photoFormat" class="select-fmt" onchange="recompressPhoto()">
@@ -358,7 +346,7 @@
                 <div>
                     <h6 class="font-weight-bold mb-3 text-white">Signature</h6>
                     <div class="result-preview-box">
-                        <img id="sigResultImg" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100' fill='%23ccc'><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-family='sans-serif' font-size='12'>No Signature Marked</text></svg>" alt="Extracted Signature">
+                        <img id="sigResultImg" src="data:image/svg+xml;utf8,<svg xmlns='[http://www.w3.org/2000/svg](http://www.w3.org/2000/svg)' width='100' height='100' fill='%23ccc'><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-family='sans-serif' font-size='12'>No Signature Marked</text></svg>" alt="Extracted Signature">
                     </div>
                     <div class="d-flex justify-content-between align-items-center mb-2">
                         <select id="sigFormat" class="select-fmt" onchange="recompressSig()">
@@ -378,23 +366,19 @@
 </div>
 
 <script>
-    // State management
     let loadedImages = [];
     let currentIdx = 0;
     let rotationDegrees = 0;
-    let activeMode = 'photo'; // 'photo' or 'signature'
+    let activeMode = 'photo';
 
-    // Selection Boxes { x, y, w, h } stored in normalized scale (0..1)
     let photoBox = null;
     let sigBox = null;
 
-    // Canvas & Dragging
     const canvas = document.getElementById('viewportCanvas');
     const ctx = canvas.getContext('2d');
     let isDrawing = false;
     let startX = 0, startY = 0;
 
-    // Cache of source elements for compression
     let croppedPhotoCanvas = null;
     let croppedSigCanvas = null;
 
@@ -421,7 +405,6 @@
                 };
                 img.src = e.target.result;
 
-                // Build thumbnail
                 const thumb = document.createElement('img');
                 thumb.className = `thumb-item ${idx === 0 ? 'active' : ''}`;
                 thumb.src = e.target.result;
@@ -472,13 +455,8 @@
         ctx.drawImage(current, -current.width / 2, -current.height / 2);
         ctx.restore();
 
-        // Draw selection overlays
-        if (photoBox && photoBox.idx === currentIdx) {
-            drawBox(photoBox, '#38bdf8', 'Photo');
-        }
-        if (sigBox && sigBox.idx === currentIdx) {
-            drawBox(sigBox, '#f43f5e', 'Signature');
-        }
+        if (photoBox && photoBox.idx === currentIdx) drawBox(photoBox, '#38bdf8', 'Photo');
+        if (sigBox && sigBox.idx === currentIdx) drawBox(sigBox, '#f43f5e', 'Signature');
     }
 
     function drawBox(b, strokeColor, label) {
@@ -494,7 +472,78 @@
         ctx.fillText(label, b.x + 6, Math.max(14, b.y - 5));
     }
 
-    // Interactive Dragging on Canvas
+    // AI AUTO-DETECTION INTEGRATION
+    async function runAiDetection() {
+        if (!loadedImages.length) {
+            alert('Please select an image file first.');
+            return;
+        }
+
+        const btn = document.getElementById('btnAiDetect');
+        const notice = document.getElementById('aiStatusNotice');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin mr-1"></i> Detecting...';
+        notice.innerText = 'Scanning for portrait and signature boundaries...';
+
+        const formData = new FormData();
+        formData.append('document_image', loadedImages[currentIdx].file);
+
+        try {
+            const res = await fetch('/detect_document_boxes', {
+                method: 'POST',
+                body: formData
+            });
+            const resp = await res.json();
+
+            if (resp.status === 'success' && resp.data) {
+                const data = resp.data;
+                const cw = canvas.width;
+                const ch = canvas.height;
+
+                // Photo Detection
+                if (data.photo_found && data.photo_box) {
+                    const [ymin, xmin, ymax, xmax] = data.photo_box;
+                    photoBox = {
+                        x: Math.max(0, (xmin / 1000) * cw),
+                        y: Math.max(0, (ymin / 1000) * ch),
+                        w: Math.min(cw, ((xmax - xmin) / 1000) * cw),
+                        h: Math.min(ch, ((ymax - ymin) / 1000) * ch),
+                        idx: currentIdx
+                    };
+                    croppedPhotoCanvas = cropFromCanvas(photoBox);
+                    recompressPhoto();
+                }
+
+                // Signature Detection (with 8% padding to safeguard ascenders/descenders)
+                if (data.signature_found && data.signature_box) {
+                    const [ymin, xmin, ymax, xmax] = data.signature_box;
+                    const padX = (xmax - xmin) * 0.08;
+                    const padY = (ymax - ymin) * 0.08;
+
+                    const sx = Math.max(0, ((xmin - padX) / 1000) * cw);
+                    const sy = Math.max(0, ((ymin - padY) / 1000) * ch);
+                    const sw = Math.min(cw - sx, ((xmax - xmin + 2 * padX) / 1000) * cw);
+                    const sh = Math.min(ch - sy, ((ymax - ymin + 2 * padY) / 1000) * ch);
+
+                    sigBox = { x: sx, y: sy, w: sw, h: sh, idx: currentIdx };
+                    croppedSigCanvas = cropFromCanvas(sigBox);
+                    recompressSig();
+                }
+
+                renderCanvas();
+                notice.innerText = 'AI detection complete. You can drag manually to refine.';
+            } else {
+                notice.innerText = resp.error || 'AI detection failed. Please mark manually.';
+            }
+        } catch (e) {
+            notice.innerText = 'Error calling AI: ' + e.message;
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles mr-1"></i> AI Auto-Detect';
+        }
+    }
+
+    // Manual Drawing Handlers
     canvas.addEventListener('mousedown', (e) => {
         if (!loadedImages.length) return;
         const rect = canvas.getBoundingClientRect();
@@ -517,12 +566,9 @@
 
         renderCanvas();
 
-        const w = currentX - startX;
-        const h = currentY - startY;
-
         ctx.strokeStyle = activeMode === 'photo' ? '#38bdf8' : '#f43f5e';
         ctx.lineWidth = Math.max(3, canvas.width * 0.003);
-        ctx.strokeRect(startX, startY, w, h);
+        ctx.strokeRect(startX, startY, currentX - startX, currentY - startY);
     });
 
     canvas.addEventListener('mouseup', (e) => {
@@ -541,14 +587,14 @@
         const w = Math.abs(endX - startX);
         const h = Math.abs(endY - startY);
 
-        if (w < 10 || h < 10) return; // ignore accidental clicks
+        if (w < 10 || h < 10) return;
 
         const box = { x, y, w, h, idx: currentIdx };
         if (activeMode === 'photo') {
             photoBox = box;
             croppedPhotoCanvas = cropFromCanvas(box);
             recompressPhoto();
-            setMode('signature'); // Auto advance to signature mode for convenience
+            setMode('signature');
         } else {
             sigBox = box;
             croppedSigCanvas = cropFromCanvas(box);
@@ -567,7 +613,6 @@
         return temp;
     }
 
-    // Binary search compression directly inside browser canvas
     async function compressToTarget(sourceCanvas, format, minKb, maxKb) {
         const minBytes = minKb * 1024;
         const maxBytes = maxKb * 1024;
@@ -577,7 +622,6 @@
         let quality = 0.92;
         let blob = await canvasToBlob(currentCanvas, mime, quality);
 
-        // Downscale loop if exceeding max
         if (blob.size > maxBytes) {
             while (blob.size > maxBytes && quality > 0.3) {
                 quality -= 0.1;
@@ -587,9 +631,7 @@
                 currentCanvas = resizeCanvas(currentCanvas, 0.88);
                 blob = await canvasToBlob(currentCanvas, mime, quality);
             }
-        } 
-        // Upscale loop if below min
-        else if (blob.size < minBytes) {
+        } else if (blob.size < minBytes) {
             while (blob.size < minBytes && currentCanvas.width < 1200) {
                 const scaled = resizeCanvas(currentCanvas, 1.15);
                 const testBlob = await canvasToBlob(scaled, mime, 0.95);
@@ -670,43 +712,37 @@
         recompressPhoto();
         recompressSig();
     }
+
     function resetSelections() {
-    // 1. Clear bounding box coordinates
-    photoBox = null;
-    sigBox = null;
+        photoBox = null;
+        sigBox = null;
+        croppedPhotoCanvas = null;
+        croppedSigCanvas = null;
 
-    // 2. Clear cropped canvas references
-    croppedPhotoCanvas = null;
-    croppedSigCanvas = null;
+        const placeholder = "data:image/svg+xml;utf8,<svg xmlns='[http://www.w3.org/2000/svg](http://www.w3.org/2000/svg)' width='100' height='100' fill='%23ccc'><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-family='sans-serif' font-size='12'>No Selection</text></svg>";
 
-    // 3. Reset Photo preview card
-    const defaultPlaceholder = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100' fill='%23ccc'><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-family='sans-serif' font-size='12'>No Selection</text></svg>";
-    
-    document.getElementById('photoResultImg').src = defaultPlaceholder;
-    document.getElementById('photoMeta').innerText = '- × - px · - KB';
-    document.getElementById('photoStatus').innerText = 'Awaiting selection';
-    document.getElementById('photoStatus').className = 'status-badge';
-    
-    const photoDl = document.getElementById('photoDownloadBtn');
-    photoDl.href = '#';
-    photoDl.style.pointerEvents = 'none';
-    photoDl.style.opacity = '0.5';
+        document.getElementById('photoResultImg').src = placeholder;
+        document.getElementById('photoMeta').innerText = '- × - px · - KB';
+        document.getElementById('photoStatus').innerText = 'Awaiting selection';
+        document.getElementById('photoStatus').className = 'status-badge';
+        const pDl = document.getElementById('photoDownloadBtn');
+        pDl.href = '#';
+        pDl.style.pointerEvents = 'none';
+        pDl.style.opacity = '0.5';
 
-    // 4. Reset Signature preview card
-    document.getElementById('sigResultImg').src = defaultPlaceholder;
-    document.getElementById('sigMeta').innerText = '- × - px · - KB';
-    document.getElementById('sigStatus').innerText = 'Awaiting selection';
-    document.getElementById('sigStatus').className = 'status-badge';
+        document.getElementById('sigResultImg').src = placeholder;
+        document.getElementById('sigMeta').innerText = '- × - px · - KB';
+        document.getElementById('sigStatus').innerText = 'Awaiting selection';
+        document.getElementById('sigStatus').className = 'status-badge';
+        const sDl = document.getElementById('sigDownloadBtn');
+        sDl.href = '#';
+        sDl.style.pointerEvents = 'none';
+        sDl.style.opacity = '0.5';
 
-    const sigDl = document.getElementById('sigDownloadBtn');
-    sigDl.href = '#';
-    sigDl.style.pointerEvents = 'none';
-    sigDl.style.opacity = '0.5';
-
-    // 5. Default back to Photo marking mode and redraw clean canvas
-    setMode('photo');
-    renderCanvas();
-}
+        document.getElementById('aiStatusNotice').innerText = '';
+        setMode('photo');
+        renderCanvas();
+    }
 </script>
 </body>
 </html>
