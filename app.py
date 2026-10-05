@@ -4423,10 +4423,93 @@ def reset_video_prompter_page():
 def doc_extractor_page():
     return render_template('doc_extractor.html', current_user=current_user)
 
+
 @app.route('/reset_doc_extractor', methods=['POST'])
 @login_required
 def reset_doc_extractor_page():
     return jsonify({"status": "cleared"})
+
+
+AI_DOC_DETECTOR_INSTRUCTION = (
+    "You are an expert document visual parser and bounding box locator.\n"
+    "Locate the normalized bounding boxes for:\n"
+    "1. The candidate/person's portrait photo ('photo')\n"
+    "2. The candidate's handwritten signature ('signature')\n\n"
+    "RULES FOR SIGNATURE:\n"
+    "- If the signature is inside a box/line, include the entire box frame.\n"
+    "- Never cut off ink flourishes, strokes, or initials.\n\n"
+    "Return normalized integer coordinates from 0 to 1000: [ymin, xmin, ymax, xmax].\n"
+    "Return RAW JSON only (no markdown, no backticks):\n"
+    "{\n"
+    '  "photo_found": true | false,\n'
+    '  "photo_box": [ymin, xmin, ymax, xmax] | null,\n'
+    '  "signature_found": true | false,\n'
+    '  "signature_box": [ymin, xmin, ymax, xmax] | null\n'
+    "}"
+)
+
+
+@app.route('/detect_document_boxes', methods=['POST'])
+@login_required
+def detect_document_boxes():
+    try:
+        file = request.files.get('document_image')
+        if not file or file.filename == '':
+            return jsonify({'status': 'error', 'error': 'No document image provided.'}), 400
+
+        file_bytes = file.read()
+        if len(file_bytes) == 0:
+            return jsonify({'status': 'error', 'error': 'Uploaded file is empty.'}), 400
+
+        if len(file_bytes) > 10 * 1024 * 1024:
+            return jsonify({'status': 'error', 'error': 'File exceeds 10 MB limit.'}), 400
+
+        # Safe mime-type fallback
+        mime_type = file.mimetype if file.mimetype and file.mimetype.startswith('image/') else 'image/jpeg'
+
+        content_parts = [
+            gemma_types.Part.from_bytes(data=file_bytes, mime_type=mime_type),
+            "Locate candidate photo and signature bounding boxes in normalized 0-1000 integer format."
+        ]
+
+        response = gemma_client.models.generate_content(
+            model=IMG_TEXT_DEFAULT_MODEL,
+            config=gemma_types.GenerateContentConfig(
+                system_instruction=AI_DOC_DETECTOR_INSTRUCTION,
+                temperature=0.1,
+                tools=[]
+            ),
+            contents=content_parts
+        )
+
+        clean_text = (response.text or "").strip()
+        if clean_text.startswith("```json"):
+            clean_text = clean_text[7:]
+        elif clean_text.startswith("```"):
+            clean_text = clean_text[3:]
+        if clean_text.endswith("```"):
+            clean_text = clean_text[:-3]
+
+        clean_text = clean_text.strip()
+
+        try:
+            parsed = json.loads(clean_text)
+        except json.JSONDecodeError:
+            return jsonify({
+                'status': 'error',
+                'error': 'SI could not cleanly isolate bounding boxes. Please draw the selection boxes manually.'
+            }), 422
+
+        return jsonify({'status': 'success', 'data': parsed})
+
+    except (ServerError, APIError) as api_err:
+        return jsonify({
+            'status': 'error',
+            'error': 'SuperPrompter SI vision processor is busy. Please draw the selection boxes manually.'
+        }), 503
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({'status': 'error', 'error': str(e)}), 500
 
 
 # --- NEW: Change Password Route ---
