@@ -4431,20 +4431,26 @@ def reset_doc_extractor_page():
 
 
 AI_DOC_DETECTOR_INSTRUCTION = (
-    "You are an expert document visual parser and bounding box locator.\n"
-    "Locate the normalized bounding boxes for:\n"
-    "1. The candidate/person's portrait photo ('photo')\n"
-    "2. The candidate's handwritten signature ('signature')\n\n"
-    "RULES FOR SIGNATURE:\n"
-    "- If the signature is inside a box/line, include the entire box frame.\n"
-    "- Never cut off ink flourishes, strokes, or initials.\n\n"
-    "Return normalized integer coordinates from 0 to 1000: [ymin, xmin, ymax, xmax].\n"
-    "Return RAW JSON only (no markdown, no backticks):\n"
+    "You are an expert document parser specializing in Indian identity cards, examination forms, "
+    "and certificates (e.g., HSC/SSC templates, NEET, UPSC, Aadhaar, PAN).\n\n"
+    "Your objective is to pinpoint the exact 0-1000 normalized bounding boxes [ymin, xmin, ymax, xmax] "
+    "for the candidate's portrait photo and signature.\n\n"
+    "STRICT ACCURACY RULES FOR PHOTO:\n"
+    "- Look exclusively for the applicant/student's actual human face photograph.\n"
+    "- Do NOT select state board logos, emblem watermarks, stamp seals, or QR codes.\n"
+    "- Include the full photographic frame border.\n\n"
+    "STRICT ACCURACY RULES FOR SIGNATURE:\n"
+    "- Locate the applicant's handwritten signature (typically placed inside or adjacent to a labeled box "
+    "such as 'Candidate's Signature', 'Signature of Applicant', or 'विद्यार्थ्याची स्वाक्षरी').\n"
+    "- Do NOT select printed machine text, filled form fields (like student name, father name, address), "
+    "or the Headmaster/Principal/Seal signature at the bottom.\n"
+    "- Include the COMPLETE designated rectangular cell and all ink flourishes without clipping.\n\n"
+    "RETURN ONLY STRICT JSON (no markdown formatting, no commentary):\n"
     "{\n"
-    '  "photo_found": true | false,\n'
-    '  "photo_box": [ymin, xmin, ymax, xmax] | null,\n'
-    '  "signature_found": true | false,\n'
-    '  "signature_box": [ymin, xmin, ymax, xmax] | null\n'
+    '  "photo_found": true,\n'
+    '  "photo_box": [ymin, xmin, ymax, xmax],\n'
+    '  "signature_found": true,\n'
+    '  "signature_box": [ymin, xmin, ymax, xmax]\n'
     "}"
 )
 
