@@ -24,7 +24,11 @@ from google import genai as gemma_genai
 from google.genai import types as gemma_types   # Required for GenerateContentConfig
 from google.api_core.exceptions import GoogleAPIError as APIError, ServerError
 from zai import ZaiClient as ZhipuAI
-from PIL import Image
+from PIL import Image, ImageOps
+from google.genai import errors as genai_errors
+from typing import List
+import traceback
+from pydantic import BaseModel, Field
 
 # 1. Use absolute import
 import secrets
@@ -4418,104 +4422,174 @@ def reset_video_prompter_page():
 # DOC_EXTRACTOR
 # ---------------------------------------------------------------------
 
-@app.route('/doc_extractor')
-@login_required
-def doc_extractor_page():
-    return render_template('doc_extractor.html', current_user=current_user)
+from typing import List, Optional
+
+logger = logging.getLogger(__name__)
+
+doc_extractor_bp = Blueprint("doc_extractor", __name__)
+
+IMG_TEXT_DEFAULT_MODEL = "gemini-2.5-flash"
 
 
-@app.route('/reset_doc_extractor', methods=['POST'])
-@login_required
-def reset_doc_extractor_page():
-    return jsonify({"status": "cleared"})
+# ==========================================
+# 1. Pydantic Structured Output Schema
+# ==========================================
+class DocumentBoundingBoxes(BaseModel):
+    photo_found: bool = Field(
+        default=False,
+        description="True if the candidate's portrait photo is located on the main document.",
+    )
+    photo_box: Optional[List[int]] = Field(
+        default=None,
+        description="[ymin, xmin, ymax, xmax] as normalized integers (0-1000). Null if not found.",
+    )
+    signature_found: bool = Field(
+        default=False,
+        description="True if the candidate's handwritten signature box is located on the main document.",
+    )
+    signature_box: Optional[List[int]] = Field(
+        default=None,
+        description="[ymin, xmin, ymax, xmax] as normalized integers (0-1000). Null if not found.",
+    )
 
 
+# ==========================================
+# 2. Strict Document Vision System Instruction
+# ==========================================
 AI_DOC_DETECTOR_INSTRUCTION = (
-    "You are an expert document parser specializing in Indian identity cards, examination forms, "
-    "and certificates (e.g., HSC/SSC templates, NEET, UPSC, Aadhaar, PAN).\n\n"
-    "Your objective is to pinpoint the exact 0-1000 normalized bounding boxes [ymin, xmin, ymax, xmax] "
-    "for the candidate's portrait photo and signature.\n\n"
-    "STRICT ACCURACY RULES FOR PHOTO:\n"
-    "- Look exclusively for the applicant/student's actual human face photograph.\n"
-    "- Do NOT select state board logos, emblem watermarks, stamp seals, or QR codes.\n"
-    "- Include the full photographic frame border.\n\n"
-    "STRICT ACCURACY RULES FOR SIGNATURE:\n"
-    "- Locate the applicant's handwritten signature (typically placed inside or adjacent to a labeled box "
-    "such as 'Candidate's Signature', 'Signature of Applicant', or 'विद्यार्थ्याची स्वाक्षरी').\n"
-    "- Do NOT select printed machine text, filled form fields (like student name, father name, address), "
-    "or the Headmaster/Principal/Seal signature at the bottom.\n"
-    "- Include the COMPLETE designated rectangular cell and all ink flourishes without clipping.\n\n"
-    "RETURN ONLY STRICT JSON (no markdown formatting, no commentary):\n"
-    "{\n"
-    '  "photo_found": true,\n'
-    '  "photo_box": [ymin, xmin, ymax, xmax],\n'
-    '  "signature_found": true,\n'
-    '  "signature_box": [ymin, xmin, ymax, xmax]\n'
-    "}"
+    "You are a specialized document object detection engine for Indian board examination forms, "
+    "admit cards, and identity documents (e.g., Maharashtra State Board HSC/SSC templates, NEET, UPSC, PAN, etc.).\n\n"
+    "TASK OBJECTIVE:\n"
+    "Locate the normalized bounding boxes [ymin, xmin, ymax, xmax] (0-1000 scale relative to the entire image) "
+    "for the candidate's portrait photo and handwritten signature.\n\n"
+    "STEP 1: ISOLATE THE PRIMARY DOCUMENT\n"
+    "- Target ONLY the primary application form page.\n"
+    "- STRICTLY IGNORE any loose photographs, plastic pouches, desks, backgrounds, or items outside the form boundaries.\n\n"
+    "STEP 2: CANDIDATE PHOTO\n"
+    "- Identify the candidate's personal passport photo affixed inside the designated photo cell "
+    "(typically situated in the upper-right area of the form).\n"
+    "- Do NOT select state board emblems, logos, stamps, or barcodes.\n"
+    "- Return the bounding box containing the full photographic print.\n\n"
+    "STEP 3: CANDIDATE SIGNATURE\n"
+    "- Locate the candidate's handwritten signature in blue/black ink placed inside or adjacent to the labeled slot "
+    "(e.g., 'Candidate's Signature' or 'स्वाक्षरी', directly below the photo).\n"
+    "- Enclose the complete rectangular box and all ink flourishes without clipping.\n"
+    "- Do NOT select handwritten text from other fields (candidate/parent names, address) or authority/principal seal signatures.\n\n"
+    "COORDINATE FORMAT:\n"
+    "- All boxes must strictly follow [ymin, xmin, ymax, xmax] as integers clamped from 0 to 1000."
 )
 
 
-@app.route('/detect_document_boxes', methods=['POST'])
+# ==========================================
+# 3. Application Routes
+# ==========================================
+@doc_extractor_bp.route("/doc_extractor", methods=["GET"])
+@login_required
+def doc_extractor_page():
+    """Renders the document extractor workspace."""
+    return render_template("doc_extractor.html")
+
+
+@doc_extractor_bp.route("/reset_doc_extractor", methods=["POST"])
+@login_required
+def reset_doc_extractor_page():
+    """Cleans up any session artifacts."""
+    session.pop("pending_doc_path", None)
+    session.pop("doc_extracted_metadata", None)
+    return jsonify({"status": "cleared"})
+
+
+@doc_extractor_bp.route("/detect_document_boxes", methods=["POST"])
 @login_required
 def detect_document_boxes():
+    """
+    Receives an uploaded document image, normalizes orientation via EXIF,
+    queries Gemini Vision with strict Pydantic structured output, and returns
+    clamped 0-1000 coordinates.
+    """
     try:
-        file = request.files.get('document_image')
-        if not file or file.filename == '':
-            return jsonify({'status': 'error', 'error': 'No document image provided.'}), 400
+        file = request.files.get("document_image")
+        if not file or file.filename == "":
+            return jsonify({"status": "error", "error": "No document image provided."}), 400
 
         file_bytes = file.read()
         if len(file_bytes) == 0:
-            return jsonify({'status': 'error', 'error': 'Uploaded file is empty.'}), 400
+            return jsonify({"status": "error", "error": "Uploaded file is empty."}), 400
 
-        if len(file_bytes) > 10 * 1024 * 1024:
-            return jsonify({'status': 'error', 'error': 'File exceeds 10 MB limit.'}), 400
+        if len(file_bytes) > 15 * 1024 * 1024:
+            return jsonify({"status": "error", "error": "File exceeds the 15 MB limit."}), 400
 
-        # Safe mime-type fallback
-        mime_type = file.mimetype if file.mimetype and file.mimetype.startswith('image/') else 'image/jpeg'
+        # Step A: Normalize phone EXIF orientation & convert to clean JPEG
+        try:
+            with Image.open(io.BytesIO(file_bytes)) as pil_img:
+                pil_img = ImageOps.exif_transpose(pil_img)
+
+                if pil_img.mode in ("RGBA", "P"):
+                    pil_img = pil_img.convert("RGB")
+
+                buffer = io.BytesIO()
+                pil_img.save(buffer, format="JPEG", quality=92, optimize=True)
+                normalized_bytes = buffer.getvalue()
+        except Exception as img_err:
+            logger.warning(f"EXIF transpose failed; falling back to raw bytes: {img_err}")
+            normalized_bytes = file_bytes
+
 
         content_parts = [
-            gemma_types.Part.from_bytes(data=file_bytes, mime_type=mime_type),
-            "Locate candidate photo and signature bounding boxes in normalized 0-1000 integer format."
+            gemma_types.Part.from_bytes(data=normalized_bytes, mime_type="image/jpeg"),
+            "Isolate the candidate's portrait photo and handwritten signature boxes on the primary form sheet.",
         ]
 
+        # Step C: Call Gemini with structured Pydantic schema
         response = gemma_client.models.generate_content(
             model=IMG_TEXT_DEFAULT_MODEL,
             config=gemma_types.GenerateContentConfig(
                 system_instruction=AI_DOC_DETECTOR_INSTRUCTION,
-                temperature=0.1,
-                tools=[]
+                temperature=0.0,
+                response_mime_type="application/json",
+                response_schema=DocumentBoundingBoxes,
             ),
-            contents=content_parts
+            contents=content_parts,
         )
 
-        clean_text = (response.text or "").strip()
-        if clean_text.startswith("```json"):
-            clean_text = clean_text[7:]
-        elif clean_text.startswith("```"):
-            clean_text = clean_text[3:]
-        if clean_text.endswith("```"):
-            clean_text = clean_text[:-3]
+        raw_response = (response.text or "").strip()
+        parsed_data = json.loads(raw_response)
 
-        clean_text = clean_text.strip()
+        # Step D: Sanitize and clamp coordinates to [0, 1000]
+        for key in ["photo_box", "signature_box"]:
+            box = parsed_data.get(key)
+            if box and isinstance(box, list) and len(box) == 4:
+                ymin, xmin, ymax, xmax = [max(0, min(1000, int(v))) for v in box]
 
-        try:
-            parsed = json.loads(clean_text)
-        except json.JSONDecodeError:
-            return jsonify({
-                'status': 'error',
-                'error': 'SI could not cleanly isolate bounding boxes. Please draw the selection boxes manually.'
-            }), 422
+                # Prevent inverted boundaries
+                if ymin > ymax:
+                    ymin, ymax = ymax, ymin
+                if xmin > xmax:
+                    xmin, xmax = xmax, xmin
 
-        return jsonify({'status': 'success', 'data': parsed})
+                parsed_data[key] = [ymin, xmin, ymax, xmax]
+            else:
+                parsed_data[key] = None
+
+        return jsonify({"status": "success", "data": parsed_data})
 
     except (ServerError, APIError) as api_err:
+        logger.error(f"GenAI Service Error: {api_err}")
         return jsonify({
-            'status': 'error',
-            'error': 'SuperPrompter SI vision processor is busy. Please draw the selection boxes manually.'
+            "status": "error",
+            "error": "Document vision processor is temporarily unavailable. Please draw selection boxes manually.",
         }), 503
+
+    except json.JSONDecodeError as json_err:
+        logger.error(f"JSON Parsing Error: {json_err}")
+        return jsonify({
+            "status": "error",
+            "error": "Unable to parse bounding box response. Please select the areas manually.",
+        }), 422
+
     except Exception as e:
-        traceback.print_exc()
-        return jsonify({'status': 'error', 'error': str(e)}), 500
+        logger.error(f"Unexpected Exception: {traceback.format_exc()}")
+        return jsonify({"status": "error", "error": str(e)}), 500
 
 
 # --- NEW: Change Password Route ---
