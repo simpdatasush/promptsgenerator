@@ -20,6 +20,7 @@ xhtml2pdf
 python-docx
 htmldocx
 Pillow>=10.0.0
+pydantic>=2.6.0
 
 
 ##Flask==2.3.2
