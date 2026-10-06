@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Photo & Signature Extractor - SuperPrompter SI</title>
+    <title>Photo & Signature Extractor - SuperPrompter AI</title>
     
     <!-- Bootstrap 4, FontAwesome 6 & Typography -->
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
@@ -69,8 +69,8 @@
         }
 
         .extractor-container {
-            max-width: 960px;
-            margin: 28px auto;
+            max-width: 980px;
+            margin: 26px auto;
             padding: 0 16px;
         }
 
@@ -141,7 +141,7 @@
             border-color: var(--accent-blue);
         }
 
-        /* Canvas Stage */
+        /* Canvas Viewport */
         .canvas-viewport {
             background-color: #05070d;
             border: 1px solid var(--border-color);
@@ -287,7 +287,7 @@
 <div class="extractor-container">
     <div class="mb-4">
         <h3 class="font-weight-bold mb-1">Photo &amp; Signature Extractor</h3>
-        <p class="text-muted small mb-0">Upload photos of your document. Use Auto AI detection or mark the person's photo and signature manually, then download each formatted within your limits.</p>
+        <p class="text-muted small mb-0">Upload document photos or scans. Use <strong>Auto AI Detect</strong> or manually drag bounding boxes to extract photo and signature within target size limits.</p>
     </div>
 
     <!-- Main Workspace -->
@@ -531,28 +531,26 @@
                 if (data.photo_found && data.photo_box) {
                     const [ymin, xmin, ymax, xmax] = data.photo_box;
                     photoBox = {
-                        x: Math.max(0, (xmin / 1000) * cw),
-                        y: Math.max(0, (ymin / 1000) * ch),
-                        w: Math.min(cw, ((xmax - xmin) / 1000) * cw),
-                        h: Math.min(ch, ((ymax - ymin) / 1000) * ch),
+                        x: Math.round((xmin / 1000) * cw),
+                        y: Math.round((ymin / 1000) * ch),
+                        w: Math.round(((xmax - xmin) / 1000) * cw),
+                        h: Math.round(((ymax - ymin) / 1000) * ch),
                         idx: currentIdx
                     };
                     croppedPhotoCanvas = cropFromCanvas(photoBox);
                     recompressPhoto();
                 }
 
-                // Candidate Signature with 8% protective flourish margin
+                // Candidate Signature with margin containment
                 if (data.signature_found && data.signature_box) {
                     const [ymin, xmin, ymax, xmax] = data.signature_box;
-                    const padX = (xmax - xmin) * 0.08;
-                    const padY = (ymax - ymin) * 0.08;
-
-                    const sx = Math.max(0, ((xmin - padX) / 1000) * cw);
-                    const sy = Math.max(0, ((ymin - padY) / 1000) * ch);
-                    const sw = Math.min(cw - sx, ((xmax - xmin + 2 * padX) / 1000) * cw);
-                    const sh = Math.min(ch - sy, ((ymax - ymin + 2 * padY) / 1000) * ch);
-
-                    sigBox = { x: sx, y: sy, w: sw, h: sh, idx: currentIdx };
+                    sigBox = {
+                        x: Math.round((xmin / 1000) * cw),
+                        y: Math.round((ymin / 1000) * ch),
+                        w: Math.round(((xmax - xmin) / 1000) * cw),
+                        h: Math.round(((ymax - ymin) / 1000) * ch),
+                        idx: currentIdx
+                    };
                     croppedSigCanvas = cropFromCanvas(sigBox);
                     recompressSig();
                 }
@@ -570,7 +568,7 @@
         }
     }
 
-    // Manual Canvas Marking
+    // Manual Canvas Marking Handlers
     canvas.addEventListener('mousedown', (e) => {
         if (!loadedImages.length) return;
         const rect = canvas.getBoundingClientRect();
@@ -640,7 +638,7 @@
         return temp;
     }
 
-    // Client-side Binary Compression into exact KB Bracket
+    // Client-side Binary Compression into target KB range
     async function compressToTarget(sourceCanvas, format, minKb, maxKb) {
         const minBytes = minKb * 1024;
         const maxBytes = maxKb * 1024;
