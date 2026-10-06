@@ -26,9 +26,12 @@ from google.api_core.exceptions import GoogleAPIError as APIError, ServerError
 from zai import ZaiClient as ZhipuAI
 from PIL import Image, ImageOps
 from google.genai import errors as genai_errors
-from typing import List
+from typing import List, Optional
 import traceback
 from pydantic import BaseModel, Field
+
+# Ensure Google GenAI errors are imported
+from google.genai.errors import APIError, ServerError
 
 # 1. Use absolute import
 import secrets
@@ -4422,11 +4425,7 @@ def reset_video_prompter_page():
 # DOC_EXTRACTOR
 # ---------------------------------------------------------------------
 
-from typing import List, Optional
-
 logger = logging.getLogger(__name__)
-
-doc_extractor_bp = Blueprint("doc_extractor", __name__)
 
 IMG_TEXT_DEFAULT_MODEL = "gemini-2.5-flash"
 
@@ -4481,16 +4480,16 @@ AI_DOC_DETECTOR_INSTRUCTION = (
 
 
 # ==========================================
-# 3. Application Routes
+# 3. Application Routes (Bound to `app`)
 # ==========================================
-@doc_extractor_bp.route("/doc_extractor", methods=["GET"])
+@app.route("/doc_extractor", methods=["GET"])
 @login_required
 def doc_extractor_page():
-    """Renders the document extractor workspace."""
-    return render_template("doc_extractor.html")
+    """Renders the document extractor workspace. Matches url_for('doc_extractor_page')."""
+    return render_template("doc_extractor.html", current_user=current_user)
 
 
-@doc_extractor_bp.route("/reset_doc_extractor", methods=["POST"])
+@app.route("/reset_doc_extractor", methods=["POST"])
 @login_required
 def reset_doc_extractor_page():
     """Cleans up any session artifacts."""
@@ -4499,7 +4498,7 @@ def reset_doc_extractor_page():
     return jsonify({"status": "cleared"})
 
 
-@doc_extractor_bp.route("/detect_document_boxes", methods=["POST"])
+@app.route("/detect_document_boxes", methods=["POST"])
 @login_required
 def detect_document_boxes():
     """
@@ -4519,7 +4518,7 @@ def detect_document_boxes():
         if len(file_bytes) > 15 * 1024 * 1024:
             return jsonify({"status": "error", "error": "File exceeds the 15 MB limit."}), 400
 
-        # Step A: Normalize phone EXIF orientation & convert to clean JPEG
+        # Step A: Normalize phone EXIF orientation & convert to clean RGB JPEG
         try:
             with Image.open(io.BytesIO(file_bytes)) as pil_img:
                 pil_img = ImageOps.exif_transpose(pil_img)
@@ -4534,13 +4533,13 @@ def detect_document_boxes():
             logger.warning(f"EXIF transpose failed; falling back to raw bytes: {img_err}")
             normalized_bytes = file_bytes
 
-
+        # Step B: Prepare payload for Gemini
         content_parts = [
             gemma_types.Part.from_bytes(data=normalized_bytes, mime_type="image/jpeg"),
             "Isolate the candidate's portrait photo and handwritten signature boxes on the primary form sheet.",
         ]
 
-        # Step C: Call Gemini with structured Pydantic schema
+        # Step C: Call Gemini with forced Pydantic structured output
         response = gemma_client.models.generate_content(
             model=IMG_TEXT_DEFAULT_MODEL,
             config=gemma_types.GenerateContentConfig(
