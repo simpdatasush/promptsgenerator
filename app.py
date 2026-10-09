@@ -4497,7 +4497,6 @@ def reset_doc_extractor_page():
     session.pop("doc_extracted_metadata", None)
     return jsonify({"status": "cleared"})
 
-
 @app.route("/detect_document_boxes", methods=["POST"])
 @login_required
 def detect_document_boxes():
@@ -4589,6 +4588,40 @@ def detect_document_boxes():
     except Exception as e:
         logger.error(f"Unexpected Exception: {traceback.format_exc()}")
         return jsonify({"status": "error", "error": str(e)}), 500
+
+import io
+import os
+from flask import render_template, request, jsonify, send_file
+from werkzeug.utils import secure_filename
+
+# ---------------------------------------------------------------------
+# PDF EDITOR
+# ---------------------------------------------------------------------
+
+@app.route('/pdf_editor')
+@login_required
+def pdf_editor_page():
+    return render_template('pdf_editor.html', current_user=current_user)
+
+@app.route('/save_edited_pdf', methods=['POST'])
+@login_required
+def save_edited_pdf():
+    try:
+        file = request.files.get('pdf_file')
+        if not file or file.filename == '':
+            return jsonify({'status': 'error', 'error': 'No file uploaded.'}), 400
+
+        pdf_bytes = file.read()
+        
+        # Optionally save to disk/cloud or return directly
+        return send_file(
+            io.BytesIO(pdf_bytes),
+            mimetype='application/pdf',
+            as_attachment=True,
+            download_name='edited_document.pdf'
+        )
+    except Exception as e:
+        return jsonify({'status': 'error', 'error': str(e)}), 500
 
 
 # --- NEW: Change Password Route ---
