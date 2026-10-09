@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Interactive PDF Editor - SuperPrompter SI</title>
+    <title>Interactive PDF Editor - SuperPrompter AI</title>
     
+    <!-- Bootstrap 4 & FontAwesome 6 -->
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
@@ -18,6 +19,7 @@
             --card-bg: #121929;
             --border-color: #1e293b;
             --accent-blue: #38bdf8;
+            --accent-green: #22c55e;
             --text-main: #f8fafc;
         }
 
@@ -57,6 +59,7 @@
             font-size: 0.85rem;
             font-weight: 600;
             cursor: pointer;
+            transition: all 0.15s ease;
         }
         .btn-action:hover, .btn-action.active {
             background: var(--accent-blue);
@@ -84,16 +87,58 @@
             display: block;
         }
 
+        /* Draggable & Resizable Image Overlay */
+        .image-overlay-box {
+            position: absolute;
+            border: 2px dashed #0284c7;
+            cursor: move;
+            user-select: none;
+            background: rgba(255, 255, 255, 0.1);
+        }
+        .image-overlay-box img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            display: block;
+            pointer-events: none;
+        }
+        .image-overlay-box .delete-btn {
+            position: absolute;
+            top: -10px;
+            right: -10px;
+            background: #ef4444;
+            color: #ffffff;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            cursor: pointer;
+            font-weight: bold;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.4);
+        }
+        .image-overlay-box .resize-handle {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background: #0284c7;
+            bottom: -6px;
+            right: -6px;
+            cursor: se-resize;
+            border-radius: 2px;
+        }
+
         /* Overlay text inputs */
         .text-overlay-input {
             position: absolute;
-            background: rgba(255, 255, 255, 0.9);
+            background: rgba(255, 255, 255, 0.95);
             border: 1px dashed #0284c7;
             color: #000;
             font-size: 14px;
             padding: 2px 4px;
             outline: none;
-            resize: both;
         }
     </style>
 </head>
@@ -102,7 +147,7 @@
 <div class="editor-container">
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h4 class="font-weight-bold mb-0">PDF Document Editor</h4>
-        <span class="text-muted small">Edit text, mask errors, and save modified PDFs directly</span>
+        <span class="text-muted small">Edit text, insert phone photos &amp; signatures, and export modified PDF</span>
     </div>
 
     <!-- Toolbar -->
@@ -112,11 +157,14 @@
                 <i class="fa-solid fa-file-pdf mr-1 text-danger"></i> Upload PDF
                 <input type="file" id="pdfFileInput" accept="application/pdf" style="display: none;" onchange="loadPdfFile(event)">
             </label>
+            
+            <label class="btn-action mb-0" id="btnInsertImage" style="display: none;">
+                <i class="fa-solid fa-image mr-1 text-success"></i> Add Photo / Signature
+                <input type="file" id="imageFileInput" accept="image/jpeg,image/png" style="display: none;" onchange="handleImageInsert(event)">
+            </label>
+
             <button type="button" id="btnAddText" class="btn-action" onclick="toggleAddText()">
                 <i class="fa-solid fa-font mr-1"></i> Add Text Box
-            </button>
-            <button type="button" id="btnWhiteout" class="btn-action" onclick="toggleWhiteout()">
-                <i class="fa-solid fa-eraser mr-1"></i> White-Out / Erase
             </button>
         </div>
 
@@ -127,7 +175,7 @@
                 <button class="btn-action px-2" onclick="changePage(1)"><i class="fa-solid fa-chevron-right"></i></button>
             </div>
             <button type="button" id="btnSavePdf" class="btn-save" onclick="exportModifiedPdf()">
-                <i class="fa-solid fa-download mr-1"></i> Save & Download PDF
+                <i class="fa-solid fa-download mr-1"></i> Save &amp; Download PDF
             </button>
         </div>
     </div>
@@ -152,10 +200,11 @@
     let pdfDoc = null;
     let currentPage = 1;
     let currentScale = 1.3;
-    let activeTool = null; // 'text' or 'whiteout'
+    let activeTool = null; // 'text'
 
-    // Annotations tracked per page
-    const annotationsByPage = {};
+    // Separate tracking per page
+    const textAnnotationsByPage = {};
+    const imageAnnotationsByPage = {};
 
     async function loadPdfFile(event) {
         const file = event.target.files[0];
@@ -166,6 +215,7 @@
 
         document.getElementById('emptyPlaceholder').style.display = 'none';
         document.getElementById('workspaceWrapper').style.display = 'inline-block';
+        document.getElementById('btnInsertImage').style.display = 'inline-block';
         document.getElementById('pageNav').style.display = 'flex';
 
         currentPage = 1;
@@ -187,18 +237,120 @@
         await page.render({ canvasContext: ctx, viewport: viewport }).promise;
 
         document.getElementById('pageIndicator').innerText = `Page ${currentPage} / ${pdfDoc.numPages}`;
-        renderPageAnnotations();
+        renderPageOverlays();
     }
 
+    // ----------------------------------------------------
+    // IMAGE & SIGNATURE INSERTION LOGIC
+    // ----------------------------------------------------
+    async function handleImageInsert(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = async function(e) {
+            const dataUrl = e.target.result;
+            const imgBytes = await file.arrayBuffer();
+            const isPng = file.type === 'image/png';
+
+            createImageOverlay(dataUrl, imgBytes, isPng, 50, 50, 140, 100);
+            event.target.value = ''; // Reset input to allow re-uploading same file
+        };
+        reader.readAsDataURL(file);
+    }
+
+    function createImageOverlay(dataUrl, rawBytes, isPng, x, y, w, h) {
+        const wrapper = document.getElementById('annotationsLayer');
+
+        const box = document.createElement('div');
+        box.className = 'image-overlay-box';
+        box.style.left = x + 'px';
+        box.style.top = y + 'px';
+        box.style.width = w + 'px';
+        box.style.height = h + 'px';
+
+        const img = document.createElement('img');
+        img.src = dataUrl;
+        box.appendChild(img);
+
+        // Delete button
+        const delBtn = document.createElement('div');
+        delBtn.className = 'delete-btn';
+        delBtn.innerHTML = '&times;';
+        delBtn.onclick = (e) => {
+            e.stopPropagation();
+            box.remove();
+            imageAnnotationsByPage[currentPage] = imageAnnotationsByPage[currentPage].filter(i => i.el !== box);
+        };
+        box.appendChild(delBtn);
+
+        // Resize handle
+        const resizeHandle = document.createElement('div');
+        resizeHandle.className = 'resize-handle';
+        box.appendChild(resizeHandle);
+
+        wrapper.appendChild(box);
+
+        const imgRecord = { el: box, rawBytes, isPng, x, y, w, h };
+        if (!imageAnnotationsByPage[currentPage]) imageAnnotationsByPage[currentPage] = [];
+        imageAnnotationsByPage[currentPage].push(imgRecord);
+
+        // Dragging
+        let isDragging = false, dragStartX = 0, dragStartY = 0;
+        box.addEventListener('mousedown', (e) => {
+            if (e.target === resizeHandle || e.target === delBtn) return;
+            isDragging = true;
+            dragStartX = e.clientX - box.offsetLeft;
+            dragStartY = e.clientY - box.offsetTop;
+            e.preventDefault();
+        });
+
+        // Resizing
+        let isResizing = false, resizeStartW = 0, resizeStartH = 0, mouseStartX = 0, mouseStartY = 0;
+        resizeHandle.addEventListener('mousedown', (e) => {
+            isResizing = true;
+            resizeStartW = box.offsetWidth;
+            resizeStartH = box.offsetHeight;
+            mouseStartX = e.clientX;
+            mouseStartY = e.clientY;
+            e.stopPropagation();
+            e.preventDefault();
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            if (isDragging) {
+                const newX = Math.max(0, e.clientX - dragStartX);
+                const newY = Math.max(0, e.clientY - dragStartY);
+                box.style.left = newX + 'px';
+                box.style.top = newY + 'px';
+                imgRecord.x = newX;
+                imgRecord.y = newY;
+            } else if (isResizing) {
+                const newW = Math.max(40, resizeStartW + (e.clientX - mouseStartX));
+                const newH = Math.max(25, resizeStartH + (e.clientY - mouseStartY));
+                box.style.width = newW + 'px';
+                box.style.height = newH + 'px';
+                imgRecord.w = newW;
+                imgRecord.h = newH;
+            }
+        });
+
+        window.addEventListener('mouseup', () => {
+            isDragging = false;
+            isResizing = false;
+        });
+    }
+
+    // ----------------------------------------------------
+    // TEXT LOGIC
+    // ----------------------------------------------------
     function toggleAddText() {
         activeTool = activeTool === 'text' ? null : 'text';
         document.getElementById('btnAddText').classList.toggle('active', activeTool === 'text');
     }
 
-    // Click canvas to drop an editable text box
     document.getElementById('workspaceWrapper').addEventListener('click', function(e) {
         if (activeTool !== 'text') return;
-
         const rect = this.getBoundingClientRect();
         const x = e.clientX - rect.left;
         const y = e.clientY - rect.top;
@@ -219,15 +371,21 @@
         document.getElementById('annotationsLayer').appendChild(input);
         input.focus();
 
-        if (!annotationsByPage[currentPage]) annotationsByPage[currentPage] = [];
-        annotationsByPage[currentPage].push({ el: input, x, y });
+        if (!textAnnotationsByPage[currentPage]) textAnnotationsByPage[currentPage] = [];
+        textAnnotationsByPage[currentPage].push({ el: input, x, y });
     }
 
-    function renderPageAnnotations() {
+    function renderPageOverlays() {
         const layer = document.getElementById('annotationsLayer');
         layer.innerHTML = '';
-        const list = annotationsByPage[currentPage] || [];
-        list.forEach(item => layer.appendChild(item.el));
+
+        // Re-attach text
+        const textList = textAnnotationsByPage[currentPage] || [];
+        textList.forEach(item => layer.appendChild(item.el));
+
+        // Re-attach images
+        const imgList = imageAnnotationsByPage[currentPage] || [];
+        imgList.forEach(item => layer.appendChild(item.el));
     }
 
     async function changePage(offset) {
@@ -239,6 +397,9 @@
         }
     }
 
+    // ----------------------------------------------------
+    // EXPORT PDF WITH EMBEDDED IMAGES & TEXT
+    // ----------------------------------------------------
     async function exportModifiedPdf() {
         if (!rawPdfBytes) {
             alert('Please load a PDF first.');
@@ -249,8 +410,37 @@
         const pdfDocModified = await PDFDocument.load(rawPdfBytes);
         const helveticaFont = await pdfDocModified.embedFont(StandardFonts.Helvetica);
 
-        // Stamp added annotations onto corresponding pages
-        for (const [pageIdxStr, items] of Object.entries(annotationsByPage)) {
+        // 1. Process Embedded Images/Signatures per page
+        for (const [pageIdxStr, items] of Object.entries(imageAnnotationsByPage)) {
+            const pageNum = parseInt(pageIdxStr);
+            const page = pdfDocModified.getPage(pageNum - 1);
+            const { height: pdfHeight } = page.getSize();
+
+            for (const item of items) {
+                let embeddedImg;
+                if (item.isPng) {
+                    embeddedImg = await pdfDocModified.embedPng(item.rawBytes);
+                } else {
+                    embeddedImg = await pdfDocModified.embedJpg(item.rawBytes);
+                }
+
+                // Convert browser canvas pixels back into exact PDF coordinate points
+                const pdfX = item.x / currentScale;
+                const pdfW = item.w / currentScale;
+                const pdfH = item.h / currentScale;
+                const pdfY = pdfHeight - ((item.y + item.h) / currentScale);
+
+                page.drawImage(embeddedImg, {
+                    x: pdfX,
+                    y: pdfY,
+                    width: pdfW,
+                    height: pdfH,
+                });
+            }
+        }
+
+        // 2. Process Added Text per page
+        for (const [pageIdxStr, items] of Object.entries(textAnnotationsByPage)) {
             const pageNum = parseInt(pageIdxStr);
             const page = pdfDocModified.getPage(pageNum - 1);
             const { height: pdfHeight } = page.getSize();
@@ -259,7 +449,6 @@
                 const textVal = item.el.value.trim();
                 if (!textVal) return;
 
-                // Convert browser canvas pixels back to PDF points
                 const pdfX = item.x / currentScale;
                 const pdfY = pdfHeight - (item.y / currentScale) - 12;
 
