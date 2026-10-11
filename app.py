@@ -4758,6 +4758,20 @@ def triage_custom_incident():
         logger.error(f"Triage error: {e}")
         return jsonify({'status': 'error', 'error': str(e)}), 500
 
+# ---------------------------------------------------------------------
+# LEGAL & COMPLIANCE PAGES
+# ---------------------------------------------------------------------
+
+@app.route("/privacy-policy", methods=["GET"])
+def privacy_policy():
+    """Renders the public Privacy Policy page."""
+    return render_template("privacy_policy.html")
+
+
+@app.route("/terms-of-use", methods=["GET"])
+def terms_of_use():
+    """Renders the public Terms of Use page."""
+    return render_template("terms_of_use.html")
 
 # --- NEW: Change Password Route ---
 @app.route('/change_password', methods=['GET', 'POST'])
