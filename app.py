@@ -4624,6 +4624,140 @@ def save_edited_pdf():
     except Exception as e:
         return jsonify({'status': 'error', 'error': str(e)}), 500
 
+# ---------------------------------------------------------------------
+# AI INCIDENT PLAYBOOK & ROGUE MODEL TRIAGE
+# ---------------------------------------------------------------------
+
+logger = logging.getLogger(__name__)
+
+# Catalog of Critical Documented Failure Modes
+INCIDENTS_CATALOG = [
+    {
+        "id": "INC-01",
+        "title": "Prompt Injection & Jailbreak (System Instruction Bypass)",
+        "severity": "CRITICAL",
+        "keywords": ["jailbreak", "prompt injection", "dan", "override", "system prompt", "bypass", "guardrails"],
+        "description": "An adversary manipulates user input to override system developer instructions, causing the model to reveal internal prompts, ignore safety guidelines, or execute unauthorized behavior.",
+        "containment": [
+            "Terminate the active session/conversation state immediately.",
+            "Inspect raw prompt logs to isolate the injection attack vector.",
+            "Enforce strict input delimiter checks (e.g., XML tags like <user_input>) and use secondary evaluator guardrail models.",
+            "Deploy deterministic regex/embedding classifiers to block known jailbreak prefixes before sending prompts to the core model."
+        ],
+        "remediation": "Transition to dual-model architectures (input sanitizer + executor) and lock model temperature to 0.0."
+    },
+    {
+        "id": "INC-02",
+        "title": "Sensitive Data / PII Exfiltration",
+        "severity": "CRITICAL",
+        "keywords": ["pii", "leak", "privacy", "aadhaar", "ssn", "credentials", "api key", "password", "gdpr", "personal data"],
+        "description": "The model prints private customer data, credentials, internal system secrets, or sensitive IDs in its output response.",
+        "containment": [
+            "Trigger immediate egress filtering (Redaction Regex / DLP layer) to mask tokens before client delivery.",
+            "Scrub the affected conversation turn from persistent chat databases and cache stores.",
+            "Rotate exposed API credentials, database strings, or tokens within 15 minutes.",
+            "Audit personal data retrieval tools to ensure least-privilege scoping."
+        ],
+        "remediation": "Apply zero-retention output scrubbing filters and client-side masking policies."
+    },
+    {
+        "id": "INC-03",
+        "title": "Severe Hallucination / Fabricated Policy or Facts",
+        "severity": "HIGH",
+        "keywords": ["hallucination", "fake facts", "misinformation", "invented", "false claim", "legal liability", "incorrect"],
+        "description": "The model invents non-existent company policies, falsified legal or financial guarantees, or incorrect technical instructions with high apparent certainty.",
+        "containment": [
+            "Add prominent non-definitive UI disclaimers above model output.",
+            "Ground the prompt strictly with verified retrieval-augmented generation (RAG) context using strict system constraints.",
+            "Configure independent premise verification: require the model to cite specific source chunks.",
+            "Enable deterministic confidence scoring or fact-checking verification turns."
+        ],
+        "remediation": "Use zero-temperature settings and strict grounding instructions: 'Answer ONLY based on the provided context. If unknown, state clearly that information is unavailable.'"
+    },
+    {
+        "id": "INC-04",
+        "title": "Rogue Autonomous Tool Loop / Runaway API Calls",
+        "severity": "CRITICAL",
+        "keywords": ["tool loop", "infinite loop", "runaway", "agent loop", "api flood", "denial of service", "high cost", "quota"],
+        "description": "An autonomous agent enters an unconstrained recursive tool-calling loop, exhausting API quotas, corrupting database records, or sending unauthorized external requests.",
+        "containment": [
+            "Trip the circuit breaker: hard-kill the background agent worker thread.",
+            "Enforce a strict maximum iteration ceiling (e.g., max 3-5 tool calls per single user turn).",
+            "Require explicit Human-In-The-Loop (HITL) authorization for destructive operations (writes, deletes, payments, emails).",
+            "Apply rate-limiting and token quotas per session IP and authenticated user ID."
+        ],
+        "remediation": "Make all agent tools idempotent and wrap tool invocations in rate-limited execution wrappers."
+    },
+    {
+        "id": "INC-05",
+        "title": "Toxic, Offensive, or Rogue Persona Output",
+        "severity": "HIGH",
+        "keywords": ["toxic", "abuse", "offensive", "hate speech", "belligerent", "swearing", "rogue tone", "insulting"],
+        "description": "The assistant adopts an aggressive, defamatory, or abusive demeanor in conversation, violating brand standards and platform terms of service.",
+        "containment": [
+            "Drop the response immediately and return a fallback message: 'The assistant generated an unexpected response. Please try rephrasing your query.'",
+            "Clear user context memory to eliminate conversational poisoning or adversarial context traps.",
+            "Review temperature, top-k, and persona prompt framing to eliminate behavioral ambiguity."
+        ],
+        "remediation": "Integrate an output safety classifier to check output embeddings against safety thresholds before rendering."
+    }
+]
+
+class CustomTriageOutput(BaseModel):
+    incident_type: str = Field(description="Name and category of the failure mode.")
+    severity: str = Field(description="CRITICAL, HIGH, MEDIUM, or LOW.")
+    immediate_containment: list[str] = Field(description="3-4 step-by-step kill-switch and containment actions.")
+    root_cause_analysis: str = Field(description="Brief explanation of why the failure occurred.")
+    long_term_prevention: list[str] = Field(description="Architecture and prompt hardening recommendations.")
+
+
+@app.route('/incident_playbook', methods=['GET'])
+@login_required
+def incident_playbook_page():
+    return render_template('incident_playbook.html', current_user=current_user, incidents=INCIDENTS_CATALOG)
+
+
+@app.route('/api/triage_custom_incident', methods=['POST'])
+@login_required
+def triage_custom_incident():
+    try:
+        data = request.get_json() or {}
+        incident_description = data.get('query', '').strip()
+
+        if not incident_description:
+            return jsonify({'status': 'error', 'error': 'Please provide an incident description.'}), 400
+
+        # Query LLM for Structured Incident Triage Plan
+        client = gemma_client
+        prompt = (
+            f"An enterprise AI application is experiencing the following rogue model incident:\n"
+            f"'{incident_description}'\n\n"
+            f"Provide an immediate, actionable incident response triage playbook."
+        )
+
+        response = client.models.generate_content(
+            model=IMG_TEXT_DEFAULT_MODEL,
+            config=gemma_types.GenerateContentConfig(
+                system_instruction=(
+                    "You are a Principal AI Safety Incident Commander. Provide concise, "
+                    "tactical containment checklists and engineering mitigations for production AI incidents."
+                ),
+                temperature=0.1,
+                response_mime_type="application/json",
+                response_schema=CustomTriageOutput
+            ),
+            contents=[prompt]
+        )
+
+        return jsonify({'status': 'success', 'triage': json.loads(response.text)})
+
+    except (ServerError, APIError) as api_err:
+        logger.error(f"GenAI API failure during triage: {api_err}")
+        return jsonify({'status': 'error', 'error': 'SuperPrompter Triage advisor is temporarily busy. Follow manual SOPs.'}), 503
+    except Exception as e:
+        logger.error(f"Triage error: {e}")
+        return jsonify({'status': 'error', 'error': str(e)}), 500
+
 
 # --- NEW: Change Password Route ---
 @app.route('/change_password', methods=['GET', 'POST'])
