@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Privacy Policy - SuperPrompter AI</title>
+
+    <!-- Bootstrap 4, FontAwesome 6, Google Fonts -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --bg-canvas: #090d16;
+            --surface-card: #111827;
+            --surface-subtle: #1e293b;
+            --border-subtle: #1f293d;
+            --accent-cyan: #38bdf8;
+            --accent-green: #22c55e;
+            --text-primary: #f8fafc;
+            --text-muted: #94a3b8;
+            --font-main: 'Plus Jakarta Sans', sans-serif;
+            --font-code: 'Fira Code', monospace;
+        }
+
+        body {
+            background-color: var(--bg-canvas);
+            color: var(--text-primary);
+            font-family: var(--font-main);
+            margin: 0;
+            padding: 0;
+            line-height: 1.7;
+        }
+
+        .top-navbar {
+            background-color: #ffffff;
+            border-bottom: 1px solid #e5e7eb;
+            padding: 10px 24px;
+        }
+
+        .ai-badge-logo {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #007bff;
+            color: #ffffff;
+            font-weight: 700;
+            font-size: 1rem;
+            width: 34px;
+            height: 34px;
+            border-radius: 6px;
+            margin-bottom: 2px;
+        }
+
+        .brand-title {
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: #1f2937;
+            letter-spacing: -0.5px;
+            line-height: 1.1;
+            margin-bottom: 2px;
+        }
+
+        .home-link {
+            color: #007bff;
+            text-decoration: none;
+            font-size: 0.88rem;
+            font-weight: 500;
+        }
+
+        .home-link:hover {
+            text-decoration: underline;
+        }
+
+        .legal-shell {
+            max-width: 860px;
+            margin: 36px auto;
+            padding: 0 16px;
+        }
+
+        .legal-card {
+            background: var(--surface-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: 14px;
+            padding: 36px 32px;
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
+        }
+
+        .legal-header {
+            border-bottom: 1px solid var(--border-subtle);
+            padding-bottom: 20px;
+            margin-bottom: 28px;
+        }
+
+        .badge-update {
+            background: rgba(56, 189, 248, 0.12);
+            color: var(--accent-cyan);
+            border: 1px solid rgba(56, 189, 248, 0.3);
+            border-radius: 9999px;
+            padding: 4px 12px;
+            font-size: 0.78rem;
+            font-weight: 700;
+            font-family: var(--font-code);
+        }
+
+        h2.section-heading {
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: #ffffff;
+            margin-top: 28px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+        }
+
+        h2.section-heading i {
+            color: var(--accent-cyan);
+            margin-right: 10px;
+            font-size: 1rem;
+        }
+
+        p, li {
+            color: var(--text-muted);
+            font-size: 0.94rem;
+        }
+
+        ul {
+            padding-left: 20px;
+            margin-bottom: 16px;
+        }
+
+        li {
+            margin-bottom: 8px;
+        }
+
+        .callout-box {
+            background: var(--surface-subtle);
+            border-left: 4px solid var(--accent-green);
+            border-radius: 0 8px 8px 0;
+            padding: 14px 18px;
+            margin: 20px 0;
+        }
+
+        .callout-box p {
+            color: var(--text-primary);
+            margin: 0;
+            font-size: 0.9rem;
+        }
+
+        .footer-legal {
+            border-top: 1px solid var(--border-subtle);
+            padding-top: 20px;
+            margin-top: 36px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+    </style>
+</head>
+<body>
+
+<header class="top-navbar">
+    <div class="d-flex justify-content-between align-items-center">
+        <div>
+            <div class="ai-badge-logo">AI</div>
+            <div class="brand-title">SuperPrompter</div>
+            <a href="{{ url_for('landing') }}" class="home-link">Home</a>
+        </div>
+        <div>
+            <a href="{{ url_for('terms_of_use') }}" class="btn btn-outline-secondary btn-sm font-weight-bold">Terms of Use</a>
+        </div>
+    </div>
+</header>
+
+<div class="legal-shell">
+    <div class="legal-card">
+        <div class="legal-header d-flex justify-content-between align-items-center flex-wrap">
+            <div>
+                <h3 class="font-weight-bold text-white mb-1">Privacy Policy</h3>
+                <div class="text-muted small">How SuperPrompter AI collects, processes, and protects your information.</div>
+            </div>
+            <div class="mt-2 mt-sm-0">
+                <span class="badge-update"><i class="fa-regular fa-clock mr-1"></i>Updated: October 2026</span>
+            </div>
+        </div>
+
+        <div class="callout-box">
+            <p><i class="fa-solid fa-shield-halved text-success mr-2"></i><strong>Client-Side Processing Notice:</strong> Interactive document editing and visual crops (such as Photo &amp; Signature extraction and PDF editing) run locally in your web browser. Uploaded source files are processed in-session and are not permanently archived on our database servers.</p>
+        </div>
+
+        <h2 class="section-heading"><i class="fa-solid fa-database"></i>1. Information We Collect</h2>
+        <p>We believe in data minimization. When you use SuperPrompter AI, we collect only the information strictly necessary to provide our productivity and generative tools:</p>
+        <ul>
+            <li><strong>Account &amp; Authentication Data:</strong> If you register or authenticate, we store your email address, username, and encrypted credential hashes.</li>
+            <li><strong>User Prompts &amp; Operational Inputs:</strong> Text prompts submitted to generation engines (e.g., prompters, scenario analyzers) to return immediate model responses.</li>
+            <li><strong>Transient Document Data:</strong> Images or PDFs processed through our extractor or editor modules. These assets are converted directly on client memory or sent transiently to vision inference endpoints without permanent persistence.</li>
+            <li><strong>Technical Diagnostics:</strong> Standard web analytics including non-identifying browser type, session response latency, and error trace IDs to monitor system uptime.</li>
+        </ul>
+
+        <h2 class="section-heading"><i class="fa-solid fa-microchip"></i>2. How We Use AI Models</h2>
+        <p>Our tools utilize state-of-the-art multimodal artificial intelligence models via official APIs (such as Google GenAI / Gemini APIs). By using our application, you acknowledge that:</p>
+        <ul>
+            <li>User prompts and document snippets are routed securely via encrypted TLS transmission to upstream model providers strictly for inference execution.</li>
+            <li>We do not sell, rent, or trade your prompts or uploaded document data to third-party data brokers.</li>
+            <li>API integrations operate under standard enterprise terms that do not use submitted API payloads to train foundational public models.</li>
+        </ul>
+
+        <h2 class="section-heading"><i class="fa-solid fa-lock"></i>3. Data Retention &amp; Security</h2>
+        <p>We implement technical and organizational controls to protect your data:</p>
+        <ul>
+            <li><strong>No Cloud Document Storage:</strong> Extracted candidate images, signatures, and modified PDFs are converted and downloaded client-side. We do not maintain a permanent document repository of personal forms.</li>
+            <li><strong>Session Cleansing:</strong> Any temporary cache or server sessions can be cleared instantly using the built-in <em>Refresh</em> or <em>Reset</em> tools.</li>
+            <li><strong>Encryption in Transit:</strong> All communications between your browser, our application, and downstream inference endpoints use HTTPS/TLS 1.3 encryption.</li>
+        </ul>
+
+        <h2 class="section-heading"><i class="fa-solid fa-user-shield"></i>4. Your Rights &amp; Choices</h2>
+        <p>Depending on your jurisdiction (including GDPR and Indian DPDP standards), you retain full rights regarding your data:</p>
+        <ul>
+            <li>You may request the deletion of your account and associated session credentials at any time.</li>
+            <li>You may opt out of storing local browser storage (session state, canvas caches) by clearing your browser cache.</li>
+            <li>You may discontinue using any AI-assisted auto-detection feature and rely exclusively on local manual editing tools.</li>
+        </ul>
+
+        <h2 class="section-heading"><i class="fa-solid fa-envelope"></i>5. Contact Us</h2>
+        <p>For inquiries, feedback, or data privacy requests concerning this Privacy Policy, please reach out via our official developer channels on SuperPrompter.</p>
+
+        <div class="footer-legal">
+            <span class="small text-muted">&copy; 2026 SuperPrompter AI. All rights reserved.</span>
+            <div>
+                <a href="{{ url_for('terms_of_use') }}" class="small text-info mr-3">Terms of Use</a>
+                <a href="{{ url_for('landing') }}" class="small text-muted">Back to Home</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>
