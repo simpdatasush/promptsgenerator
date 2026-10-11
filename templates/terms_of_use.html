@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Terms of Use - SuperPrompter AI</title>
+
+    <!-- Bootstrap 4, FontAwesome 6, Google Fonts -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --bg-canvas: #090d16;
+            --surface-card: #111827;
+            --surface-subtle: #1e293b;
+            --border-subtle: #1f293d;
+            --accent-cyan: #38bdf8;
+            --accent-yellow: #f59e0b;
+            --text-primary: #f8fafc;
+            --text-muted: #94a3b8;
+            --font-main: 'Plus Jakarta Sans', sans-serif;
+            --font-code: 'Fira Code', monospace;
+        }
+
+        body {
+            background-color: var(--bg-canvas);
+            color: var(--text-primary);
+            font-family: var(--font-main);
+            margin: 0;
+            padding: 0;
+            line-height: 1.7;
+        }
+
+        .top-navbar {
+            background-color: #ffffff;
+            border-bottom: 1px solid #e5e7eb;
+            padding: 10px 24px;
+        }
+
+        .ai-badge-logo {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #007bff;
+            color: #ffffff;
+            font-weight: 700;
+            font-size: 1rem;
+            width: 34px;
+            height: 34px;
+            border-radius: 6px;
+            margin-bottom: 2px;
+        }
+
+        .brand-title {
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: #1f2937;
+            letter-spacing: -0.5px;
+            line-height: 1.1;
+            margin-bottom: 2px;
+        }
+
+        .home-link {
+            color: #007bff;
+            text-decoration: none;
+            font-size: 0.88rem;
+            font-weight: 500;
+        }
+
+        .home-link:hover {
+            text-decoration: underline;
+        }
+
+        .legal-shell {
+            max-width: 860px;
+            margin: 36px auto;
+            padding: 0 16px;
+        }
+
+        .legal-card {
+            background: var(--surface-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: 14px;
+            padding: 36px 32px;
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
+        }
+
+        .legal-header {
+            border-bottom: 1px solid var(--border-subtle);
+            padding-bottom: 20px;
+            margin-bottom: 28px;
+        }
+
+        .badge-update {
+            background: rgba(245, 158, 11, 0.12);
+            color: var(--accent-yellow);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            border-radius: 9999px;
+            padding: 4px 12px;
+            font-size: 0.78rem;
+            font-weight: 700;
+            font-family: var(--font-code);
+        }
+
+        h2.section-heading {
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: #ffffff;
+            margin-top: 28px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+        }
+
+        h2.section-heading i {
+            color: var(--accent-yellow);
+            margin-right: 10px;
+            font-size: 1rem;
+        }
+
+        p, li {
+            color: var(--text-muted);
+            font-size: 0.94rem;
+        }
+
+        ul {
+            padding-left: 20px;
+            margin-bottom: 16px;
+        }
+
+        li {
+            margin-bottom: 8px;
+        }
+
+        .callout-box {
+            background: var(--surface-subtle);
+            border-left: 4px solid var(--accent-yellow);
+            border-radius: 0 8px 8px 0;
+            padding: 14px 18px;
+            margin: 20px 0;
+        }
+
+        .callout-box p {
+            color: var(--text-primary);
+            margin: 0;
+            font-size: 0.9rem;
+        }
+
+        .footer-legal {
+            border-top: 1px solid var(--border-subtle);
+            padding-top: 20px;
+            margin-top: 36px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+    </style>
+</head>
+<body>
+
+<header class="top-navbar">
+    <div class="d-flex justify-content-between align-items-center">
+        <div>
+            <div class="ai-badge-logo">AI</div>
+            <div class="brand-title">SuperPrompter</div>
+            <a href="{{ url_for('landing') }}" class="home-link">Home</a>
+        </div>
+        <div>
+            <a href="{{ url_for('privacy_policy') }}" class="btn btn-outline-secondary btn-sm font-weight-bold">Privacy Policy</a>
+        </div>
+    </div>
+</header>
+
+<div class="legal-shell">
+    <div class="legal-card">
+        <div class="legal-header d-flex justify-content-between align-items-center flex-wrap">
+            <div>
+                <h3 class="font-weight-bold text-white mb-1">Terms of Use</h3>
+                <div class="text-muted small">Terms and conditions governing access to the SuperPrompter platform.</div>
+            </div>
+            <div class="mt-2 mt-sm-0">
+                <span class="badge-update"><i class="fa-regular fa-clock mr-1"></i>Effective: October 2026</span>
+            </div>
+        </div>
+
+        <div class="callout-box">
+            <p><i class="fa-solid fa-triangle-exclamation text-warning mr-2"></i><strong>Important Notice:</strong> SuperPrompter AI provides tools for document formatting, image extraction, and generative assistance. Users maintain full responsibility for verifying generated outputs prior to official form submissions or administrative filings.</p>
+        </div>
+
+        <h2 class="section-heading"><i class="fa-solid fa-circle-check"></i>1. Acceptance of Terms</h2>
+        <p>By accessing or using SuperPrompter AI (including its sub-modules, tools, and visual editors), you agree to be bound by these Terms of Use. If you do not agree to these terms, please discontinue using the platform immediately.</p>
+
+        <h2 class="section-heading"><i class="fa-solid fa-sliders"></i>2. Permitted Use of Tools</h2>
+        <p>Our tools are designed to facilitate document preparation, creative drafting, and image resizing:</p>
+        <ul>
+            <li><strong>Document &amp; Photo Extractor:</strong> You may use our tools to crop, format, and adjust photo and signature sizes strictly for legitimate application submissions, examinations, or identification procedures.</li>
+            <li><strong>PDF Editor:</strong> You may annotate, add text overlays, or insert photographs and signatures onto documents you own or are legally authorized to edit.</li>
+            <li><strong>Generative Prompting:</strong> Generative models are provided as workflow assistants. Output prompts and scripts may be utilized in personal, academic, or commercial production pipelines.</li>
+        </ul>
+
+        <h2 class="section-heading"><i class="fa-solid fa-ban"></i>3. Prohibited Conduct</h2>
+        <p>You agree not to misuse SuperPrompter AI. Prohibited activities include:</p>
+        <ul>
+            <li>Attempting to forge, falsify, or fabricate government identity cards, exam certificates, or legal affidavits without proper authorization.</li>
+            <li>Uploading images, signatures, or personal records of third parties without their explicit consent.</li>
+            <li>Executing adversarial prompt injection attacks, automated scraping, or denial-of-service attempts intended to bypass safety guardrails or destabilize platform availability.</li>
+            <li>Generating or distributing defamatory, abusive, infringing, or illegal media through our generative modules.</li>
+        </ul>
+
+        <h2 class="section-heading"><i class="fa-solid fa-scale-balanced"></i>4. AI Disclaimers &amp; Limitations</h2>
+        <p>Artificial Intelligence models operate based on probabilistic pattern matching and may produce unexpected artifacts:</p>
+        <ul>
+            <li><strong>No Guarantee of Flawless Recognition:</strong> Auto-detection coordinates are algorithmic suggestions. You must always review bounding boxes and output files using the interactive canvas before downloading.</li>
+            <li><strong>Submission Portal Compliance:</strong> While our size compressors enforce file limits (e.g., 10–25 KB), portal-specific rules (DPI, resolution standards, background color) remain the sole responsibility of the user.</li>
+            <li><strong>Service "As Is":</strong> SuperPrompter AI is provided on an "as is" and "as available" basis without warranties of any kind, whether express or implied.</li>
+        </ul>
+
+        <h2 class="section-heading"><i class="fa-solid fa-clock-rotate-left"></i>5. Modifications to Terms</h2>
+        <p>We reserve the right to revise or update these Terms of Use at our discretion. Any revisions will take effect immediately upon being posted to this page with an updated timestamp.</p>
+
+        <div class="footer-legal">
+            <span class="small text-muted">&copy; 2026 SuperPrompter AI. All rights reserved.</span>
+            <div>
+                <a href="{{ url_for('privacy_policy') }}" class="small text-info mr-3">Privacy Policy</a>
+                <a href="{{ url_for('landing') }}" class="small text-muted">Back to Home</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>
