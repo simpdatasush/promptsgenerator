@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Incident Response Playbook - SuperPrompter SI</title>
+
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --bg-body: #090d16;
+            --card-bg: #111827;
+            --border-color: #1f293d;
+            --accent-cyan: #38bdf8;
+            --accent-red: #ef4444;
+            --accent-yellow: #f59e0b;
+            --accent-green: #10b981;
+            --text-main: #f8fafc;
+            --text-sub: #94a3b8;
+        }
+
+        body {
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+
+        .top-navbar {
+            background-color: #ffffff;
+            border-bottom: 1px solid #e5e7eb;
+            padding: 10px 24px;
+        }
+        .ai-badge-logo {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #007bff;
+            color: #ffffff;
+            font-weight: 700;
+            font-size: 1rem;
+            width: 34px;
+            height: 34px;
+            border-radius: 6px;
+            margin-bottom: 2px;
+        }
+        .brand-title {
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: #1f2937;
+            letter-spacing: -0.5px;
+            line-height: 1.1;
+            margin-bottom: 2px;
+        }
+        .home-link {
+            color: #007bff;
+            text-decoration: none;
+            font-size: 0.88rem;
+            font-weight: 500;
+        }
+
+        .main-shell {
+            max-width: 1100px;
+            margin: 30px auto;
+            padding: 0 16px;
+        }
+
+        .search-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+        }
+
+        .search-input {
+            background-color: #070a12;
+            border: 1px solid #334155;
+            color: #ffffff;
+            border-radius: 8px;
+            padding: 12px 18px;
+            font-size: 1rem;
+            width: 100%;
+        }
+        .search-input:focus {
+            outline: none;
+            border-color: var(--accent-cyan);
+            box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.15);
+        }
+
+        .tag-pill {
+            background: #1e293b;
+            color: #94a3b8;
+            font-size: 0.78rem;
+            font-weight: 600;
+            border-radius: 9999px;
+            padding: 4px 10px;
+            margin: 3px 3px 3px 0;
+            display: inline-block;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .tag-pill:hover {
+            color: #fff;
+            background: #334155;
+        }
+
+        .incident-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 16px;
+            transition: transform 0.15s ease, border-color 0.15s ease;
+        }
+        .incident-card:hover {
+            border-color: #3b82f6;
+            transform: translateY(-2px);
+        }
+
+        .badge-sev-critical {
+            background: rgba(239, 68, 68, 0.2);
+            color: #f87171;
+            border: 1px solid var(--accent-red);
+            font-size: 0.75rem;
+            font-weight: 700;
+            padding: 3px 8px;
+            border-radius: 4px;
+        }
+        .badge-sev-high {
+            background: rgba(245, 158, 11, 0.2);
+            color: #fbbf24;
+            border: 1px solid var(--accent-yellow);
+            font-size: 0.75rem;
+            font-weight: 700;
+            padding: 3px 8px;
+            border-radius: 4px;
+        }
+
+        .sop-step {
+            background: #090e1a;
+            border-left: 3px solid var(--accent-cyan);
+            padding: 8px 12px;
+            margin-bottom: 6px;
+            font-size: 0.88rem;
+            border-radius: 0 4px 4px 0;
+        }
+
+        .triage-output-box {
+            background: #050811;
+            border: 1px solid #2563eb;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 18px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+<header class="top-navbar">
+    <div>
+        <div class="ai-badge-logo">AI</div>
+        <div class="brand-title">SuperPrompter</div>
+        <a href="{{ url_for('landing') }}" class="home-link">Home</a>
+    </div>
+</header>
+
+<div class="main-shell">
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap">
+        <div>
+            <h3 class="font-weight-bold mb-1"><i class="fa-solid fa-shield-halved text-danger mr-2"></i>Rogue AI Incident Playbook</h3>
+            <p class="text-muted small mb-0">Containment procedures, incident taxonomy, and immediate kill-switch playbooks for production model failures.</p>
+        </div>
+        <div class="mt-2 mt-sm-0">
+            <span class="badge badge-dark p-2 border border-secondary"><i class="fa-solid fa-clock-rotate-left mr-1 text-info"></i> Version 2.6 SOP</span>
+        </div>
+    </div>
+
+    <!-- Search & Triage Dispatcher -->
+    <div class="search-card">
+        <label class="font-weight-bold text-uppercase small text-muted mb-2">Search Playbooks or Describe Rogue Incident</label>
+        <div class="input-group mb-3">
+            <input type="text" id="keywordSearch" class="search-input" placeholder="Type a keyword: e.g., 'hallucination', 'jailbreak', 'pii leak', 'tool loop'..." onkeyup="filterIncidents()">
+        </div>
+
+        <div class="d-flex justify-content-between align-items-center flex-wrap">
+            <div>
+                <span class="text-muted small font-weight-bold mr-2">Suggested tags:</span>
+                <span class="tag-pill" onclick="quickFilter('jailbreak')">#jailbreak</span>
+                <span class="tag-pill" onclick="quickFilter('pii')">#pii-leak</span>
+                <span class="tag-pill" onclick="quickFilter('hallucination')">#hallucination</span>
+                <span class="tag-pill" onclick="quickFilter('tool loop')">#runaway-loop</span>
+                <span class="tag-pill" onclick="quickFilter('toxic')">#toxic-persona</span>
+            </div>
+            <button class="btn btn-outline-info btn-sm font-weight-bold mt-2 mt-md-0" onclick="triggerAiTriage()">
+                <i class="fa-solid fa-wand-magic-sparkles mr-1"></i> AI Triage Custom Scenario
+            </button>
+        </div>
+
+        <!-- Custom LLM Triage Results Area -->
+        <div id="aiTriageContainer" class="triage-output-box">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h6 class="font-weight-bold text-white mb-0"><i class="fa-solid fa-bolt text-warning mr-2"></i>AI Incident Triage Assessment</h6>
+                <span id="triageSeverityBadge" class="badge-sev-critical">CRITICAL</span>
+            </div>
+            <p id="triageIncidentType" class="text-info font-weight-bold mb-2"></p>
+            <p id="triageRca" class="small text-muted mb-3"></p>
+            <h6 class="small font-weight-bold text-uppercase text-danger mb-2"><i class="fa-solid fa-triangle-exclamation mr-1"></i>Immediate Containment Steps:</h6>
+            <div id="triageContainmentList"></div>
+            <h6 class="small font-weight-bold text-uppercase text-success mt-3 mb-2"><i class="fa-solid fa-screwdriver-wrench mr-1"></i>Long-Term Hardening:</h6>
+            <div id="triagePreventionList"></div>
+        </div>
+    </div>
+
+    <!-- Incident Catalog Cards -->
+    <div id="catalogList">
+        {% for inc in incidents %}
+        <div class="incident-card" data-keywords="{{ inc.keywords | join(' ') | lower }}" data-title="{{ inc.title | lower }}">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+                <div>
+                    <span class="badge badge-secondary mr-2 font-family-code">{{ inc.id }}</span>
+                    <h5 class="font-weight-bold text-white d-inline-block mb-0">{{ inc.title }}</h5>
+                </div>
+                <span class="{{ 'badge-sev-critical' if inc.severity == 'CRITICAL' else 'badge-sev-high' }}">{{ inc.severity }}</span>
+            </div>
+
+            <p class="text-muted small mb-3">{{ inc.description }}</p>
+
+            <h6 class="small font-weight-bold text-uppercase text-info mb-2"><i class="fa-solid fa-shield-virus mr-1"></i>Containment Checklist:</h6>
+            {% for step in inc.containment %}
+            <div class="sop-step"><i class="fa-solid fa-check text-success mr-2"></i>{{ step }}</div>
+            {% endfor %}
+
+            <div class="mt-3 pt-2 border-top border-secondary d-flex justify-content-between align-items-center flex-wrap">
+                <small class="text-muted"><b class="text-light">Remediation:</b> {{ inc.remediation }}</small>
+                <div class="mt-1 mt-sm-0">
+                    {% for kw in inc.keywords[:4] %}
+                    <span class="tag-pill">#{{ kw }}</span>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div id="noResults" class="text-center p-5 text-muted" style="display: none;">
+        <i class="fa-solid fa-circle-question fa-3x mb-3 text-secondary"></i>
+        <h6>No pre-configured playbook matches this keyword.</h6>
+        <p class="small">Click <b>"AI Triage Custom Scenario"</b> above to evaluate this specific model behavior.</p>
+    </div>
+</div>
+
+<script>
+    function filterIncidents() {
+        const query = document.getElementById('keywordSearch').value.toLowerCase().trim();
+        const cards = document.querySelectorAll('.incident-card');
+        let visibleCount = 0;
+
+        cards.forEach(card => {
+            const kws = card.getAttribute('data-keywords');
+            const title = card.getAttribute('data-title');
+
+            if (!query || kws.includes(query) || title.includes(query)) {
+                card.style.display = 'block';
+                visibleCount++;
+            } else {
+                card.style.display = 'none';
+            }
+        });
+
+        document.getElementById('noResults').style.display = visibleCount === 0 ? 'block' : 'none';
+    }
+
+    function quickFilter(word) {
+        document.getElementById('keywordSearch').value = word;
+        filterIncidents();
+    }
+
+    async function triggerAiTriage() {
+        const query = document.getElementById('keywordSearch').value.trim();
+        if (!query) {
+            alert('Please type a keyword or incident description in the search box first.');
+            return;
+        }
+
+        const box = document.getElementById('aiTriageContainer');
+        box.style.display = 'block';
+        box.scrollIntoView({ behavior: 'smooth' });
+
+        document.getElementById('triageIncidentType').innerText = 'Generating tactical incident assessment...';
+        document.getElementById('triageRca').innerText = '';
+        document.getElementById('triageContainmentList').innerHTML = '<div class="text-muted small"><i class="fa-solid fa-spinner fa-spin mr-2"></i>Analyzing failure mode...</div>';
+        document.getElementById('triagePreventionList').innerHTML = '';
+
+        try {
+            const res = await fetch('/api/triage_custom_incident', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ query: query })
+            });
+            const data = await res.json();
+
+            if (data.status === 'success' && data.triage) {
+                const t = data.triage;
+                document.getElementById('triageIncidentType').innerText = `${t.incident_type}`;
+                document.getElementById('triageSeverityBadge').innerText = t.severity;
+                document.getElementById('triageRca').innerText = `Root Cause: ${t.root_cause_analysis}`;
+
+                // Render containment
+                const contContainer = document.getElementById('triageContainmentList');
+                contContainer.innerHTML = '';
+                t.immediate_containment.forEach(c => {
+                    contContainer.innerHTML += `<div class="sop-step"><i class="fa-solid fa-fire-extinguisher text-danger mr-2"></i>${c}</div>`;
+                });
+
+                // Render prevention
+                const prevContainer = document.getElementById('triagePreventionList');
+                prevContainer.innerHTML = '';
+                t.long_term_prevention.forEach(p => {
+                    prevContainer.innerHTML += `<div class="sop-step"><i class="fa-solid fa-shield text-success mr-2"></i>${p}</div>`;
+                });
+            } else {
+                alert('Triage error: ' + (data.error || 'Unable to complete analysis'));
+            }
+        } catch (e) {
+            alert('Network error during triage: ' + e.message);
+        }
+    }
+</script>
+</body>
+</html>
