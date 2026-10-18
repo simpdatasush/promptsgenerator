@@ -1,0 +1,875 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GMAT Focus Edition Simulator &amp; Practice Engine</title>
+
+    <!-- Bootstrap 4, FontAwesome 6, Google Fonts -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fira+Code:wght@400;500;600&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --gmat-navy: #00263e;
+            --gmat-blue: #005a9c;
+            --gmat-light-gray: #f2f4f8;
+            --gmat-border: #cbd5e1;
+            --text-dark: #1e293b;
+        }
+
+        body {
+            background-color: #f1f5f9;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            color: var(--text-dark);
+            margin: 0;
+            padding: 0;
+            user-select: none;
+        }
+
+        /* Top Clean Navbar */
+        .top-navbar {
+            background-color: #ffffff;
+            border-bottom: 1px solid #e2e8f0;
+            padding: 8px 24px;
+        }
+        .brand-title {
+            font-size: 1.4rem;
+            font-weight: 800;
+            color: #0f172a;
+            letter-spacing: -0.5px;
+            margin-bottom: 0;
+        }
+        .ai-badge {
+            background: #005a9c;
+            color: #fff;
+            padding: 2px 7px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            margin-right: 6px;
+        }
+
+        /* Test Top Bar */
+        .gmat-test-bar {
+            background-color: var(--gmat-navy);
+            color: #ffffff;
+            padding: 10px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .timer-display {
+            font-family: 'Fira Code', monospace;
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #ef4444;
+            background: rgba(0,0,0,0.3);
+            padding: 4px 10px;
+            border-radius: 4px;
+            border: 1px solid rgba(255,255,255,0.15);
+        }
+
+        /* Sub Navigation Header */
+        .gmat-sub-bar {
+            background-color: var(--gmat-light-gray);
+            border-bottom: 2px solid var(--gmat-border);
+            padding: 10px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.92rem;
+            font-weight: 600;
+        }
+
+        /* Center Test Viewport */
+        .exam-shell {
+            max-width: 1080px;
+            margin: 24px auto;
+            background: #ffffff;
+            border: 1px solid var(--gmat-border);
+            border-radius: 6px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+            min-height: 540px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .question-viewport {
+            padding: 36px 44px;
+        }
+
+        .stimulus-box {
+            background-color: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-left: 4px solid var(--gmat-blue);
+            border-radius: 4px;
+            padding: 16px 20px;
+            font-size: 0.95rem;
+            line-height: 1.6;
+            margin-bottom: 24px;
+        }
+
+        .question-text {
+            font-size: 1.12rem;
+            font-weight: 700;
+            line-height: 1.6;
+            margin-bottom: 24px;
+        }
+
+        .option-item {
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            padding: 14px 20px;
+            margin-bottom: 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            transition: all 0.15s ease;
+            font-size: 0.98rem;
+        }
+        .option-item:hover {
+            background-color: #f8fafc;
+            border-color: #94a3b8;
+        }
+        .option-item.selected {
+            background-color: #e0f2fe;
+            border-color: #0284c7;
+            font-weight: 600;
+        }
+        .option-radio {
+            margin-right: 14px;
+            transform: scale(1.15);
+        }
+
+        .explanation-card {
+            background: #f0fdf4;
+            border: 1px solid #86efac;
+            border-radius: 6px;
+            padding: 16px;
+            margin-top: 20px;
+            font-size: 0.92rem;
+            line-height: 1.6;
+        }
+
+        /* Review Grid */
+        .review-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 12px;
+            margin-top: 24px;
+        }
+        .grid-cell {
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            padding: 12px;
+            text-align: center;
+            cursor: pointer;
+            background: #ffffff;
+            transition: transform 0.1s ease;
+        }
+        .grid-cell:hover {
+            transform: translateY(-2px);
+            border-color: var(--gmat-blue);
+        }
+        .grid-cell.answered {
+            border-left: 6px solid #10b981;
+        }
+        .grid-cell.bookmarked {
+            background: #fef3c7;
+            border-color: #f59e0b;
+        }
+
+        /* Action Footer */
+        .gmat-footer-bar {
+            background-color: var(--gmat-light-gray);
+            border-top: 1px solid var(--gmat-border);
+            padding: 14px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .btn-gmat {
+            background: var(--gmat-blue);
+            color: #ffffff;
+            font-weight: 700;
+            padding: 9px 24px;
+            border-radius: 4px;
+            border: none;
+        }
+        .btn-gmat:hover {
+            background: #004578;
+            color: #ffffff;
+        }
+
+        /* Launcher Hub */
+        .hub-shell {
+            max-width: 960px;
+            margin: 36px auto;
+            padding: 0 16px;
+        }
+        .selection-card {
+            background: #ffffff;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 22px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            height: 100%;
+        }
+        .selection-card:hover, .selection-card.active {
+            border-color: var(--gmat-blue);
+            box-shadow: 0 8px 20px rgba(0, 90, 156, 0.12);
+        }
+
+        /* On-Screen Calculator Floating Modal */
+        #calcModal {
+            position: fixed;
+            top: 70px;
+            right: 30px;
+            width: 260px;
+            background: #1e293b;
+            color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+            padding: 14px;
+            display: none;
+            z-index: 9999;
+        }
+        .calc-screen {
+            background: #0f172a;
+            color: #38bdf8;
+            font-family: 'Fira Code', monospace;
+            font-size: 1.2rem;
+            padding: 8px 12px;
+            border-radius: 4px;
+            text-align: right;
+            margin-bottom: 10px;
+            min-height: 40px;
+            overflow-x: auto;
+        }
+        .calc-btn-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 6px;
+        }
+        .calc-btn {
+            background: #334155;
+            color: #fff;
+            border: none;
+            padding: 8px 0;
+            font-weight: 700;
+            border-radius: 4px;
+        }
+        .calc-btn:hover {
+            background: #475569;
+        }
+    </style>
+</head>
+<body>
+
+<header class="top-navbar d-flex justify-content-between align-items-center">
+    <div class="d-flex align-items-center">
+        <span class="ai-badge">AI</span>
+        <h4 class="brand-title">SuperPrompter</h4>
+    </div>
+    <a href="{{ url_for('landing') }}" class="btn btn-outline-secondary btn-sm font-weight-bold">Exit to Home</a>
+</header>
+
+<!-- ========================================== -->
+<!-- 1. EXAM CONFIGURATION LAUNCHER HUB -->
+<!-- ========================================== -->
+<div id="launcherHub" class="hub-shell">
+    <div class="mb-4 text-center">
+        <h3 class="font-weight-bold mb-1">GMAT&trade; Focus Edition Simulator &amp; Practice Engine</h3>
+        <p class="text-muted small">Select your preparation mode. AI engine synthesizes questions dynamically conforming to official psychometric difficulty bands.</p>
+    </div>
+
+    <!-- Mode Selector Cards -->
+    <div class="row mb-4">
+        <div class="col-md-6 mb-3">
+            <div class="selection-card active" id="cardFullMock" onclick="setMode('mock')">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="badge badge-primary p-2">Full-Length Mock</span>
+                    <span class="small font-weight-bold text-muted">2 hr 15 min</span>
+                </div>
+                <h5 class="font-weight-bold mb-2">Complete 3-Section Simulator</h5>
+                <p class="text-muted small mb-0">Simulates Quantitative, Verbal, and Data Insights under strict 45-minute timed blocks with review phases and 205–805 composite scoring.</p>
+            </div>
+        </div>
+
+        <div class="col-md-6 mb-3">
+            <div class="selection-card" id="cardSectional" onclick="setMode('sectional')">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="badge badge-success p-2">Sectional Practice Drill</span>
+                    <span class="small font-weight-bold text-muted">Targeted Study</span>
+                </div>
+                <h5 class="font-weight-bold mb-2">Single Section Engine</h5>
+                <p class="text-muted small mb-0">Focused training on an isolated section with instant solutions or timed sprints without committing to a full mock test.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Section & Settings Options -->
+    <div class="card p-4 border-0 shadow-sm mb-4">
+        <div id="sectionalOptions" style="display: none;">
+            <label class="font-weight-bold small text-muted text-uppercase mb-2">Select Target Section</label>
+            <div class="row mb-3">
+                <div class="col-md-4">
+                    <button type="button" class="btn btn-outline-primary btn-block font-weight-bold active" id="secBtnQuant" onclick="selectPracticeSection('Quantitative')">Quantitative</button>
+                </div>
+                <div class="col-md-4">
+                    <button type="button" class="btn btn-outline-primary btn-block font-weight-bold" id="secBtnVerbal" onclick="selectPracticeSection('Verbal')">Verbal Reasoning</button>
+                </div>
+                <div class="col-md-4">
+                    <button type="button" class="btn btn-outline-primary btn-block font-weight-bold" id="secBtnDI" onclick="selectPracticeSection('Data Insights')">Data Insights</button>
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label class="font-weight-bold small text-muted">Drill Mode</label>
+                    <select id="practiceDrillMode" class="form-control">
+                        <option value="timed" selected>Timed (Strict 45-Minute Block)</option>
+                        <option value="untimed">Untimed (Instant Step-by-Step Explanations)</option>
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="font-weight-bold small text-muted">Question Count</label>
+                    <select id="practiceQCount" class="form-control">
+                        <option value="standard" selected>Standard Section Count (20-23 Qs)</option>
+                        <option value="15">15 Questions (Quick Review)</option>
+                        <option value="10">10 Questions (Sprint Drill)</option>
+                        <option value="5">5 Questions (Micro-Pacing Test)</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div id="mockOptions">
+            <label class="font-weight-bold small text-muted text-uppercase mb-2">Choose Section Order</label>
+            <select id="mockSectionOrder" class="form-control mb-3">
+                <option value="Q-V-DI">Quantitative &rarr; Verbal &rarr; Data Insights</option>
+                <option value="V-Q-DI">Verbal &rarr; Quantitative &rarr; Data Insights</option>
+                <option value="DI-Q-V">Data Insights &rarr; Quantitative &rarr; Verbal</option>
+            </select>
+        </div>
+
+        <button class="btn btn-gmat btn-block py-3 mt-2" onclick="launchTestSession()">
+            <i class="fa-solid fa-play mr-2"></i> Begin Test Engine
+        </button>
+    </div>
+</div>
+
+<!-- ========================================== -->
+<!-- 2. ACTIVE TEST VIEWPORT SHELL -->
+<!-- ========================================== -->
+<div id="testShell" style="display: none;">
+    <!-- Test Top Header -->
+    <div class="gmat-test-bar">
+        <div class="font-weight-bold" style="letter-spacing: 0.5px;">GMAT&trade; FOCUS TEST SIMULATOR</div>
+        <div class="d-flex align-items-center">
+            <button id="btnToggleCalc" class="btn btn-sm btn-outline-light mr-3" style="display: none;" onclick="toggleCalculatorModal()">
+                <i class="fa-solid fa-calculator mr-1"></i> Calculator
+            </button>
+            <span class="mr-2 small font-weight-bold">Time Remaining:</span>
+            <span id="timerDisplay" class="timer-display">45:00</span>
+        </div>
+    </div>
+
+    <!-- Sub-bar Information -->
+    <div class="gmat-sub-bar">
+        <div>Section: <span id="lblSection" class="text-primary font-weight-bold">Quantitative Reasoning</span></div>
+        <div>Question <span id="lblSeq">1</span> of <span id="lblTotal">21</span></div>
+        <div>
+            <button id="btnBookmark" class="btn btn-sm btn-light border font-weight-bold" onclick="toggleBookmark()">
+                <i class="fa-regular fa-bookmark mr-1"></i> Bookmark
+            </button>
+        </div>
+    </div>
+
+    <div class="exam-shell">
+        <!-- Question View Area -->
+        <div id="paneQuestion" class="question-viewport">
+            <div id="boxStimulus" class="stimulus-box" style="display: none;"></div>
+            <div id="lblQuestionText" class="question-text">Generating psychometric question via Gemini...</div>
+            <div id="optionsContainer"></div>
+
+            <div id="boxExplanation" class="explanation-card" style="display: none;">
+                <div class="font-weight-bold text-success mb-1"><i class="fa-solid fa-lightbulb mr-1"></i> Solution Breakdown:</div>
+                <div id="lblExplanationText"></div>
+            </div>
+        </div>
+
+        <!-- Section Review & Edit Screen Area -->
+        <div id="paneReview" class="question-viewport" style="display: none;">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <h4 class="font-weight-bold mb-0">Section Review &amp; Edit Screen</h4>
+                <span class="badge badge-info p-2 font-weight-bold">
+                    Edits Remaining: <span id="lblEditsRemaining">3</span> / 3
+                </span>
+            </div>
+            <p class="text-muted small">You may review all questions in this section, check bookmarked items, and edit up to 3 answers if time remains.</p>
+            <div id="reviewGrid" class="review-grid"></div>
+        </div>
+
+        <!-- Final Scorecard -->
+        <div id="paneScore" class="question-viewport text-center" style="display: none;">
+            <h2 class="font-weight-bold text-success mb-1">Test Completed!</h2>
+            <p class="text-muted small mb-4">Official GMAT Focus Edition Scaled Score Estimation</p>
+
+            <div class="p-4 bg-light border rounded d-inline-block mb-4" style="min-width: 300px;">
+                <div class="small text-muted font-weight-bold text-uppercase">Total Composite Score</div>
+                <h1 id="scoreValTotal" class="display-3 font-weight-bold text-primary my-2">--</h1>
+                <span class="badge badge-secondary font-weight-bold">Scale: 205 &ndash; 805</span>
+            </div>
+
+            <div class="row justify-content-center">
+                <div class="col-md-3">
+                    <div class="card p-3 border">
+                        <span class="small font-weight-bold text-muted">Quantitative</span>
+                        <h3 id="scoreValQuant" class="font-weight-bold mb-0">--</h3>
+                        <small class="text-muted">Scale 60&ndash;90</small>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card p-3 border">
+                        <span class="small font-weight-bold text-muted">Verbal</span>
+                        <h3 id="scoreValVerbal" class="font-weight-bold mb-0">--</h3>
+                        <small class="text-muted">Scale 60&ndash;90</small>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card p-3 border">
+                        <span class="small font-weight-bold text-muted">Data Insights</span>
+                        <h3 id="scoreValDI" class="font-weight-bold mb-0">--</h3>
+                        <small class="text-muted">Scale 60&ndash;90</small>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-4">
+                <button class="btn btn-outline-secondary font-weight-bold" onclick="location.reload()">
+                    <i class="fa-solid fa-rotate-left mr-1"></i> Start Another Session
+                </button>
+            </div>
+        </div>
+
+        <!-- Action Footer -->
+        <div class="gmat-footer-bar">
+            <button id="btnPrev" class="btn btn-secondary" onclick="navigateStep(-1)" disabled>
+                <i class="fa-solid fa-chevron-left mr-1"></i> Previous
+            </button>
+
+            <div id="reviewActions" style="display: none;">
+                <button class="btn btn-warning font-weight-bold" onclick="submitSectionAndProceed()">
+                    Submit Section &amp; Continue <i class="fa-solid fa-arrow-right ml-1"></i>
+                </button>
+            </div>
+
+            <button id="btnNext" class="btn btn-gmat" onclick="navigateStep(1)">
+                Next <i class="fa-solid fa-chevron-right ml-1"></i>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ========================================== -->
+<!-- 3. DATA INSIGHTS ON-SCREEN CALCULATOR -->
+<!-- ========================================== -->
+<div id="calcModal">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <span class="small font-weight-bold">DI Calculator</span>
+        <span style="cursor: pointer;" onclick="toggleCalculatorModal()">&times;</span>
+    </div>
+    <div id="calcScreen" class="calc-screen">0</div>
+    <div class="calc-btn-grid">
+        <button class="calc-btn" onclick="calcInput('C')">C</button>
+        <button class="calc-btn" onclick="calcInput('(')">(</button>
+        <button class="calc-btn" onclick="calcInput(')')">)</button>
+        <button class="calc-btn" onclick="calcInput('/')">/</button>
+
+        <button class="calc-btn" onclick="calcInput('7')">7</button>
+        <button class="calc-btn" onclick="calcInput('8')">8</button>
+        <button class="calc-btn" onclick="calcInput('9')">9</button>
+        <button class="calc-btn" onclick="calcInput('*')">&times;</button>
+
+        <button class="calc-btn" onclick="calcInput('4')">4</button>
+        <button class="calc-btn" onclick="calcInput('5')">5</button>
+        <button class="calc-btn" onclick="calcInput('6')">6</button>
+        <button class="calc-btn" onclick="calcInput('-')">&minus;</button>
+
+        <button class="calc-btn" onclick="calcInput('1')">1</button>
+        <button class="calc-btn" onclick="calcInput('2')">2</button>
+        <button class="calc-btn" onclick="calcInput('3')">3</button>
+        <button class="calc-btn" onclick="calcInput('+')">+</button>
+
+        <button class="calc-btn" onclick="calcInput('0')">0</button>
+        <button class="calc-btn" onclick="calcInput('.')">.</button>
+        <button class="calc-btn" style="grid-column: span 2; background: #0284c7;" onclick="calcEvaluate()">=</button>
+    </div>
+</div>
+
+<script>
+    let activeMode = 'mock';
+    let selectedPracticeSectionName = 'Quantitative';
+
+    let currentSeq = 1;
+    let totalQuestions = 21;
+    let timeRemaining = 2700;
+    let timerInterval = null;
+    let isReviewMode = false;
+
+    // Track user inputs client-side
+    let localAnswers = {}; 
+
+    function setMode(mode) {
+        activeMode = mode;
+        document.getElementById('cardFullMock').classList.toggle('active', mode === 'mock');
+        document.getElementById('cardSectional').classList.toggle('active', mode === 'sectional');
+        document.getElementById('mockOptions').style.display = (mode === 'mock') ? 'block' : 'none';
+        document.getElementById('sectionalOptions').style.display = (mode === 'sectional') ? 'block' : 'none';
+    }
+
+    function selectPracticeSection(secName) {
+        selectedPracticeSectionName = secName;
+        document.getElementById('secBtnQuant').classList.toggle('active', secName === 'Quantitative');
+        document.getElementById('secBtnVerbal').classList.toggle('active', secName === 'Verbal');
+        document.getElementById('secBtnDI').classList.toggle('active', secName === 'Data Insights');
+    }
+
+    // ----------------------------------------------------
+    // INITIATE SESSION & SPAWN ENGINE
+    // ----------------------------------------------------
+    async function launchTestSession() {
+        let payload = {};
+
+        if (activeMode === 'mock') {
+            const orderMap = {
+                'Q-V-DI': ["Quantitative", "Verbal", "Data Insights"],
+                'V-Q-DI': ["Verbal", "Quantitative", "Data Insights"],
+                'DI-Q-V': ["Data Insights", "Quantitative", "Verbal"]
+            };
+            const chosenKey = document.getElementById('mockSectionOrder').value;
+            payload = {
+                section_order: orderMap[chosenKey],
+                mode: 'mock'
+            };
+        } else {
+            const drillMode = document.getElementById('practiceDrillMode').value;
+            const qCountVal = document.getElementById('practiceQCount').value;
+            let qCount = null;
+            if (qCountVal !== 'standard') qCount = parseInt(qCountVal, 10);
+
+            payload = {
+                section_order: [selectedPracticeSectionName],
+                mode: drillMode,
+                question_count: qCount
+            };
+        }
+
+        const res = await fetch('/api/gmat/init_session', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+
+        if (data.status === 'success') {
+            document.getElementById('launcherHub').style.display = 'none';
+            document.getElementById('testShell').style.display = 'block';
+
+            totalQuestions = data.total_questions;
+            timeRemaining = data.time_seconds;
+
+            document.getElementById('lblSection').innerText = data.section;
+            document.getElementById('lblTotal').innerText = totalQuestions;
+            document.getElementById('btnToggleCalc').style.display = data.allow_calculator ? 'inline-block' : 'none';
+
+            if (data.mode === 'untimed') {
+                document.getElementById('timerDisplay').innerText = 'UNTIMED';
+            } else {
+                startTimer();
+            }
+
+            localAnswers = {};
+            loadQuestion(1);
+        } else {
+            alert('Initialization Error: ' + (data.error || 'Server rejected session.'));
+        }
+    }
+
+    function startTimer() {
+        clearInterval(timerInterval);
+        timerInterval = setInterval(() => {
+            timeRemaining--;
+            if (timeRemaining <= 0) {
+                clearInterval(timerInterval);
+                enterReviewScreen();
+            }
+            renderTimer();
+        }, 1000);
+    }
+
+    function renderTimer() {
+        const mins = Math.floor(timeRemaining / 60);
+        const secs = timeRemaining % 60;
+        document.getElementById('timerDisplay').innerText = 
+            `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+    }
+
+    // ----------------------------------------------------
+    // LOAD QUESTIONS DYNAMICALLY
+    // ----------------------------------------------------
+    async function loadQuestion(seq) {
+        currentSeq = seq;
+        document.getElementById('lblSeq').innerText = seq;
+        document.getElementById('btnPrev').disabled = (seq === 1);
+
+        document.getElementById('lblQuestionText').innerText = "Generating psychometric question via Gemini...";
+        document.getElementById('optionsContainer').innerHTML = 
+            '<div class="text-muted small p-3"><i class="fa-solid fa-circle-notch fa-spin mr-2"></i>Synthesizing psychometric question...</div>';
+        document.getElementById('boxExplanation').style.display = 'none';
+
+        try {
+            const res = await fetch('/api/gmat/get_question', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ sequence_num: seq })
+            });
+            const data = await res.json();
+
+            if (data.status === 'success') {
+                const q = data.question;
+
+                document.getElementById('lblQuestionText').innerText = `${seq}. ${q.question_text}`;
+
+                const stimBox = document.getElementById('boxStimulus');
+                if (q.stimulus) {
+                    stimBox.innerHTML = `<strong>Context / Passage:</strong><br>${q.stimulus.replace(/\n/g, '<br>')}`;
+                    stimBox.style.display = 'block';
+                } else {
+                    stimBox.style.display = 'none';
+                }
+
+                const container = document.getElementById('optionsContainer');
+                container.innerHTML = '';
+
+                const userRecordedChoice = localAnswers[seq] ? localAnswers[seq].choice : data.selected_option;
+
+                q.options.forEach((optText, idx) => {
+                    const row = document.createElement('div');
+                    const isSelected = (userRecordedChoice === idx);
+                    row.className = `option-item ${isSelected ? 'selected' : ''}`;
+                    row.innerHTML = `
+                        <input type="radio" class="option-radio" name="gmat_option_select" ${isSelected ? 'checked' : ''}>
+                        <span>${String.fromCharCode(65 + idx)}. ${optText}</span>
+                    `;
+                    row.onclick = () => selectOption(idx, q);
+                    container.appendChild(row);
+                });
+
+                // Update bookmark button
+                const isBookmarked = localAnswers[seq] ? localAnswers[seq].bookmarked : data.is_bookmarked;
+                updateBookmarkButtonState(isBookmarked);
+
+                // If untimed drill and already answered, display solution explanation
+                if (data.mode === 'untimed' && userRecordedChoice !== null && q.explanation) {
+                    document.getElementById('lblExplanationText').innerText = q.explanation;
+                    document.getElementById('boxExplanation').style.display = 'block';
+                }
+            }
+        } catch (e) {
+            document.getElementById('lblQuestionText').innerText = "Error loading question. Please check network.";
+        }
+    }
+
+    async function selectOption(idx, qData) {
+        if (!localAnswers[currentSeq]) {
+            localAnswers[currentSeq] = { choice: null, bookmarked: false };
+        }
+        localAnswers[currentSeq].choice = idx;
+
+        const res = await fetch('/api/gmat/record_answer', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                q_num: currentSeq,
+                choice: idx,
+                bookmarked: localAnswers[currentSeq].bookmarked,
+                is_reviewing: isReviewMode
+            })
+        });
+        const data = await res.json();
+
+        if (data.status === 'error') {
+            alert(data.error);
+            return;
+        }
+
+        // Highlight selected
+        document.querySelectorAll('.option-item').forEach((item, i) => {
+            item.classList.toggle('selected', i === idx);
+            item.querySelector('input').checked = (i === idx);
+        });
+
+        // Show immediate explanation in untimed mode
+        if (qData && qData.explanation) {
+            document.getElementById('lblExplanationText').innerText = qData.explanation;
+            document.getElementById('boxExplanation').style.display = 'block';
+        }
+    }
+
+    function toggleBookmark() {
+        if (!localAnswers[currentSeq]) {
+            localAnswers[currentSeq] = { choice: null, bookmarked: false };
+        }
+        localAnswers[currentSeq].bookmarked = !localAnswers[currentSeq].bookmarked;
+        updateBookmarkButtonState(localAnswers[currentSeq].bookmarked);
+
+        fetch('/api/gmat/record_answer', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                q_num: currentSeq,
+                choice: localAnswers[currentSeq].choice,
+                bookmarked: localAnswers[currentSeq].bookmarked,
+                is_reviewing: isReviewMode
+            })
+        });
+    }
+
+    function updateBookmarkButtonState(b) {
+        const btn = document.getElementById('btnBookmark');
+        if (b) {
+            btn.classList.replace('btn-light', 'btn-warning');
+            btn.innerHTML = '<i class="fa-solid fa-bookmark mr-1"></i> Bookmarked';
+        } else {
+            btn.classList.replace('btn-warning', 'btn-light');
+            btn.innerHTML = '<i class="fa-regular fa-bookmark mr-1"></i> Bookmark';
+        }
+    }
+
+    function navigateStep(offset) {
+        const next = currentSeq + offset;
+        if (next > totalQuestions) {
+            enterReviewScreen();
+        } else if (next >= 1) {
+            loadQuestion(next);
+        }
+    }
+
+    // ----------------------------------------------------
+    // REVIEW SCREEN & 3-EDIT MATRIX
+    // ----------------------------------------------------
+    function enterReviewScreen() {
+        isReviewMode = true;
+        document.getElementById('paneQuestion').style.display = 'none';
+        document.getElementById('paneReview').style.display = 'block';
+        document.getElementById('btnNext').style.display = 'none';
+        document.getElementById('btnPrev').style.display = 'none';
+        document.getElementById('reviewActions').style.display = 'block';
+
+        const grid = document.getElementById('reviewGrid');
+        grid.innerHTML = '';
+
+        for (let i = 1; i <= totalQuestions; i++) {
+            const ans = localAnswers[i] || {};
+            const isAnswered = (ans.choice !== null && ans.choice !== undefined);
+            const cell = document.createElement('div');
+            cell.className = `grid-cell ${isAnswered ? 'answered' : ''} ${ans.bookmarked ? 'bookmarked' : ''}`;
+            cell.innerHTML = `
+                <div class="font-weight-bold">Question ${i}</div>
+                <small>${isAnswered ? 'Answered' : 'Not Answered'}</small>
+                ${ans.bookmarked ? '<div><i class="fa-solid fa-bookmark text-warning small mt-1"></i></div>' : ''}
+            `;
+            cell.onclick = () => returnFromReview(i);
+            grid.appendChild(cell);
+        }
+    }
+
+    function returnFromReview(seq) {
+        document.getElementById('paneReview').style.display = 'none';
+        document.getElementById('paneQuestion').style.display = 'block';
+        document.getElementById('btnNext').style.display = 'inline-block';
+        document.getElementById('btnPrev').style.display = 'inline-block';
+        document.getElementById('reviewActions').style.display = 'none';
+        loadQuestion(seq);
+    }
+
+    async function submitSectionAndProceed() {
+        const res = await fetch('/api/gmat/complete_section', { method: 'POST' });
+        const data = await res.json();
+
+        if (data.status === 'exam_completed') {
+            clearInterval(timerInterval);
+            document.getElementById('paneReview').style.display = 'none';
+            document.getElementById('paneQuestion').style.display = 'none';
+            document.getElementById('paneScore').style.display = 'block';
+            document.querySelector('.gmat-footer-bar').style.display = 'none';
+
+            document.getElementById('scoreValTotal').innerText = data.scores.total;
+            document.getElementById('scoreValQuant').innerText = data.scores.quantitative;
+            document.getElementById('scoreValVerbal').innerText = data.scores.verbal;
+            document.getElementById('scoreValDI').innerText = data.scores.data_insights;
+        } else if (data.status === 'next_section') {
+            localAnswers = {};
+            totalQuestions = data.total_questions;
+            timeRemaining = data.time_seconds;
+            isReviewMode = false;
+
+            document.getElementById('lblSection').innerText = data.section;
+            document.getElementById('lblTotal').innerText = totalQuestions;
+            document.getElementById('btnToggleCalc').style.display = data.allow_calculator ? 'inline-block' : 'none';
+
+            document.getElementById('paneReview').style.display = 'none';
+            document.getElementById('paneQuestion').style.display = 'block';
+            document.getElementById('btnNext').style.display = 'inline-block';
+            document.getElementById('btnPrev').style.display = 'inline-block';
+            document.getElementById('reviewActions').style.display = 'none';
+
+            startTimer();
+            loadQuestion(1);
+        }
+    }
+
+    // ----------------------------------------------------
+    // ON-SCREEN CALCULATOR
+    // ----------------------------------------------------
+    let calcExpression = '';
+
+    function toggleCalculatorModal() {
+        const m = document.getElementById('calcModal');
+        m.style.display = (m.style.display === 'block') ? 'none' : 'block';
+    }
+
+    function calcInput(char) {
+        const screen = document.getElementById('calcScreen');
+        if (char === 'C') {
+            calcExpression = '';
+            screen.innerText = '0';
+        } else {
+            calcExpression += char;
+            screen.innerText = calcExpression;
+        }
+    }
+
+    function calcEvaluate() {
+        const screen = document.getElementById('calcScreen');
+        try {
+            // Safely evaluate simple arithmetic expressions
+            const sanitized = calcExpression.replace(/[^0-9+\-*/().]/g, '');
+            const result = Function('"use strict";return (' + sanitized + ')')();
+            screen.innerText = result;
+            calcExpression = String(result);
+        } catch (e) {
+            screen.innerText = 'Error';
+            calcExpression = '';
+        }
+    }
+</script>
+</body>
+</html>
