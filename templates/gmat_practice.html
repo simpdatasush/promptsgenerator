@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GMAT Practice Engine - SuperPrompter</title>
+
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --bg-body: #090d16;
+            --card-bg: #111827;
+            --border-color: #1f293d;
+            --accent-cyan: #38bdf8;
+            --accent-green: #22c55e;
+            --accent-yellow: #f59e0b;
+            --accent-red: #ef4444;
+            --text-main: #f8fafc;
+            --text-sub: #94a3b8;
+        }
+
+        body {
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+
+        .top-navbar {
+            background-color: #ffffff;
+            border-bottom: 1px solid #e5e7eb;
+            padding: 10px 24px;
+        }
+        .ai-badge-logo {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #007bff;
+            color: #ffffff;
+            font-weight: 700;
+            font-size: 1rem;
+            width: 34px;
+            height: 34px;
+            border-radius: 6px;
+            margin-bottom: 2px;
+        }
+        .brand-title {
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: #1f2937;
+            letter-spacing: -0.5px;
+            line-height: 1.1;
+            margin-bottom: 2px;
+        }
+        .home-link {
+            color: #007bff;
+            text-decoration: none;
+            font-size: 0.88rem;
+            font-weight: 500;
+        }
+
+        .main-shell {
+            max-width: 1040px;
+            margin: 28px auto;
+            padding: 0 16px;
+        }
+
+        .selection-card {
+            background: var(--card-bg);
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            padding: 22px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            height: 100%;
+        }
+        .selection-card:hover, .selection-card.active {
+            border-color: var(--accent-cyan);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(56, 189, 248, 0.15);
+        }
+
+        .exam-shell {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            min-height: 520px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .question-body {
+            padding: 32px 36px;
+        }
+
+        .stimulus-box {
+            background: #060a12;
+            border-left: 4px solid var(--accent-cyan);
+            border-radius: 4px;
+            padding: 14px 18px;
+            font-size: 0.95rem;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+
+        .option-row {
+            background: #090e1a;
+            border: 1px solid #1e293b;
+            border-radius: 6px;
+            padding: 14px 18px;
+            margin-bottom: 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            transition: all 0.15s ease;
+        }
+        .option-row:hover {
+            border-color: #38bdf8;
+            background: #0f172a;
+        }
+        .option-row.selected {
+            border-color: #0284c7;
+            background: rgba(2, 132, 199, 0.2);
+            font-weight: 600;
+        }
+        .option-row.correct {
+            border-color: var(--accent-green) !important;
+            background: rgba(34, 197, 94, 0.2) !important;
+        }
+        .option-row.incorrect {
+            border-color: var(--accent-red) !important;
+            background: rgba(239, 68, 68, 0.2) !important;
+        }
+
+        .explanation-card {
+            background: #051610;
+            border: 1px solid var(--accent-green);
+            border-radius: 6px;
+            padding: 16px;
+            margin-top: 20px;
+            display: none;
+            font-size: 0.92rem;
+            line-height: 1.6;
+        }
+
+        .timer-display {
+            font-family: 'Fira Code', monospace;
+            background: #070a12;
+            border: 1px solid #334155;
+            color: #ef4444;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 1.1rem;
+            font-weight: 700;
+        }
+
+        /* On-Screen Calculator Floating Modal */
+        #calcModal {
+            position: fixed;
+            top: 75px;
+            right: 25px;
+            width: 250px;
+            background: #1e293b;
+            color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            padding: 12px;
+            display: none;
+            z-index: 9999;
+        }
+        .calc-screen {
+            background: #0f172a;
+            color: #38bdf8;
+            font-family: 'Fira Code', monospace;
+            font-size: 1.15rem;
+            padding: 6px 10px;
+            border-radius: 4px;
+            text-align: right;
+            margin-bottom: 8px;
+            min-height: 36px;
+        }
+        .calc-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 5px;
+        }
+        .calc-btn {
+            background: #334155;
+            color: #fff;
+            border: none;
+            padding: 8px 0;
+            font-weight: 700;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+
+<header class="top-navbar d-flex justify-content-between align-items-center">
+    <div>
+        <div class="ai-badge-logo">AI</div>
+        <div class="brand-title">SuperPrompter</div>
+        <a href="{{ url_for('landing') }}" class="home-link">Home</a>
+    </div>
+    <span class="badge badge-dark p-2 border border-secondary">
+        <i class="fa-solid fa-graduation-cap text-info mr-1"></i> GMAT Practice Suite
+    </span>
+</header>
+
+<div class="main-shell">
+
+    <!-- 1. Section Selection Hub -->
+    <div id="hubView">
+        <div class="mb-4">
+            <h3 class="font-weight-bold mb-1">GMAT Focus Sectional Practice</h3>
+            <p class="text-muted small mb-0">Select an isolated section to practice with official timing rules or untimed instant Gemini solutions.</p>
+        </div>
+
+        <div class="row">
+            <!-- Quant -->
+            <div class="col-md-4 mb-3">
+                <div class="selection-card active" id="cardQuant" onclick="chooseSection('Quantitative', 'cardQuant')">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="badge badge-primary">21 Qs &middot; 45 Min</span>
+                        <small class="text-muted font-weight-bold"><i class="fa-solid fa-ban text-danger mr-1"></i>No Calc</small>
+                    </div>
+                    <h5 class="font-weight-bold text-white mb-2">Quantitative</h5>
+                    <p class="text-muted small mb-0">Problem Solving: Arithmetic, Algebra, Number Properties. Geometry is omitted.</p>
+                </div>
+            </div>
+
+            <!-- Verbal -->
+            <div class="col-md-4 mb-3">
+                <div class="selection-card" id="cardVerbal" onclick="chooseSection('Verbal', 'cardVerbal')">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="badge badge-success">23 Qs &middot; 45 Min</span>
+                        <small class="text-muted font-weight-bold"><i class="fa-solid fa-ban text-danger mr-1"></i>No Calc</small>
+                    </div>
+                    <h5 class="font-weight-bold text-white mb-2">Verbal Reasoning</h5>
+                    <p class="text-muted small mb-0">Critical Reasoning &amp; Reading Comprehension. Sentence Correction is omitted.</p>
+                </div>
+            </div>
+
+            <!-- DI -->
+            <div class="col-md-4 mb-3">
+                <div class="selection-card" id="cardDI" onclick="chooseSection('Data Insights', 'cardDI')">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="badge badge-warning">20 Qs &middot; 45 Min</span>
+                        <small class="text-success font-weight-bold"><i class="fa-solid fa-calculator mr-1"></i>Calculator</small>
+                    </div>
+                    <h5 class="font-weight-bold text-white mb-2">Data Insights</h5>
+                    <p class="text-muted small mb-0">Data Sufficiency, Table Analysis, and Multi-Source Reasoning.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mode Configuration -->
+        <div class="card bg-dark border-secondary p-4 mt-3 rounded-lg">
+            <h6 class="font-weight-bold text-muted small text-uppercase mb-3">Session Configuration</h6>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="small font-weight-bold">Practice Mode</label>
+                    <select id="modeSelect" class="form-control bg-dark text-white border-secondary" onchange="toggleCountField()">
+                        <option value="sprint" selected>Untimed Practice (Instant Gemini Explanations)</option>
+                        <option value="timed">Official Timed Section (Strict 45-Minute Timer)</option>
+                    </select>
+                </div>
+                <div class="col-md-6 mb-3" id="countWrapper">
+                    <label class="small font-weight-bold">Question Count</label>
+                    <select id="countSelect" class="form-control bg-dark text-white border-secondary">
+                        <option value="5" selected>5 Questions (Quick Check)</option>
+                        <option value="10">10 Questions (Pacing Drill)</option>
+                        <option value="15">15 Questions (Deep Practice)</option>
+                    </select>
+                </div>
+            </div>
+            <button class="btn btn-info btn-block font-weight-bold py-2 mt-2" onclick="startPracticeSession()">
+                <i class="fa-solid fa-play mr-2"></i>Launch Practice Session
+            </button>
+        </div>
+    </div>
+
+    <!-- 2. Active Test Viewport -->
+    <div id="testView" style="display: none;">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+                <h5 class="font-weight-bold text-white mb-0" id="headerTitle">Quantitative Reasoning</h5>
+                <span class="badge badge-secondary small" id="headerMode">Sprint Mode</span>
+            </div>
+            <div class="d-flex align-items-center">
+                <button id="btnCalcToggle" class="btn btn-sm btn-outline-info mr-3" style="display: none;" onclick="toggleCalculator()">
+                    <i class="fa-solid fa-calculator mr-1"></i> Calculator
+                </button>
+                <span class="mr-2 small font-weight-bold text-muted">Time:</span>
+                <span class="timer-display" id="timerLabel">UNTIMED</span>
+            </div>
+        </div>
+
+        <div class="exam-shell">
+            <div class="question-body">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <span class="badge badge-secondary font-weight-bold" id="qSubType">Problem Solving</span>
+                    <button class="btn btn-sm btn-dark border-secondary font-weight-bold" id="btnBookmark" onclick="toggleBookmark()">
+                        <i class="fa-regular fa-bookmark mr-1"></i> Bookmark
+                    </button>
+                </div>
+
+                <div id="boxStimulus" class="stimulus-box" style="display: none;"></div>
+                <h5 class="font-weight-bold text-white mb-4" id="qStem">Synthesizing psychometric question via Gemini...</h5>
+
+                <div id="optionsList"></div>
+
+                <div class="explanation-card" id="explanationBox">
+                    <h6 class="font-weight-bold text-success mb-1"><i class="fa-solid fa-lightbulb mr-1"></i> Gemini Explanation:</h6>
+                    <p class="small mb-0 text-light" id="explanationText"></p>
+                </div>
+            </div>
+
+            <div class="p-3 bg-dark border-top border-secondary d-flex justify-content-between align-items-center">
+                <button class="btn btn-secondary btn-sm" id="btnPrev" onclick="navigate(-1)" disabled>
+                    <i class="fa-solid fa-chevron-left mr-1"></i> Previous
+                </button>
+                <span class="small font-weight-bold text-muted" id="qProgress">Question 1 of 5</span>
+                <button class="btn btn-info btn-sm font-weight-bold" id="btnNext" onclick="navigate(1)">
+                    Next <i class="fa-solid fa-chevron-right ml-1"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 3. DI Calculator Floating Modal -->
+<div id="calcModal">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <span class="small font-weight-bold">DI Calculator</span>
+        <span style="cursor: pointer;" onclick="toggleCalculator()">&times;</span>
+    </div>
+    <div id="calcScreen" class="calc-screen">0</div>
+    <div class="calc-grid">
+        <button class="calc-btn" onclick="cInput('C')">C</button>
+        <button class="calc-btn" onclick="cInput('(')">(</button>
+        <button class="calc-btn" onclick="cInput(')')">)</button>
+        <button class="calc-btn" onclick="cInput('/')">/</button>
+        <button class="calc-btn" onclick="cInput('7')">7</button>
+        <button class="calc-btn" onclick="cInput('8')">8</button>
+        <button class="calc-btn" onclick="cInput('9')">9</button>
+        <button class="calc-btn" onclick="cInput('*')">&times;</button>
+        <button class="calc-btn" onclick="cInput('4')">4</button>
+        <button class="calc-btn" onclick="cInput('5')">5</button>
+        <button class="calc-btn" onclick="cInput('6')">6</button>
+        <button class="calc-btn" onclick="cInput('-')">&minus;</button>
+        <button class="calc-btn" onclick="cInput('1')">1</button>
+        <button class="calc-btn" onclick="cInput('2')">2</button>
+        <button class="calc-btn" onclick="cInput('3')">3</button>
+        <button class="calc-btn" onclick="cInput('+')">+</button>
+        <button class="calc-btn" onclick="cInput('0')">0</button>
+        <button class="calc-btn" onclick="cInput('.')">.</button>
+        <button class="calc-btn" style="grid-column: span 2; background: #0284c7;" onclick="cEval()">=</button>
+    </div>
+</div>
+
+<script>
+    let activeSection = "Quantitative";
+    let activeMode = "sprint";
+    let currentIndex = 0;
+    let totalQuestions = 5;
+    let timerSeconds = 0;
+    let timerRef = null;
+
+    function chooseSection(sec, cardId) {
+        activeSection = sec;
+        document.querySelectorAll('.selection-card').forEach(c => c.classList.remove('active'));
+        document.getElementById(cardId).classList.add('active');
+    }
+
+    function toggleCountField() {
+        const mode = document.getElementById('modeSelect').value;
+        document.getElementById('countWrapper').style.display = (mode === 'timed') ? 'none' : 'block';
+    }
+
+    async function startPracticeSession() {
+        activeMode = document.getElementById('modeSelect').value;
+        const count = document.getElementById('countSelect').value;
+
+        const res = await fetch("/api/gmat_practice/start", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({
+                section: activeSection,
+                mode: activeMode,
+                question_count: count
+            })
+        });
+        const data = await res.json();
+
+        if (data.status === "success") {
+            document.getElementById('hubView').style.display = "none";
+            document.getElementById('testView').style.display = "block";
+
+            document.getElementById('headerTitle').innerText = data.title;
+            document.getElementById('headerMode').innerText = (activeMode === 'timed') ? 'Official 45m Block' : 'Sprint Drill';
+            document.getElementById('btnCalcToggle').style.display = data.allow_calculator ? 'inline-block' : 'none';
+
+            totalQuestions = data.total_questions;
+            timerSeconds = data.time_seconds;
+
+            if (activeMode === 'timed') {
+                runTimer();
+            } else {
+                document.getElementById('timerLabel').innerText = "UNTIMED";
+            }
+
+            loadQuestion(0);
+        }
+    }
+
+    function runTimer() {
+        clearInterval(timerRef);
+        timerRef = setInterval(() => {
+            timerSeconds--;
+            if (timerSeconds <= 0) {
+                clearInterval(timerRef);
+                alert("Time has expired for this section.");
+            }
+            const m = Math.floor(timerSeconds / 60);
+            const s = timerSeconds % 60;
+            document.getElementById('timerLabel').innerText = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+        }, 1000);
+    }
+
+    async function loadQuestion(idx) {
+        currentIndex = idx;
+        document.getElementById('qProgress').innerText = `Question ${idx + 1} of ${totalQuestions}`;
+        document.getElementById('btnPrev').disabled = (idx === 0);
+        document.getElementById('btnNext').innerText = (idx === totalQuestions - 1) ? "Finish" : "Next";
+        document.getElementById('explanationBox').style.display = "none";
+
+        document.getElementById('qStem').innerText = "Synthesizing psychometric question via Gemini...";
+        document.getElementById('optionsList').innerHTML = '<div class="text-muted small p-2"><i class="fa-solid fa-spinner fa-spin mr-2"></i>Generating question...</div>';
+
+        const res = await fetch("/api/gmat_practice/get_question", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({ index: idx })
+        });
+        const data = await res.json();
+
+        if (data.status === "success") {
+            const q = data.question;
+            document.getElementById('qSubType').innerText = q.sub_type || "GMAT Focus Item";
+            document.getElementById('qStem').innerText = `${idx + 1}. ${q.question_text}`;
+
+            const stim = document.getElementById('boxStimulus');
+            if (q.stimulus) {
+                stim.innerText = q.stimulus;
+                stim.style.display = "block";
+            } else {
+                stim.style.display = "none";
+            }
+
+            const list = document.getElementById('optionsList');
+            list.innerHTML = "";
+
+            q.options.forEach((opt, oIdx) => {
+                const row = document.createElement('div');
+                const isSelected = (data.selected_option === oIdx);
+                row.className = `option-row ${isSelected ? 'selected' : ''}`;
+                row.innerHTML = `<span class="mr-3 font-weight-bold text-info">${String.fromCharCode(65 + oIdx)}.</span><span>${opt}</span>`;
+                row.onclick = () => submitAnswer(idx, oIdx);
+                list.appendChild(row);
+            });
+
+            // Update Bookmark
+            updateBookmarkButton(data.is_bookmarked);
+
+            // Display solution if already answered in sprint mode
+            if (data.mode === 'sprint' && data.selected_option !== null && q.explanation) {
+                document.getElementById('explanationText').innerText = q.explanation;
+                document.getElementById('explanationBox').style.display = "block";
+            }
+        }
+    }
+
+    async function submitAnswer(qIdx, choiceIdx) {
+        const res = await fetch("/api/gmat_practice/record_answer", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({ index: qIdx, choice: choiceIdx })
+        });
+        const data = await res.json();
+
+        if (data.status === "success") {
+            const rows = document.querySelectorAll('.option-row');
+            rows.forEach((r, i) => {
+                r.classList.toggle('selected', i === choiceIdx);
+                if (activeMode === 'sprint' && data.correct_index !== null) {
+                    if (i === data.correct_index) r.classList.add('correct');
+                    if (i === choiceIdx && !data.is_correct) r.classList.add('incorrect');
+                }
+            });
+
+            if (activeMode === 'sprint' && data.explanation) {
+                document.getElementById('explanationText').innerText = data.explanation;
+                document.getElementById('explanationBox').style.display = "block";
+            }
+        }
+    }
+
+    function toggleBookmark() {
+        const btn = document.getElementById('btnBookmark');
+        const isB = btn.classList.contains('btn-warning');
+        updateBookmarkButton(!isB);
+
+        fetch("/api/gmat_practice/record_answer", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({ index: currentIndex, bookmarked: !isB })
+        });
+    }
+
+    function updateBookmarkButton(b) {
+        const btn = document.getElementById('btnBookmark');
+        if (b) {
+            btn.className = 'btn btn-sm btn-warning font-weight-bold';
+            btn.innerHTML = '<i class="fa-solid fa-bookmark mr-1"></i> Bookmarked';
+        } else {
+            btn.className = 'btn btn-sm btn-dark border-secondary font-weight-bold';
+            btn.innerHTML = '<i class="fa-regular fa-bookmark mr-1"></i> Bookmark';
+        }
+    }
+
+    function navigate(offset) {
+        const target = currentIndex + offset;
+        if (target >= totalQuestions) {
+            alert("Practice session completed! You can review or exit.");
+        } else {
+            loadQuestion(target);
+        }
+    }
+
+    // --- Calculator ---
+    let cExp = "";
+    function toggleCalculator() {
+        const p = document.getElementById('calcModal');
+        p.style.display = (p.style.display === "block") ? "none" : "block";
+    }
+    function cInput(val) {
+        const disp = document.getElementById('calcScreen');
+        if (val === 'C') { cExp = ""; disp.innerText = "0"; }
+        else { cExp += val; disp.innerText = cExp; }
+    }
+    function cEval() {
+        const disp = document.getElementById('calcScreen');
+        try {
+            const res = Function(`"use strict"; return (${cExp.replace(/[^0-9+\-*/().]/g, '')})`)();
+            disp.innerText = res;
+            cExp = String(res);
+        } catch { disp.innerText = "Error"; cExp = ""; }
+    }
+</script>
+</body>
+</html>
