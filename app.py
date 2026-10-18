@@ -4834,43 +4834,46 @@ GMAT_AI_PROMPT_INSTRUCTION = (
 # ==========================================
 # 2. AI Generator Helpers
 # ==========================================
-def generate_gmat_question_ai(section_name: str, difficulty: str = "Medium", sub_type: Optional[str] = None) -> dict:
-    """Invokes Gemini with forced Pydantic structured output to produce a single GMAT question."""
-    client = getattr(current_app, "gemma_client", None)
-    if not client:
-        client = genai.Client()
-
+def generate_gmat_question_ai(
+    section_name: str, 
+    difficulty: str = "Medium", 
+    sub_type: Optional[str] = None
+) -> dict:
+    """Queries Gemini via gemma_client with structured output."""
     prompt = (
-        f"Generate a rigorous, authentic GMAT Focus Edition question for the '{section_name}' section.\n"
-        f"Target Difficulty: {difficulty}.\n"
+        f"Generate an authentic GMAT Focus question for the '{section_name}' section.\n"
+        f"Target Difficulty: {difficulty}."
     )
     if sub_type:
-        prompt += f"Required Sub-Type: {sub_type}.\n"
+        prompt += f"\nRequired Sub-Type: {sub_type}."
 
     try:
         response = gemma_client.models.generate_content(
             model=IMG_TEXT_DEFAULT_MODEL,
             config=gemma_types.GenerateContentConfig(
-                system_instruction=GMAT_AI_PROMPT_INSTRUCTION,
+                system_instruction=GMAT_PRACTICE_SYSTEM_PROMPT,
                 temperature=0.7,
                 response_mime_type="application/json",
-                response_schema=GMATGeneratedQuestion,
+                response_schema=GMATPracticeQuestionSchema,
             ),
             contents=[prompt],
         )
         return json.loads((response.text or "").strip())
     except Exception as e:
-        logger.error(f"Failed to generate GMAT question via Gemini: {e}")
-        # Deterministic fallback to prevent blocking test progress
+        logger.error(f"Gemini generation error: {e}")
+        # Safe fallback so session is never interrupted
+        fallback_subtype = sub_type or (
+            "Problem Solving" if section_name == "Quantitative" else "Critical Reasoning"
+        )
         return {
             "section": section_name,
-            "sub_type": "Problem Solving" if section_name == "Quantitative" else "Critical Reasoning",
+            "sub_type": fallback_subtype,
             "difficulty": difficulty,
             "stimulus": None,
-            "question_text": "If x and y are positive integers such that 3x + 7y = 85, what is the minimum possible value of x + y?",
-            "options": ["13", "15", "17", "19", "21"],
-            "correct_option_index": 1,
-            "explanation": "To minimize x + y, maximize y because it has the larger coefficient. If y = 10, 3x = 15 => x = 5. Both are positive integers. Thus, x + y = 15.",
+            "question_text": "If integer k is divisible by both 6 and 15, which of the following must divide k?",
+            "options": ["18", "20", "30", "45", "60"],
+            "correct_option_index": 2,
+            "explanation": "LCM(6, 15) = 30. Any multiple of both 6 and 15 must be divisible by 30.",
         }
 
 
