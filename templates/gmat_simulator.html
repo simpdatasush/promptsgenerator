@@ -395,7 +395,7 @@
         <!-- Question View Area -->
         <div id="paneQuestion" class="question-viewport">
             <div id="boxStimulus" class="stimulus-box" style="display: none;"></div>
-            <div id="lblQuestionText" class="question-text">Generating psychometric question via Gemini...</div>
+            <div id="lblQuestionText" class="question-text">Generating psychometric question via SuperPrompter...</div>
             <div id="optionsContainer"></div>
 
             <div id="boxExplanation" class="explanation-card" style="display: none;">
@@ -629,7 +629,7 @@
         document.getElementById('lblSeq').innerText = seq;
         document.getElementById('btnPrev').disabled = (seq === 1);
 
-        document.getElementById('lblQuestionText').innerText = "Generating psychometric question via Gemini...";
+        document.getElementById('lblQuestionText').innerText = "Generating psychometric question via SuperPrompter...";
         document.getElementById('optionsContainer').innerHTML = 
             '<div class="text-muted small p-3"><i class="fa-solid fa-circle-notch fa-spin mr-2"></i>Synthesizing psychometric question...</div>';
         document.getElementById('boxExplanation').style.display = 'none';
