@@ -4839,7 +4839,7 @@ def generate_gmat_question_ai(
     difficulty: str = "Medium", 
     sub_type: Optional[str] = None
 ) -> dict:
-    """Queries Gemini via gemma_client with structured output."""
+    """Queries SuperPrompter with structured output."""
     prompt = (
         f"Generate an authentic GMAT Focus question for the '{section_name}' section.\n"
         f"Target Difficulty: {difficulty}."
