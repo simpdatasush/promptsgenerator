@@ -5126,6 +5126,200 @@ def gmat_complete_section():
         "allow_calculator": GMAT_SECTION_SPECS[next_sec]["allow_calc"],
     })
 
+
+# ---------------------------------------------------------------------
+# GMAT PRACTICE ENGINE (SECTIONAL & FULL TEST)
+# ---------------------------------------------------------------------
+
+logger = logging.getLogger(__name__)
+
+# Section specs matching official GMAT Focus
+GMAT_PRACTICE_RULES = {
+    "Quantitative": {
+        "title": "Quantitative Reasoning",
+        "default_count": 21,
+        "time_seconds": 2700,  # 45 min
+        "calculator": False,
+        "desc": "Problem Solving: Arithmetic, Algebra, Number Properties. Geometry omitted."
+    },
+    "Verbal": {
+        "title": "Verbal Reasoning",
+        "default_count": 23,
+        "time_seconds": 2700,  # 45 min
+        "calculator": False,
+        "desc": "Critical Reasoning & Reading Comprehension. Sentence Correction omitted."
+    },
+    "Data Insights": {
+        "title": "Data Insights (DI)",
+        "default_count": 20,
+        "time_seconds": 2700,  # 45 min
+        "calculator": True,
+        "desc": "Data Sufficiency, Table Analysis, Multi-Source Reasoning with Calculator."
+    }
+}
+
+class GMATPracticeQuestionSchema(BaseModel):
+    section: str = Field(description="Quantitative, Verbal, or Data Insights")
+    sub_type: str = Field(description="Sub-type: Problem Solving, Critical Reasoning, Reading Comprehension, Data Sufficiency, or Table Analysis")
+    difficulty: str = Field(description="Easy, Medium, or Hard")
+    stimulus: Optional[str] = Field(default=None, description="Context, passage, or table. Null for pure Quant.")
+    question_text: str = Field(description="The question stem ending with a question mark.")
+    options: List[str] = Field(description="List of exactly 5 answer choices (A to E).")
+    correct_option_index: int = Field(description="Index 0 to 4 of the correct choice.")
+    explanation: str = Field(description="Step-by-step reasoning/calculation breakdown.")
+
+GMAT_PRACTICE_SYSTEM_PROMPT = (
+    "You are an official psychometrician for the GMAT Focus Edition exam.\n\n"
+    "STRICT SYLLABUS CONSTRAINTS:\n"
+    "1. Quantitative Reasoning: Problem Solving ONLY. ABSOLUTELY NO GEOMETRY. Must be solvable without a calculator.\n"
+    "2. Verbal Reasoning: Critical Reasoning & Reading Comprehension ONLY. ABSOLUTELY NO Sentence Correction or grammar rules.\n"
+    "3. Data Insights: Data Sufficiency (strict 5 standard statements) or Table/Data interpretation.\n\n"
+    "OUTPUT RULES:\n"
+    "- Exactly 5 distinct options (A through E).\n"
+    "- 4 plausible distractors representing common student calculation or logical traps.\n"
+    "- Return pure JSON adhering strictly to the schema."
+)
+
+def generate_gmat_question_ai(section_name: str, difficulty: str = "Medium") -> dict:
+    """Queries Gemini via gemma_client with structured output."""
+    prompt = f"Generate an authentic GMAT Focus question for the '{section_name}' section. Target Difficulty: {difficulty}."
+    try:
+        response = gemma_client.models.generate_content(
+            model=IMG_TEXT_DEFAULT_MODEL,
+            config=gemma_types.GenerateContentConfig(
+                system_instruction=GMAT_PRACTICE_SYSTEM_PROMPT,
+                temperature=0.7,
+                response_mime_type="application/json",
+                response_schema=GMATPracticeQuestionSchema,
+            ),
+            contents=[prompt]
+        )
+        return json.loads((response.text or "").strip())
+    except Exception as e:
+        logger.error(f"Gemini generation error: {e}")
+        # Safe fallback so session is never interrupted
+        return {
+            "section": section_name,
+            "sub_type": "Problem Solving" if section_name == "Quantitative" else "Critical Reasoning",
+            "difficulty": difficulty,
+            "stimulus": None,
+            "question_text": "If integer k is divisible by both 6 and 15, which of the following must divide k?",
+            "options": ["18", "20", "30", "45", "60"],
+            "correct_option_index": 2,
+            "explanation": "LCM(6, 15) = 30. Any multiple of both 6 and 15 must be divisible by 30."
+        }
+
+
+@app.route("/gmat_practice", methods=["GET"])
+@login_required
+def gmat_practice_page():
+    """Renders the GMAT Practice Engine. Matches url_for('gmat_practice_page')."""
+    return render_template("gmat_practice.html", current_user=current_user, rules=GMAT_PRACTICE_RULES)
+
+
+@app.route("/api/gmat_practice/start", methods=["POST"])
+@login_required
+def gmat_practice_start():
+    data = request.get_json() or {}
+    sec_key = data.get("section", "Quantitative")
+    mode = data.get("mode", "sprint")  # 'sprint' (untimed, instant feedback) or 'timed' (45 min)
+    q_count = data.get("question_count")
+
+    rule = GMAT_PRACTICE_RULES.get(sec_key, GMAT_PRACTICE_RULES["Quantitative"])
+    total_q = rule["default_count"] if (mode == "timed" or not q_count) else int(q_count)
+    time_limit = rule["time_seconds"] if mode == "timed" else 0
+
+    # Pre-generate first 2 items via Gemini to eliminate wait time
+    initial_batch = [generate_gmat_question_ai(sec_key) for _ in range(min(2, total_q))]
+
+    session["gmat_practice"] = {
+        "section": sec_key,
+        "mode": mode,
+        "total_questions": total_q,
+        "time_seconds": time_limit,
+        "allow_calculator": rule["calculator"],
+        "bank": initial_batch,
+        "answers": {}
+    }
+    session.modified = True
+
+    return jsonify({
+        "status": "success",
+        "section": sec_key,
+        "title": rule["title"],
+        "total_questions": total_q,
+        "time_seconds": time_limit,
+        "allow_calculator": rule["calculator"]
+    })
+
+
+@app.route("/api/gmat_practice/get_question", methods=["POST"])
+@login_required
+def gmat_practice_get_question():
+    s = session.get("gmat_practice")
+    if not s:
+        return jsonify({"status": "error", "error": "No active practice session."}), 400
+
+    data = request.get_json() or {}
+    idx = int(data.get("index", 0))
+
+    # Generate next questions on demand as user advances
+    while len(s["bank"]) <= idx:
+        s["bank"].append(generate_gmat_question_ai(s["section"]))
+        session.modified = True
+
+    q = s["bank"][idx]
+    ans_record = s["answers"].get(str(idx), {})
+
+    return jsonify({
+        "status": "success",
+        "index": idx,
+        "total": s["total_questions"],
+        "mode": s["mode"],
+        "allow_calculator": s["allow_calculator"],
+        "question": {
+            "sub_type": q.get("sub_type"),
+            "stimulus": q.get("stimulus"),
+            "question_text": q.get("question_text"),
+            "options": q.get("options"),
+            "explanation": q.get("explanation") if s["mode"] == "sprint" else None
+        },
+        "selected_option": ans_record.get("choice"),
+        "is_bookmarked": ans_record.get("bookmarked", False)
+    })
+
+
+@app.route("/api/gmat_practice/record_answer", methods=["POST"])
+@login_required
+def gmat_practice_record_answer():
+    s = session.get("gmat_practice")
+    if not s:
+        return jsonify({"status": "error", "error": "Session expired."}), 400
+
+    data = request.get_json() or {}
+    idx = int(data.get("index", 0))
+    choice = data.get("choice")
+    bookmark = data.get("bookmarked", False)
+
+    q = s["bank"][idx]
+    is_correct = (choice == q.get("correct_option_index")) if choice is not None else False
+
+    s["answers"][str(idx)] = {
+        "choice": choice,
+        "is_correct": is_correct,
+        "bookmarked": bookmark
+    }
+    session.modified = True
+
+    return jsonify({
+        "status": "success",
+        "is_correct": is_correct,
+        "correct_index": q.get("correct_option_index") if s["mode"] == "sprint" else None,
+        "explanation": q.get("explanation") if s["mode"] == "sprint" else None
+    })
+
+
+
 # --- NEW: Change Password Route ---
 @app.route('/change_password', methods=['GET', 'POST'])
 @login_required
