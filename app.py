@@ -4973,7 +4973,7 @@ def gmat_init_session():
 @app.route("/api/gmat/get_question", methods=["POST"])
 @login_required
 def gmat_get_question():
-    """Retrieves an existing question or generates the next one via Gemini dynamically."""
+    """Retrieves an existing question or generates the next one via SuperPrompter dynamically."""
     exam_state = session.get("gmat_exam")
     if not exam_state:
         return jsonify({"status": "error", "error": "No active test session."}), 400
@@ -5181,7 +5181,7 @@ GMAT_PRACTICE_SYSTEM_PROMPT = (
 )
 
 def generate_gmat_question_ai(section_name: str, difficulty: str = "Medium") -> dict:
-    """Queries Gemini via gemma_client with structured output."""
+    """Queries SuperPrompter via gemma_client with structured output."""
     prompt = f"Generate an authentic GMAT Focus question for the '{section_name}' section. Target Difficulty: {difficulty}."
     try:
         response = gemma_client.models.generate_content(
