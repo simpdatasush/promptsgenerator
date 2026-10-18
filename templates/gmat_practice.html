@@ -218,7 +218,7 @@
     <div id="hubView">
         <div class="mb-4">
             <h3 class="font-weight-bold mb-1">GMAT Focus Sectional Practice</h3>
-            <p class="text-muted small mb-0">Select an isolated section to practice with official timing rules or untimed instant Gemini solutions.</p>
+            <p class="text-muted small mb-0">Select an isolated section to practice with official timing rules or untimed instant SuperPrompter solutions.</p>
         </div>
 
         <div class="row">
@@ -266,7 +266,7 @@
                 <div class="col-md-6 mb-3">
                     <label class="small font-weight-bold">Practice Mode</label>
                     <select id="modeSelect" class="form-control bg-dark text-white border-secondary" onchange="toggleCountField()">
-                        <option value="sprint" selected>Untimed Practice (Instant Gemini Explanations)</option>
+                        <option value="sprint" selected>Untimed Practice (Instant SuperPrompter Explanations)</option>
                         <option value="timed">Official Timed Section (Strict 45-Minute Timer)</option>
                     </select>
                 </div>
@@ -311,12 +311,12 @@
                 </div>
 
                 <div id="boxStimulus" class="stimulus-box" style="display: none;"></div>
-                <h5 class="font-weight-bold text-white mb-4" id="qStem">Synthesizing psychometric question via Gemini...</h5>
+                <h5 class="font-weight-bold text-white mb-4" id="qStem">Synthesizing psychometric question via SuperPrompter...</h5>
 
                 <div id="optionsList"></div>
 
                 <div class="explanation-card" id="explanationBox">
-                    <h6 class="font-weight-bold text-success mb-1"><i class="fa-solid fa-lightbulb mr-1"></i> Gemini Explanation:</h6>
+                    <h6 class="font-weight-bold text-success mb-1"><i class="fa-solid fa-lightbulb mr-1"></i> SuperPrompter Explanation:</h6>
                     <p class="small mb-0 text-light" id="explanationText"></p>
                 </div>
             </div>
@@ -440,7 +440,7 @@
         document.getElementById('btnNext').innerText = (idx === totalQuestions - 1) ? "Finish" : "Next";
         document.getElementById('explanationBox').style.display = "none";
 
-        document.getElementById('qStem').innerText = "Synthesizing psychometric question via Gemini...";
+        document.getElementById('qStem').innerText = "Synthesizing psychometric question via SuperPrompter...";
         document.getElementById('optionsList').innerHTML = '<div class="text-muted small p-2"><i class="fa-solid fa-spinner fa-spin mr-2"></i>Generating question...</div>';
 
         const res = await fetch("/api/gmat_practice/get_question", {
