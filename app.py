@@ -4773,6 +4773,359 @@ def terms_of_use():
     """Renders the public Terms of Use page."""
     return render_template("terms_of_use.html")
 
+
+# =====================================================================
+# GMAT FOCUS EXAM SIMULATOR & SECTIONAL DRILL ENGINE (ZERO DB CHANGES)
+# =====================================================================
+
+logger = logging.getLogger(__name__)
+
+# Standard specifications for the GMAT Focus Edition
+GMAT_SECTION_SPECS = {
+    "Quantitative": {"count": 21, "time_seconds": 2700, "allow_calc": False},
+    "Verbal": {"count": 23, "time_seconds": 2700, "allow_calc": False},
+    "Data Insights": {"count": 20, "time_seconds": 2700, "allow_calc": True},
+}
+
+# ==========================================
+# 1. Structured GenAI Output Schema
+# ==========================================
+class GMATGeneratedQuestion(BaseModel):
+    section: str = Field(description="'Quantitative', 'Verbal', or 'Data Insights'")
+    sub_type: str = Field(
+        description=(
+            "Exact sub-type. For Quant: 'Problem Solving'. "
+            "For Verbal: 'Critical Reasoning' or 'Reading Comprehension'. "
+            "For Data Insights: 'Data Sufficiency', 'Table Analysis', 'Two-Part Analysis', or 'Multi-Source Reasoning'."
+        )
+    )
+    difficulty: str = Field(description="'Easy', 'Medium', or 'Hard'")
+    stimulus: Optional[str] = Field(
+        default=None,
+        description="Reading passage, table data, or scenario background (required for RC, CR, and DI; null for pure Quant).",
+    )
+    question_text: str = Field(description="The core question stem ending with a question mark.")
+    options: List[str] = Field(description="List of exactly 5 realistic, mutually exclusive choices (A through E).")
+    correct_option_index: int = Field(description="Zero-based index of the correct answer (0, 1, 2, 3, or 4).")
+    explanation: str = Field(description="Detailed step-by-step mathematical or logical solution.")
+
+
+GMAT_AI_PROMPT_INSTRUCTION = (
+    "You are a Senior Psychometrician and Item Writer for the official GMAT Focus Edition.\n\n"
+    "STRICT SECTION-SPECIFIC CONSTRAINTS:\n"
+    "1. QUANTITATIVE REASONING:\n"
+    "   - Focus strictly on Problem Solving: Number Properties, Rates/Work, Algebra, Combinatorics, Probability, and Word Problems.\n"
+    "   - ABSOLUTELY NO GEOMETRY questions (Geometry was permanently removed in GMAT Focus).\n"
+    "   - Calculations must work out cleanly without requiring an external calculator.\n\n"
+    "2. VERBAL REASONING:\n"
+    "   - Focus ONLY on Critical Reasoning (Weaken, Strengthen, Assumption, Boldface, Inference) and Reading Comprehension.\n"
+    "   - NO Sentence Correction or grammar correction (Removed in GMAT Focus).\n"
+    "   - Passages must feature analytical, academic business, humanities, or biological science topics.\n\n"
+    "3. DATA INSIGHTS (DI):\n"
+    "   - Focus on Data Sufficiency (strict 5 standard statements), Table Analysis, and Two-Part Analysis.\n"
+    "   - Test mathematical reasoning combined with graphical/tabular interpretation.\n\n"
+    "FORMAT RULES:\n"
+    "- Exactly 5 answer choices.\n"
+    "- High-verisimilitude distractor design (subtle traps, common partial calculation traps).\n"
+    "- Return pure JSON complying with the schema."
+)
+
+
+# ==========================================
+# 2. AI Generator Helpers
+# ==========================================
+def generate_gmat_question_ai(section_name: str, difficulty: str = "Medium", sub_type: Optional[str] = None) -> dict:
+    """Invokes Gemini with forced Pydantic structured output to produce a single GMAT question."""
+    client = getattr(current_app, "gemma_client", None)
+    if not client:
+        client = genai.Client()
+
+    prompt = (
+        f"Generate a rigorous, authentic GMAT Focus Edition question for the '{section_name}' section.\n"
+        f"Target Difficulty: {difficulty}.\n"
+    )
+    if sub_type:
+        prompt += f"Required Sub-Type: {sub_type}.\n"
+
+    try:
+        response = gemma_client.models.generate_content(
+            model=IMG_TEXT_DEFAULT_MODEL,
+            config=gemma_types.GenerateContentConfig(
+                system_instruction=GMAT_AI_PROMPT_INSTRUCTION,
+                temperature=0.7,
+                response_mime_type="application/json",
+                response_schema=GMATGeneratedQuestion,
+            ),
+            contents=[prompt],
+        )
+        return json.loads((response.text or "").strip())
+    except Exception as e:
+        logger.error(f"Failed to generate GMAT question via Gemini: {e}")
+        # Deterministic fallback to prevent blocking test progress
+        return {
+            "section": section_name,
+            "sub_type": "Problem Solving" if section_name == "Quantitative" else "Critical Reasoning",
+            "difficulty": difficulty,
+            "stimulus": None,
+            "question_text": "If x and y are positive integers such that 3x + 7y = 85, what is the minimum possible value of x + y?",
+            "options": ["13", "15", "17", "19", "21"],
+            "correct_option_index": 1,
+            "explanation": "To minimize x + y, maximize y because it has the larger coefficient. If y = 10, 3x = 15 => x = 5. Both are positive integers. Thus, x + y = 15.",
+        }
+
+
+def generate_section_batch_ai(section_name: str, total_count: int = 3) -> List[dict]:
+    """Generates a balanced starting batch of questions for a section."""
+    questions = []
+    diff_cycle = ["Medium", "Hard", "Medium", "Easy", "Hard"]
+    subtypes = {
+        "Quantitative": ["Problem Solving"],
+        "Verbal": ["Critical Reasoning", "Reading Comprehension"],
+        "Data Insights": ["Data Sufficiency", "Two-Part Analysis", "Table Analysis"],
+    }
+    available_subtypes = subtypes.get(section_name, ["Problem Solving"])
+
+    for i in range(total_count):
+        diff = diff_cycle[i % len(diff_cycle)]
+        st = available_subtypes[i % len(available_subtypes)]
+        q = generate_gmat_question_ai(section_name, difficulty=diff, sub_type=st)
+        q["sequence"] = i + 1
+        questions.append(q)
+
+    return questions
+
+
+def compute_gmat_scores(section_results: dict) -> dict:
+    """Calculates official GMAT Focus scale: 60-90 per section and 205-805 composite."""
+    def scale_sec(correct: int, total: int) -> int:
+        if total == 0:
+            return 60
+        acc = correct / total
+        return max(60, min(90, round(60 + (acc * 30))))
+
+    q_score = scale_sec(section_results.get("Quantitative", {}).get("correct", 0), 21)
+    v_score = scale_sec(section_results.get("Verbal", {}).get("correct", 0), 23)
+    di_score = scale_sec(section_results.get("Data Insights", {}).get("correct", 0), 20)
+
+    raw_sum = q_score + v_score + di_score
+    scaled_total = 205 + (((raw_sum - 180) / 90.0) * 600)
+    rounded_base = round(scaled_total / 10.0) * 10
+    composite = max(205, min(805, rounded_base + 5))
+
+    return {
+        "quantitative": q_score,
+        "verbal": v_score,
+        "data_insights": di_score,
+        "total": composite,
+    }
+
+
+# ==========================================
+# 3. Application Routes
+# ==========================================
+@app.route("/gmat_simulator", methods=["GET"])
+@login_required
+def gmat_simulator_page():
+    """Renders the main GMAT Focus Simulator / Practice shell."""
+    return render_template("gmat_simulator.html", current_user=current_user)
+
+
+@app.route("/api/gmat/init_session", methods=["POST"])
+@login_required
+def gmat_init_session():
+    """Initializes exam order, timers, and pre-generates the initial batch in session."""
+    data = request.get_json() or {}
+    order = data.get("section_order", ["Quantitative", "Verbal", "Data Insights"])
+    mode = data.get("mode", "mock")  # 'mock' or 'sectional'
+    custom_count = data.get("question_count")
+
+    first_sec = order[0]
+    total_q = custom_count if (mode == "sectional" and custom_count) else GMAT_SECTION_SPECS[first_sec]["count"]
+    time_limit = GMAT_SECTION_SPECS[first_sec]["time_seconds"] if mode != "untimed" else 0
+
+    # Pre-generate starting questions to eliminate waiting latency
+    pre_gen_count = min(3, total_q)
+    initial_questions = generate_section_batch_ai(first_sec, total_count=pre_gen_count)
+
+    session["gmat_exam"] = {
+        "mode": mode,
+        "order": order,
+        "current_sec_idx": 0,
+        "section_status": "in_progress",
+        "edits_used": 0,
+        "custom_total_q": total_q,
+        "questions_bank": {first_sec: initial_questions},
+        "answers": {},
+        "scores": {},
+    }
+    session.modified = True
+
+    return jsonify({
+        "status": "success",
+        "section": first_sec,
+        "total_questions": total_q,
+        "time_seconds": time_limit,
+        "allow_calculator": GMAT_SECTION_SPECS[first_sec]["allow_calc"],
+        "mode": mode,
+    })
+
+
+@app.route("/api/gmat/get_question", methods=["POST"])
+@login_required
+def gmat_get_question():
+    """Retrieves an existing question or generates the next one via Gemini dynamically."""
+    exam_state = session.get("gmat_exam")
+    if not exam_state:
+        return jsonify({"status": "error", "error": "No active test session."}), 400
+
+    data = request.get_json() or {}
+    seq = int(data.get("sequence_num", 1))
+
+    curr_sec = exam_state["order"][exam_state["current_sec_idx"]]
+    sec_bank = exam_state["questions_bank"].setdefault(curr_sec, [])
+
+    # Synthesize dynamically if user advances past current pre-generated pool
+    while len(sec_bank) < seq:
+        next_seq = len(sec_bank) + 1
+        diff = "Hard" if next_seq > 14 else ("Medium" if next_seq > 5 else "Easy")
+        new_q = generate_gmat_question_ai(curr_sec, difficulty=diff)
+        new_q["sequence"] = next_seq
+        sec_bank.append(new_q)
+        session.modified = True
+
+    target_q = sec_bank[seq - 1]
+    recorded = exam_state["answers"].get(curr_sec, {}).get(str(seq), {})
+
+    total_q = exam_state.get("custom_total_q") or GMAT_SECTION_SPECS[curr_sec]["count"]
+
+    return jsonify({
+        "status": "success",
+        "section": curr_sec,
+        "sequence": seq,
+        "total_in_section": total_q,
+        "allow_calculator": GMAT_SECTION_SPECS[curr_sec]["allow_calc"],
+        "mode": exam_state.get("mode", "mock"),
+        "question": {
+            "sub_type": target_q.get("sub_type"),
+            "difficulty": target_q.get("difficulty"),
+            "stimulus": target_q.get("stimulus"),
+            "question_text": target_q.get("question_text"),
+            "options": target_q.get("options"),
+            "explanation": target_q.get("explanation") if exam_state.get("mode") == "untimed" else None,
+            "correct_option_index": target_q.get("correct_option_index") if exam_state.get("mode") == "untimed" else None,
+        },
+        "selected_option": recorded.get("choice"),
+        "is_bookmarked": recorded.get("bookmarked", False),
+        "edits_used": exam_state.get("edits_used", 0),
+    })
+
+
+@app.route("/api/gmat/record_answer", methods=["POST"])
+@login_required
+def gmat_record_answer():
+    """Saves answer choices, tracks bookmarks, and enforces the official 3-edit review limit."""
+    exam_state = session.get("gmat_exam")
+    if not exam_state:
+        return jsonify({"status": "error", "error": "No active exam session."}), 400
+
+    data = request.get_json() or {}
+    q_num = str(data.get("q_num"))
+    choice = data.get("choice")
+    bookmarked = data.get("bookmarked", False)
+    is_reviewing = data.get("is_reviewing", False)
+
+    curr_sec = exam_state["order"][exam_state["current_sec_idx"]]
+    sec_answers = exam_state["answers"].setdefault(curr_sec, {})
+    q_record = sec_answers.setdefault(q_num, {
+        "choice": None,
+        "initial": None,
+        "bookmarked": False,
+        "edited": False,
+    })
+
+    q_record["bookmarked"] = bookmarked
+
+    # Enforce maximum 3 answer changes during review screen
+    if choice is not None:
+        if is_reviewing and q_record["initial"] is not None and q_record["initial"] != choice:
+            if exam_state["edits_used"] >= 3 and not q_record["edited"]:
+                return jsonify({
+                    "status": "error",
+                    "error": "GMAT Focus rule: You have reached the maximum allowance of 3 answer edits for this section.",
+                }), 400
+
+            if not q_record["edited"]:
+                exam_state["edits_used"] += 1
+                q_record["edited"] = True
+
+        if q_record["initial"] is None:
+            q_record["initial"] = choice
+
+        q_record["choice"] = choice
+
+    session.modified = True
+    return jsonify({
+        "status": "success",
+        "edits_used": exam_state["edits_used"],
+        "edits_remaining": max(0, 3 - exam_state["edits_used"]),
+    })
+
+
+@app.route("/api/gmat/complete_section", methods=["POST"])
+@login_required
+def gmat_complete_section():
+    """Transitions to the next section or calculates composite score if test is complete."""
+    exam_state = session.get("gmat_exam")
+    if not exam_state:
+        return jsonify({"status": "error", "error": "No active exam."}), 400
+
+    curr_idx = exam_state["current_sec_idx"]
+    order = exam_state["order"]
+    curr_sec = order[curr_idx]
+
+    # Evaluate accuracy for this section
+    sec_bank = exam_state["questions_bank"].get(curr_sec, [])
+    sec_answers = exam_state["answers"].get(curr_sec, {})
+
+    correct_count = 0
+    for idx, q_data in enumerate(sec_bank):
+        user_choice = sec_answers.get(str(idx + 1), {}).get("choice")
+        if user_choice is not None and user_choice == q_data.get("correct_option_index"):
+            correct_count += 1
+
+    exam_state.setdefault("raw_results", {})[curr_sec] = {
+        "correct": correct_count,
+        "total": len(sec_bank) if len(sec_bank) > 0 else 1,
+    }
+
+    # Advance section
+    exam_state["current_sec_idx"] += 1
+    exam_state["edits_used"] = 0
+
+    if exam_state["current_sec_idx"] >= len(order):
+        exam_state["section_status"] = "completed"
+        final_scores = compute_gmat_scores(exam_state["raw_results"])
+        exam_state["scores"] = final_scores
+        session.modified = True
+
+        return jsonify({
+            "status": "exam_completed",
+            "scores": final_scores,
+        })
+
+    next_sec = order[exam_state["current_sec_idx"]]
+    # Pre-generate 3 starting items for next section
+    exam_state["questions_bank"][next_sec] = generate_section_batch_ai(next_sec, total_count=3)
+    session.modified = True
+
+    return jsonify({
+        "status": "next_section",
+        "section": next_sec,
+        "total_questions": GMAT_SECTION_SPECS[next_sec]["count"],
+        "time_seconds": GMAT_SECTION_SPECS[next_sec]["time_seconds"],
+        "allow_calculator": GMAT_SECTION_SPECS[next_sec]["allow_calc"],
+    })
+
 # --- NEW: Change Password Route ---
 @app.route('/change_password', methods=['GET', 'POST'])
 @login_required
