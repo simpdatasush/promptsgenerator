@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>16-Digit Optical Code &amp; Scanner Hub - SuperPrompter</title>
+
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fira+Code:wght@500;700&display=swap" rel="stylesheet">
+
+    <!-- Optical Generators & Decoders -->
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+
+    <style>
+        :root {
+            --bg-body: #090d16;
+            --card-bg: #111827;
+            --border-color: #1f293d;
+            --accent-cyan: #38bdf8;
+            --accent-green: #22c55e;
+            --text-main: #f8fafc;
+            --text-sub: #94a3b8;
+        }
+
+        body {
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+
+        .top-navbar {
+            background-color: #ffffff;
+            border-bottom: 1px solid #e5e7eb;
+            padding: 10px 24px;
+        }
+        .ai-badge-logo {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #007bff;
+            color: #ffffff;
+            font-weight: 700;
+            font-size: 1rem;
+            width: 34px;
+            height: 34px;
+            border-radius: 6px;
+            margin-bottom: 2px;
+        }
+        .brand-title {
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: #1f2937;
+            letter-spacing: -0.5px;
+            line-height: 1.1;
+            margin-bottom: 2px;
+        }
+        .home-link {
+            color: #007bff;
+            text-decoration: none;
+            font-size: 0.88rem;
+            font-weight: 500;
+        }
+
+        .main-shell {
+            max-width: 1040px;
+            margin: 28px auto;
+            padding: 0 16px;
+        }
+
+        .workspace-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+        }
+
+        .mode-tab {
+            background: #0d1322;
+            border: 1px solid var(--border-color);
+            color: var(--text-sub);
+            padding: 10px 20px;
+            font-weight: 700;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .mode-tab.active {
+            background: rgba(56, 189, 248, 0.15);
+            border-color: var(--accent-cyan);
+            color: var(--text-main);
+        }
+
+        .code-display {
+            font-family: 'Fira Code', monospace;
+            font-size: 1.6rem;
+            letter-spacing: 2px;
+            color: var(--accent-cyan);
+            font-weight: 700;
+            background: #060a12;
+            border: 1px solid #334155;
+            padding: 10px 20px;
+            border-radius: 8px;
+            display: inline-block;
+        }
+
+        .optical-surface {
+            background: #ffffff;
+            border-radius: 8px;
+            padding: 16px;
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #000;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            min-height: 200px;
+        }
+
+        .btn-action {
+            background: linear-gradient(135deg, #0284c7 0%, #2563eb 100%);
+            color: #ffffff;
+            font-weight: 700;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+        }
+        .btn-action:hover {
+            filter: brightness(1.1);
+            color: #ffffff;
+        }
+
+        /* Camera Scanner Styles */
+        #scannerViewport {
+            width: 100%;
+            max-width: 500px;
+            margin: 0 auto;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid #334155;
+            background: #000;
+        }
+        #scannerViewport video {
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+
+<header class="top-navbar d-flex justify-content-between align-items-center">
+    <div>
+        <div class="ai-badge-logo">AI</div>
+        <div class="brand-title">SuperPrompter</div>
+        <a href="{{ url_for('landing') }}" class="home-link">Home</a>
+    </div>
+    <span class="badge badge-dark p-2 border border-secondary">
+        <i class="fa-solid fa-qrcode text-info mr-1"></i> Optical Suite
+    </span>
+</header>
+
+<div class="main-shell">
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap">
+        <div>
+            <h3 class="font-weight-bold mb-1">16-Digit Optical Code &amp; Scanner Hub</h3>
+            <p class="text-muted small mb-0">Generate scannable 16-character identifiers or scan physical codes using your camera.</p>
+        </div>
+        <div class="d-flex gap-2 mt-3 mt-md-0">
+            <button class="mode-tab active mr-2" id="tabGen" onclick="switchMode('generator')">
+                <i class="fa-solid fa-wand-magic-sparkles mr-1"></i> Generator
+            </button>
+            <button class="mode-tab" id="tabScan" onclick="switchMode('scanner')">
+                <i class="fa-solid fa-camera mr-1"></i> Live Scanner
+            </button>
+        </div>
+    </div>
+
+    <!-- 1. GENERATOR SECTION -->
+    <div id="generatorView" class="workspace-card">
+        <div class="row align-items-end mb-4">
+            <div class="col-md-8 mb-3 mb-md-0">
+                <label class="small font-weight-bold text-muted text-uppercase">Tracking Context / Tag Type</label>
+                <input type="text" id="useCaseInput" class="form-control bg-dark text-white border-secondary" placeholder="e.g. Warehouse Inventory, VIP Admission Pass, High-Value Asset Tag">
+            </div>
+            <div class="col-md-4">
+                <button class="btn btn-action btn-block" onclick="generateNewBundle()">
+                    <i class="fa-solid fa-arrows-rotate mr-2"></i>Generate Codes
+                </button>
+            </div>
+        </div>
+
+        <div id="resultArea" style="display: none;">
+            <hr class="border-secondary mb-4">
+            
+            <div class="text-center mb-4">
+                <span class="small font-weight-bold text-muted text-uppercase d-block mb-1">Generated 16-Character Serial</span>
+                <div class="code-display" id="serialDisplay">----------------</div>
+            </div>
+
+            <!-- Optical Rendering Cards -->
+            <div class="row">
+                <!-- 1D Linear Barcode (Code 128) -->
+                <div class="col-md-7 mb-3 text-center">
+                    <div class="p-3 bg-dark border border-secondary rounded h-100">
+                        <span class="small font-weight-bold text-muted text-uppercase d-block mb-3">1D Linear Barcode (Code 128)</span>
+                        <div class="optical-surface w-100">
+                            <svg id="barcodeCanvas"></svg>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2D QR Code -->
+                <div class="col-md-5 mb-3 text-center">
+                    <div class="p-3 bg-dark border border-secondary rounded h-100">
+                        <span class="small font-weight-bold text-muted text-uppercase d-block mb-3">2D Matrix (QR Code)</span>
+                        <div class="optical-surface">
+                            <div id="qrcodeCanvas"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Gemini Generated Metadata -->
+            <div class="card bg-dark border-secondary p-3 mt-3">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="badge badge-info"><i class="fa-solid fa-brain mr-1"></i> Gemini Context Record</span>
+                    <small class="text-muted" id="batchBadge">LOT-XXXX</small>
+                </div>
+                <h5 class="font-weight-bold text-white mb-1" id="itemName">Asset Name</h5>
+                <p class="small text-muted mb-1" id="itemCategory">Category</p>
+                <p class="small text-light mb-0" id="itemSummary"></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. SCANNER SECTION -->
+    <div id="scannerView" class="workspace-card" style="display: none;">
+        <div class="row mb-3 align-items-center">
+            <div class="col-md-6 mb-2 mb-md-0">
+                <h5 class="font-weight-bold mb-1"><i class="fa-solid fa-expand text-info mr-2"></i>Optical Reader</h5>
+                <p class="text-muted small mb-0">Scan directly via your webcam or upload an existing image file.</p>
+            </div>
+            <div class="col-md-6 text-md-right">
+                <button class="btn btn-sm btn-outline-info mr-2" id="btnToggleCam" onclick="toggleCameraScanner()">
+                    <i class="fa-solid fa-video mr-1"></i> <span id="lblCamAction">Start Camera</span>
+                </button>
+                <label class="btn btn-sm btn-outline-secondary mb-0">
+                    <i class="fa-solid fa-file-image mr-1"></i> Upload Image
+                    <input type="file" id="fileScanInput" accept="image/*" style="display: none;" onchange="scanFromFile(event)">
+                </label>
+            </div>
+        </div>
+
+        <div id="scannerViewport"></div>
+
+        <!-- Scan Result Readout -->
+        <div id="scanResultBox" class="mt-4 p-3 bg-dark border border-secondary rounded" style="display: none;">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="badge badge-success font-weight-bold"><i class="fa-solid fa-check mr-1"></i> Code Decoded</span>
+                <small class="text-muted" id="scanFormat">Format: QR_CODE</small>
+            </div>
+            <div class="code-display w-100 text-center py-2 mb-3" id="scannedPayload">--</div>
+
+            <div class="p-3 bg-black rounded border border-dark">
+                <div class="small font-weight-bold text-info mb-1"><i class="fa-solid fa-microchip mr-1"></i> Validation Assessment:</div>
+                <p class="small text-muted mb-0" id="scanValidationDetails"></p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let qrInstance = null;
+    let html5QrScanner = null;
+    let isCameraActive = false;
+
+    function switchMode(mode) {
+        document.getElementById('tabGen').classList.toggle('active', mode === 'generator');
+        document.getElementById('tabScan').classList.toggle('active', mode === 'scanner');
+        document.getElementById('generatorView').style.display = (mode === 'generator') ? 'block' : 'none';
+        document.getElementById('scannerView').style.display = (mode === 'scanner') ? 'block' : 'none';
+
+        // Stop camera if leaving scanner
+        if (mode !== 'scanner' && isCameraActive) {
+            stopCameraScanner();
+        }
+    }
+
+    // --- Generator Logic ---
+    async function generateNewBundle() {
+        const useCase = document.getElementById('useCaseInput').value.trim() || 'Asset Tracking';
+        
+        try {
+            const res = await fetch('/api/generate_code_bundle', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ use_case: useCase })
+            });
+            const data = await res.json();
+
+            if (data.status === 'success') {
+                document.getElementById('resultArea').style.display = 'block';
+                document.getElementById('serialDisplay').innerText = data.serial;
+
+                // 1. Render Scannable 1D Barcode (Code 128)
+                JsBarcode("#barcodeCanvas", data.serial, {
+                    format: "CODE128",
+                    lineColor: "#000",
+                    width: 2,
+                    height: 80,
+                    displayValue: true,
+                    fontSize: 14,
+                    font: "monospace"
+                });
+
+                // 2. Render Scannable 2D QR Code
+                const qrContainer = document.getElementById('qrcodeCanvas');
+                qrContainer.innerHTML = '';
+                qrInstance = new QRCode(qrContainer, {
+                    text: data.serial,
+                    width: 130,
+                    height: 130,
+                    colorDark : "#000000",
+                    colorLight : "#ffffff",
+                    correctLevel : QRCode.CorrectLevel.H
+                });
+
+                // 3. Populate Gemini metadata
+                const meta = data.metadata || {};
+                document.getElementById('itemName').innerText = meta.item_name || 'Standard Asset';
+                document.getElementById('itemCategory').innerText = `Category: ${meta.category || 'General'}`;
+                document.getElementById('batchBadge').innerText = meta.batch_lot || 'LOT-AUTO';
+                document.getElementById('itemSummary').innerText = meta.summary || '';
+            }
+        } catch (e) {
+            alert('Failed to generate code bundle: ' + e.message);
+        }
+    }
+
+    // --- Scanner Logic ---
+    function toggleCameraScanner() {
+        if (isCameraActive) {
+            stopCameraScanner();
+        } else {
+            startCameraScanner();
+        }
+    }
+
+    function startCameraScanner() {
+        if (!html5QrScanner) {
+            html5QrScanner = new Html5Qrcode("scannerViewport");
+        }
+
+        const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+        html5QrScanner.start(
+            { facingMode: "environment" },
+            config,
+            onScanSuccess,
+            (errorMessage) => { /* ignore per-frame failures */ }
+        ).then(() => {
+            isCameraActive = true;
+            document.getElementById('lblCamAction').innerText = "Stop Camera";
+        }).catch(err => {
+            alert("Camera initialization error: " + err);
+        });
+    }
+
+    function stopCameraScanner() {
+        if (html5QrScanner && isCameraActive) {
+            html5QrScanner.stop().then(() => {
+                isCameraActive = false;
+                document.getElementById('lblCamAction').innerText = "Start Camera";
+            });
+        }
+    }
+
+    function onScanSuccess(decodedText, decodedResult) {
+        document.getElementById('scanResultBox').style.display = 'block';
+        document.getElementById('scannedPayload').innerText = decodedText;
+        document.getElementById('scanFormat').innerText = "Format: " + (decodedResult.result.format?.formatName || 'Optical Code');
+
+        // Verify if it conforms to our 16-character alphanumeric pattern
+        const is16Alnum = /^[A-Z0-9]{16}$/i.test(decodedText.trim());
+        if (is16Alnum) {
+            document.getElementById('scanValidationDetails').innerText = 
+                "Valid 16-character alphanumeric identifier matching the system generation specification.";
+        } else {
+            document.getElementById('scanValidationDetails').innerText = 
+                `Payload length: ${decodedText.length} chars. Non-standard schema or external code.`;
+        }
+
+        // Stop camera feed after successful read
+        stopCameraScanner();
+    }
+
+    function scanFromFile(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        if (!html5QrScanner) {
+            html5QrScanner = new Html5Qrcode("scannerViewport");
+        }
+
+        html5QrScanner.scanFile(file, true)
+            .then(decodedText => {
+                onScanSuccess(decodedText, { result: { format: { formatName: "File Image" } } });
+            })
+            .catch(err => {
+                alert("Could not detect a clear barcode or QR code in this image: " + err);
+            });
+    }
+</script>
+</body>
+</html>
