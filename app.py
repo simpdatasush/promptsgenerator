@@ -5252,6 +5252,69 @@ def gmat_practice_record_answer():
         "explanation": q.get("explanation") if s["mode"] == "sprint" else None
     })
 
+# ---------------------------------------------------------------------
+# 16-DIGIT SERIAL, QR & BARCODE GENERATOR WITH GEMINI METADATA
+# ---------------------------------------------------------------------
+
+def generate_secure_serial(length: int = 16) -> str:
+    """Generates an uppercase cryptographic alphanumeric serial."""
+    # Exclude ambiguous characters (I, O, 0, 1) if desired, or use standard A-Z, 0-9
+    alphabet = string.ascii_uppercase + string.digits
+    return ''.join(secrets.choice(alphabet) for _ in range(length))
+
+class SerialContextSchema(BaseModel):
+    item_name: str = Field(description="A realistic sample product or asset name")
+    category: str = Field(description="Category (e.g., Electronics, Healthcare, Security Pass, Logistics)")
+    batch_lot: str = Field(description="Batch or lot identification")
+    summary: str = Field(description="1-2 sentences on what this tag tracks")
+
+@app.route("/code_generator", methods=["GET"])
+@login_required
+def code_generator_page():
+    return render_template("code_generator.html", current_user=current_user)
+
+@app.route("/api/generate_code_bundle", methods=["POST"])
+@login_required
+def api_generate_code_bundle():
+    data = request.get_json() or {}
+    use_case = data.get("use_case", "General Asset Tag")
+    
+    # 1. Generate strictly 16-character alphanumeric string
+    serial_code = generate_secure_serial(16)
+    
+    # 2. Use Gemini to synthesize asset metadata for this serial
+    metadata = {
+        "item_name": "Standard Tracked Asset",
+        "category": "Logistics & Inventory",
+        "batch_lot": f"LOT-{serial_code[:4]}",
+        "summary": "Cryptographically secure identifier generated for optical tracking."
+    }
+    
+    try:
+        prompt = (
+            f"Generate asset inventory metadata for a product labeled with serial '{serial_code}'.\n"
+            f"Context: {use_case}."
+        )
+        response = gemma_client.models.generate_content(
+            model=IMG_TEXT_DEFAULT_MODEL,
+            config=genai_types.GenerateContentConfig(
+                system_instruction="You are an enterprise logistics and inventory systems architect. Return realistic tracking details.",
+                temperature=0.3,
+                response_mime_type="application/json",
+                response_schema=SerialContextSchema
+            ),
+            contents=[prompt]
+        )
+        metadata = json.loads(response.text or "{}")
+    except Exception as e:
+        logger.warning(f"Gemini metadata fallback triggered: {e}")
+
+    return jsonify({
+        "status": "success",
+        "serial": serial_code,
+        "metadata": metadata
+    })
+
 
 # --- NEW: Change Password Route ---
 @app.route('/change_password', methods=['GET', 'POST'])
