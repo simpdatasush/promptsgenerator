@@ -5321,7 +5321,7 @@ def api_generate_code_bundle():
 
 logger = logging.getLogger(__name__)
 
-RADAR_MODEL = "gemini-2.5-flash"
+RADAR_MODEL = "gemini-3.1-flash-lite"
 
 # ==========================================
 # 1. Pydantic v2 Structured Schemas
