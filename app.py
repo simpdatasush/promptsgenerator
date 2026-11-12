@@ -5349,14 +5349,18 @@ class ResourceList(BaseModel):
         description="Curated list of verified resources strictly using URLs from the grounding list"
     )
 
+_radar_client = None
 
 def _get_genai_client() -> gemma_genai.Client:
-    """Reuses existing app client if initialized, otherwise creates one from GEMINI_API_KEY."""
-    existing = globals().get("gemma_client") or getattr(current_app, "gemma_client", None)
-    if existing:
-        return existing
-    return gemma_genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
-
+    """Returns a dedicated v1beta client required for GoogleSearch and UrlContext tools."""
+    global _radar_client
+    if _radar_client is None:
+        api_key = os.getenv("GEMINI_API_KEY")
+        _radar_client = gemma_genai.Client(
+            api_key=api_key,
+            http_options=gemma_types.HttpOptions(api_version="v1beta"),
+        )
+    return _radar_client
 
 # ==========================================
 # 2. Stage 2 Helper: Structured Extraction
