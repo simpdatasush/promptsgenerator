@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ResourceRadar - SuperPrompter</title>
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome & Google Fonts -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <!-- Marked.js for clean Markdown rendering in Deep Read modal -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+    <style>
+        body {
+            background-color: #090d16;
+            color: #f8fafc;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+        .prose-dark h3 {
+            color: #38bdf8;
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin-top: 1.25rem;
+            margin-bottom: 0.5rem;
+        }
+        .prose-dark p {
+            color: #cbd5e1;
+            line-height: 1.65;
+            margin-bottom: 0.85rem;
+            font-size: 0.95rem;
+        }
+        .prose-dark ul {
+            list-style-type: disc;
+            padding-left: 1.35rem;
+            color: #cbd5e1;
+            margin-bottom: 1rem;
+        }
+        .prose-dark li {
+            margin-bottom: 0.45rem;
+            line-height: 1.6;
+            font-size: 0.95rem;
+        }
+        .prose-dark strong {
+            color: #f8fafc;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <!-- Consistent SuperPrompter Top Navbar -->
+    <header class="bg-white border-b border-slate-200 px-6 py-2.5 flex justify-between items-center">
+        <div>
+            <div class="inline-flex items-center justify-center bg-blue-600 text-white font-bold text-base w-8 h-8 rounded-md mb-0.5">AI</div>
+            <div class="text-2xl font-bold text-slate-800 tracking-tight leading-none">SuperPrompter</div>
+            <a href="{{ url_for('landing') }}" class="text-blue-600 hover:underline text-sm font-medium">Home</a>
+        </div>
+        <span class="bg-slate-900 text-slate-200 text-xs font-semibold px-3 py-1.5 rounded-md border border-slate-700">
+            <i class="fa-solid fa-satellite-dish text-sky-400 mr-1.5"></i> ResourceRadar Engine
+        </span>
+    </header>
+
+    <!-- Main Container -->
+    <main class="max-w-6xl w-full mx-auto px-4 py-8 flex-1">
+
+        <!-- Hero & Search Bar -->
+        <section class="bg-[#111827] border border-[#1f293d] rounded-2xl p-6 md:p-8 shadow-xl mb-8">
+            <div class="max-w-3xl">
+                <div class="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-sky-400 bg-sky-950/60 border border-sky-800/50 px-3 py-1 rounded-full mb-3">
+                    <i class="fa-solid fa-radar"></i> Live Grounded Discovery
+                </div>
+                <h1 class="text-2xl md:text-3xl font-extrabold text-white tracking-tight mb-2">
+                    ResourceRadar
+                </h1>
+                <p class="text-slate-400 text-sm md:text-base mb-6">
+                    Discover verified documentation, repositories, papers, and tools using live Google Search grounding—then deep-read any page on demand.
+                </p>
+            </div>
+
+            <form id="searchForm" onsubmit="handleSearch(event)" class="flex flex-col md:flex-row gap-3">
+                <div class="relative flex-1">
+                    <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                    <input
+                        type="text"
+                        id="searchInput"
+                        required
+                        placeholder="e.g., FastAPI async SQLAlchemy 2.0 best practices, RAG evaluation frameworks..."
+                        class="w-full bg-[#090d16] border border-slate-700 focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20 rounded-xl pl-11 pr-4 py-3.5 text-white placeholder-slate-500 text-sm outline-none transition"
+                    >
+                </div>
+
+                <select
+                    id="maxResultsSelect"
+                    aria-label="Number of results"
+                    class="bg-[#090d16] border border-slate-700 focus:border-sky-500 rounded-xl px-4 py-3.5 text-sm text-slate-200 font-semibold outline-none cursor-pointer"
+                >
+                    <option value="3">3 Results</option>
+                    <option value="5" selected>5 Results</option>
+                    <option value="8">8 Results</option>
+                </select>
+
+                <button
+                    type="submit"
+                    id="btnDiscover"
+                    class="bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-white font-bold px-6 py-3.5 rounded-xl shadow-lg shadow-sky-950/50 transition flex items-center justify-center gap-2 whitespace-nowrap"
+                >
+                    <i class="fa-solid fa-compass" id="discoverIcon"></i>
+                    <span id="discoverText">Discover Resources</span>
+                </button>
+            </form>
+
+            <!-- Error Alert -->
+            <div id="errorAlert" class="hidden mt-4 bg-red-950/60 border border-red-800 text-red-200 px-4 py-3 rounded-xl text-sm flex items-center gap-2.5">
+                <i class="fa-solid fa-circle-exclamation text-red-400"></i>
+                <span id="errorAlertText"></span>
+            </div>
+        </section>
+
+        <!-- Loading Skeleton -->
+        <section id="loadingSection" class="hidden space-y-4">
+            <div class="bg-[#111827] border border-[#1f293d] rounded-xl p-6 animate-pulse">
+                <div class="h-4 bg-slate-800 rounded w-1/4 mb-3"></div>
+                <div class="h-3 bg-slate-800 rounded w-full mb-2"></div>
+                <div class="h-3 bg-slate-800 rounded w-5/6"></div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="bg-[#111827] border border-[#1f293d] rounded-xl p-6 h-44 animate-pulse"></div>
+                <div class="bg-[#111827] border border-[#1f293d] rounded-xl p-6 h-44 animate-pulse"></div>
+            </div>
+        </section>
+
+        <!-- Results Workspace -->
+        <section id="resultsSection" class="hidden">
+            <!-- Executive Overview Banner -->
+            <div class="bg-gradient-to-r from-[#111827] to-[#0f172a] border border-sky-900/60 rounded-2xl p-6 mb-6 shadow-md">
+                <div class="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-sky-400 mb-2">
+                    <i class="fa-solid fa-sparkles"></i> Grounded Ecosystem Overview
+                </div>
+                <p id="summaryOverviewText" class="text-slate-200 text-sm md:text-base leading-relaxed"></p>
+            </div>
+
+            <!-- Action Bar & Export Controls -->
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
+                <div class="text-sm text-slate-400">
+                    Showing <span id="resultCountBadge" class="text-white font-bold">0</span> verified resources for
+                    "<span id="resultTermBadge" class="text-sky-400 font-semibold"></span>"
+                </div>
+                <div class="flex items-center gap-2.5">
+                    <button
+                        onclick="downloadJSON()"
+                        class="bg-[#111827] hover:bg-slate-800 border border-slate-700 text-slate-200 text-xs font-bold px-3.5 py-2 rounded-lg transition flex items-center gap-1.5"
+                    >
+                        <i class="fa-solid fa-file-code text-sky-400"></i> Download JSON
+                    </button>
+                    <button
+                        onclick="downloadCSV()"
+                        class="bg-[#111827] hover:bg-slate-800 border border-slate-700 text-slate-200 text-xs font-bold px-3.5 py-2 rounded-lg transition flex items-center gap-1.5"
+                    >
+                        <i class="fa-solid fa-file-csv text-emerald-400"></i> Download CSV
+                    </button>
+                </div>
+            </div>
+
+            <!-- Resource Cards Grid -->
+            <div id="cardsGrid" class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <!-- Populated dynamically -->
+            </div>
+        </section>
+    </main>
+
+    <!-- Deep Read Modal -->
+    <div id="deepReadModal" class="fixed inset-0 z-50 hidden bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-[#111827] border border-slate-700 rounded-2xl max-w-2xl w-full max-h-[85vh] flex flex-col shadow-2xl overflow-hidden">
+            <!-- Modal Header -->
+            <div class="px-6 py-4 border-b border-slate-800 flex items-center justify-between bg-[#0d1322]">
+                <div class="min-w-0 pr-4">
+                    <span class="text-xs font-bold uppercase tracking-wider text-sky-400 block">
+                        <i class="fa-solid fa-book-open-reader mr-1"></i> AI Deep Reader
+                    </span>
+                    <h3 id="modalResourceTitle" class="text-base font-bold text-white truncate">Resource Title</h3>
+                </div>
+                <button onclick="closeDeepReadModal()" class="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-slate-800 transition">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <!-- Modal Body -->
+            <div class="p-6 overflow-y-auto flex-1">
+                <div id="modalLoading" class="py-12 text-center">
+                    <i class="fa-solid fa-circle-notch fa-spin text-3xl text-sky-400 mb-3"></i>
+                    <p class="text-sm text-slate-300 font-medium">Reading and synthesizing target URL via Gemini UrlContext...</p>
+                    <p class="text-xs text-slate-500 mt-1">Extracting core thesis, 5 key takeaways, and target audience</p>
+                </div>
+
+                <div id="modalError" class="hidden bg-amber-950/50 border border-amber-800/70 text-amber-200 p-4 rounded-xl text-sm">
+                    <div class="font-bold mb-1"><i class="fa-solid fa-lock mr-1.5"></i> Content Access Notice</div>
+                    <p id="modalErrorText" class="text-xs leading-relaxed"></p>
+                </div>
+
+                <div id="modalContent" class="prose-dark hidden"></div>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="px-6 py-3.5 border-t border-slate-800 bg-[#0d1322] flex justify-between items-center">
+                <a id="modalExternalLink" href="#" target="_blank" rel="noopener noreferrer" class="text-xs font-semibold text-sky-400 hover:underline flex items-center gap-1.5">
+                    Open Original Page <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                </a>
+                <button onclick="closeDeepReadModal()" class="bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold px-4 py-2 rounded-lg transition">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let latestRadarData = null;
+
+        async function handleSearch(event) {
+            event.preventDefault();
+            const searchTerm = document.getElementById('searchInput').value.trim();
+            const maxResults = parseInt(document.getElementById('maxResultsSelect').value, 10);
+
+            if (!searchTerm) return;
+
+            // Reset UI state
+            const btn = document.getElementById('btnDiscover');
+            const icon = document.getElementById('discoverIcon');
+            const btnText = document.getElementById('discoverText');
+            const errorBox = document.getElementById('errorAlert');
+
+            btn.disabled = true;
+            icon.className = 'fa-solid fa-circle-notch fa-spin';
+            btnText.innerText = 'Scanning Web...';
+            errorBox.classList.add('hidden');
+            document.getElementById('resultsSection').classList.add('hidden');
+            document.getElementById('loadingSection').classList.remove('hidden');
+
+            try {
+                const response = await fetch('/api/radar/search', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        search_term: searchTerm,
+                        max_results: maxResults
+                    })
+                });
+
+                const payload = await response.json();
+
+                if (!response.ok || payload.status !== 'success') {
+                    throw new Error(payload.error || 'Failed to discover resources.');
+                }
+
+                latestRadarData = payload.data;
+                renderResults(latestRadarData);
+
+            } catch (err) {
+                document.getElementById('errorAlertText').innerText = err.message;
+                errorBox.classList.remove('hidden');
+            } finally {
+                btn.disabled = false;
+                icon.className = 'fa-solid fa-compass';
+                btnText.innerText = 'Discover Resources';
+                document.getElementById('loadingSection').classList.add('hidden');
+            }
+        }
+
+        function renderResults(data) {
+            document.getElementById('summaryOverviewText').innerText = data.summary_overview || '';
+            document.getElementById('resultTermBadge').innerText = data.search_term || '';
+
+            const resources = data.top_resources || [];
+            document.getElementById('resultCountBadge').innerText = resources.length;
+
+            const grid = document.getElementById('cardsGrid');
+            grid.innerHTML = '';
+
+            resources.forEach((item) => {
+                const score = item.authority_score || 7;
+                const scoreColor = score >= 8
+                    ? 'bg-emerald-950/80 text-emerald-300 border-emerald-700/60'
+                    : 'bg-amber-950/80 text-amber-300 border-amber-700/60';
+
+                const card = document.createElement('div');
+                card.className = 'bg-[#111827] border border-[#1f293d] hover:border-sky-600/60 rounded-2xl p-6 flex flex-col justify-between transition shadow-lg';
+
+                card.innerHTML = `
+                    <div>
+                        <div class="flex items-center justify-between gap-2 mb-3">
+                            <span class="text-xs font-bold uppercase tracking-wider px-2.5 py-1 rounded-md bg-sky-950/80 text-sky-300 border border-sky-800/60">
+                                ${escapeHtml(item.resource_type || 'Resource')}
+                            </span>
+                            <span class="text-xs font-bold px-2.5 py-1 rounded-md border ${scoreColor}">
+                                <i class="fa-solid fa-shield-halved mr-1"></i>${score}/10 Authority
+                            </span>
+                        </div>
+
+                        <a href="${escapeHtml(item.url)}" target="_blank" rel="noopener noreferrer"
+                           class="text-lg font-bold text-white hover:text-sky-400 transition line-clamp-2 mb-1.5 block">
+                            ${escapeHtml(item.title)}
+                            <i class="fa-solid fa-arrow-up-right-from-square text-xs text-slate-500 ml-1"></i>
+                        </a>
+
+                        <div class="text-xs font-mono text-slate-500 truncate mb-3">${escapeHtml(item.url)}</div>
+
+                        <p class="text-sm text-slate-300 leading-relaxed mb-5">
+                            ${escapeHtml(item.why_its_best)}
+                        </p>
+                    </div>
+
+                    <div class="pt-3 border-t border-slate-800/80 flex justify-end">
+                        <button
+                            type="button"
+                            class="deep-read-btn bg-slate-800 hover:bg-sky-600 text-slate-100 hover:text-white text-xs font-bold px-4 py-2.5 rounded-xl transition flex items-center gap-2"
+                        >
+                            <i class="fa-solid fa-book-open"></i> Deep Read
+                        </button>
+                    </div>
+                `;
+
+                const deepBtn = card.querySelector('.deep-read-btn');
+                deepBtn.addEventListener('click', () => openDeepReadModal(item.title, item.url));
+
+                grid.appendChild(card);
+            });
+
+            document.getElementById('resultsSection').classList.remove('hidden');
+        }
+
+        async function openDeepReadModal(title, url) {
+            const modal = document.getElementById('deepReadModal');
+            const loading = document.getElementById('modalLoading');
+            const content = document.getElementById('modalContent');
+            const errBox = document.getElementById('modalError');
+
+            document.getElementById('modalResourceTitle').innerText = title;
+            document.getElementById('modalExternalLink').href = url;
+
+            loading.classList.remove('hidden');
+            content.classList.add('hidden');
+            errBox.classList.add('hidden');
+            modal.classList.remove('hidden');
+
+            try {
+                const res = await fetch('/api/radar/deep-read', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url: url })
+                });
+                const payload = await res.json();
+
+                if (!res.ok || payload.status !== 'success') {
+                    throw new Error(payload.error || 'Could not read target URL.');
+                }
+
+                content.innerHTML = marked.parse(payload.markdown_summary || '');
+                content.classList.remove('hidden');
+            } catch (err) {
+                document.getElementById('modalErrorText').innerText = err.message;
+                errBox.classList.remove('hidden');
+            } finally {
+                loading.classList.add('hidden');
+            }
+        }
+
+        function closeDeepReadModal() {
+            document.getElementById('deepReadModal').classList.add('hidden');
+        }
+
+        // --- Export Helpers ---
+        function sanitizeFilename(name) {
+            return (name || 'resources').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+        }
+
+        function downloadJSON() {
+            if (!latestRadarData) return;
+            const blob = new Blob([JSON.stringify(latestRadarData, null, 2)], { type: 'application/json' });
+            triggerDownload(blob, `${sanitizeFilename(latestRadarData.search_term)}.json`);
+        }
+
+        function downloadCSV() {
+            if (!latestRadarData || !latestRadarData.top_resources) return;
+            const headers = ['Title', 'URL', 'Resource Type', 'Authority Score', 'Why Its Best'];
+            const rows = latestRadarData.top_resources.map(r => [
+                csvCell(r.title),
+                csvCell(r.url),
+                csvCell(r.resource_type),
+                csvCell(r.authority_score),
+                csvCell(r.why_its_best)
+            ].join(','));
+
+            const csvContent = [headers.join(','), ...rows].join('\n');
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            triggerDownload(blob, `${sanitizeFilename(latestRadarData.search_term)}.csv`);
+        }
+
+        function csvCell(val) {
+            const str = String(val ?? '').replace(/"/g, '""');
+            return `"${str}"`;
+        }
+
+        function triggerDownload(blob, filename) {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.innerText = text ?? '';
+            return div.innerHTML;
+        }
+    </script>
+</body>
+</html>
