@@ -5350,7 +5350,7 @@ class ResourceList(BaseModel):
     )
 
 
-def _get_genai_client() -> genai.Client:
+def _get_genai_client() -> gemma_genai.Client:
     """Reuses existing app client if initialized, otherwise creates one from GEMINI_API_KEY."""
     existing = globals().get("gemma_client") or getattr(current_app, "gemma_client", None)
     if existing:
@@ -5358,11 +5358,12 @@ def _get_genai_client() -> genai.Client:
     return genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 
 
+
 # ==========================================
 # 2. Stage 2 Helper: Structured Extraction
 # ==========================================
 def _extract_structured_resources(
-    client: genai.Client,
+    client: gemma_genai.Client,
     search_term: str,
     grounded_summary: str,
     verified_chunks: List[dict],
