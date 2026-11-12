@@ -5315,16 +5315,7 @@ def api_generate_code_bundle():
         "metadata": metadata
     })
 
-Here is the complete, updated **ResourceRadar** backend block for `app.py` with all issues resolved:
 
-1. **Uses your working model:** Defaults to your existing `IMG_TEXT_DEFAULT_MODEL` (or `"gemini-2.5-flash"`) instead of an invalid/unsupported model string.
-2. **Consistent `gemma_genai` / `gemma_types` client usage:** Eliminates the `genai.Client` fallback collision and passes the `client` parameter cleanly into `_extract_structured_resources`.
-3. **Transparent API error reporting:** Exposes the exact Gemini HTTP status code and error message in both the logs and JSON response instead of hiding it behind a generic 502 string.
-4. **Includes Stage 3 (`/api/radar/deep-read`):** Uses `gemma_types.UrlContext()` to read and summarize any discovered link on demand.
-
-Replace the entire ResourceRadar section in your `app.py` with this code:
-
-```python
 # =====================================================================
 # RESOURCERADAR: 3-STAGE GROUNDED DISCOVERY & URL DEEP-READER ENGINE
 # =====================================================================
