@@ -5315,6 +5315,282 @@ def api_generate_code_bundle():
         "metadata": metadata
     })
 
+# =====================================================================
+# RESOURCERADAR: 3-STAGE GROUNDED DISCOVERY & URL DEEP-READER ENGINE
+# =====================================================================
+
+logger = logging.getLogger(__name__)
+
+RADAR_MODEL = "gemini-2.5-flash"
+
+# ==========================================
+# 1. Pydantic v2 Structured Schemas
+# ==========================================
+class Resource(BaseModel):
+    title: str = Field(description="Clean, accurate title of the web resource")
+    url: str = Field(description="Exact verified URI copied from the grounding chunks")
+    resource_type: str = Field(
+        description="Category: 'Documentation', 'GitHub Repo', 'Tutorial', 'Research Paper', 'Tool', or 'Guide'"
+    )
+    authority_score: int = Field(
+        ge=1, le=10, description="1 to 10 rating based on domain credibility and technical depth"
+    )
+    why_its_best: str = Field(
+        description="Concise 1-2 sentence justification explaining why this resource stands out"
+    )
+
+
+class ResourceList(BaseModel):
+    search_term: str = Field(description="The user's original search query")
+    summary_overview: str = Field(
+        description="2-3 sentence executive synthesis of the current ecosystem and top resources for this topic"
+    )
+    top_resources: List[Resource] = Field(
+        description="Curated list of verified resources strictly using URLs from the grounding list"
+    )
+
+
+def _get_genai_client() -> genai.Client:
+    """Reuses existing app client if initialized, otherwise creates one from GEMINI_API_KEY."""
+    existing = globals().get("gemma_client") or getattr(current_app, "gemma_client", None)
+    if existing:
+        return existing
+    return genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
+
+
+# ==========================================
+# 2. Stage 2 Helper: Structured Extraction
+# ==========================================
+def _extract_structured_resources(
+    client: genai.Client,
+    search_term: str,
+    grounded_summary: str,
+    verified_chunks: List[dict],
+    max_results: int,
+) -> dict:
+    """
+    Stage 2: Converts grounded search findings + verified grounding_chunks into
+    strictly validated Pydantic JSON while preventing URL hallucinations.
+    """
+    allowed_urls = {c["uri"] for c in verified_chunks if c.get("uri")}
+
+    extraction_prompt = (
+        f"Search Term: '{search_term}'\n"
+        f"Target Max Results: {max_results}\n\n"
+        f"--- GROUNDED RESEARCH NOTES ---\n{grounded_summary}\n\n"
+        f"--- VERIFIED GROUNDING SOURCES (STRICT WHITELIST) ---\n"
+        f"{json.dumps(verified_chunks, indent=2)}\n\n"
+        "INSTRUCTIONS:\n"
+        f"1. Select up to {max_results} highest-value resources from the verified list above.\n"
+        "2. STRICT RULE: Every 'url' field in your JSON output MUST be an exact character-for-character match "
+        "from the 'uri' values in VERIFIED GROUNDING SOURCES. Never invent or alter URLs.\n"
+        "3. Assign an objective authority_score (1-10) and write a crisp why_its_best justification."
+    )
+
+    response = gemma_client.models.generate_content(
+        model=RADAR_MODEL,
+        config=gemma_types.GenerateContentConfig(
+            system_instruction=(
+                "You are a Technical Research Curator. Extract structured metadata strictly from verified "
+                "grounding sources. Never fabricate URLs."
+            ),
+            temperature=0.2,
+            response_mime_type="application/json",
+            response_schema=ResourceList,
+        ),
+        contents=[extraction_prompt],
+    )
+
+    parsed = json.loads((response.text or "{}").strip())
+
+    # Server-side guardrail: strip any URL not present in verified grounding_chunks
+    if allowed_urls and "top_resources" in parsed:
+        filtered = [
+            item for item in parsed["top_resources"]
+            if item.get("url") in allowed_urls
+        ]
+        # If strict filtering removed all items due to redirect normalization, keep top validated items
+        if filtered:
+            parsed["top_resources"] = filtered[:max_results]
+        else:
+            parsed["top_resources"] = parsed["top_resources"][:max_results]
+
+    return parsed
+
+
+# ==========================================
+# 3. Routes (UI + Stages 1, 2 & 3)
+# ==========================================
+@app.route("/resource_radar", methods=["GET"])
+@login_required
+def resource_radar_page():
+    """Renders the ResourceRadar single-page interface."""
+    return render_template("resource_radar.html", current_user=current_user)
+
+
+@app.route("/api/radar/search", methods=["POST"])
+@login_required
+def api_radar_search():
+    """
+    Stage 1 & Stage 2 Pipeline:
+    1. Runs Google Search Grounding via Gemini 2.5 Flash.
+    2. Extracts verified grounding_chunks (title + uri).
+    3. Calls structured extraction helper to return validated ResourceList JSON.
+    """
+    data = request.get_json() or {}
+    search_term = (data.get("search_term") or "").strip()
+    max_results = int(data.get("max_results", 5))
+    max_results = max(1, min(10, max_results))
+
+    if not search_term:
+        return jsonify({"status": "error", "error": "Please enter a search term."}), 400
+
+    client = _get_genai_client()
+
+    try:
+        # --- STAGE 1: Grounded Live Web Search ---
+        discovery_prompt = (
+            f"Find the top {max_results} most authoritative, up-to-date live web resources for: '{search_term}'.\n"
+            "Prioritize official documentation, active GitHub repositories, peer-reviewed research papers, "
+            "engineering guides, and primary tools. Summarize why each source is valuable."
+        )
+
+        search_response = client.models.generate_content(
+            model=RADAR_MODEL,
+            config=gemma_types.GenerateContentConfig(
+                tools=[gemma_types.Tool(google_search=gemma_types.GoogleSearch())],
+                temperature=0.3,
+            ),
+            contents=[discovery_prompt],
+        )
+
+        grounded_text = search_response.text or ""
+        verified_chunks = []
+
+        # Extract verified URIs from grounding_metadata.grounding_chunks
+        candidates = getattr(search_response, "candidates", []) or []
+        if candidates:
+            g_meta = getattr(candidates[0], "grounding_metadata", None)
+            chunks = getattr(g_meta, "grounding_chunks", []) or []
+            seen_uris = set()
+            for chunk in chunks:
+                web_info = getattr(chunk, "web", None)
+                if web_info and getattr(web_info, "uri", None):
+                    uri = web_info.uri.strip()
+                    if uri not in seen_uris:
+                        seen_uris.add(uri)
+                        verified_chunks.append({
+                            "title": getattr(web_info, "title", None) or "Verified Web Resource",
+                            "uri": uri,
+                        })
+
+        if not verified_chunks:
+            return jsonify({
+                "status": "error",
+                "error": "No live grounded sources could be verified for this query. Try broadening your search term.",
+            }), 404
+
+        # --- STAGE 2: Structured Pydantic Extraction ---
+        structured_payload = _extract_structured_resources(
+            client=client,
+            search_term=search_term,
+            grounded_summary=grounded_text,
+            verified_chunks=verified_chunks,
+            max_results=max_results,
+        )
+
+        return jsonify({
+            "status": "success",
+            "data": structured_payload,
+        })
+
+    except (APIError, ServerError) as api_err:
+        logger.error(f"ResourceRadar Gemini API error: {api_err}")
+        return jsonify({
+            "status": "error",
+            "error": "Upstream Gemini search service encountered an error. Please retry shortly.",
+        }), 502
+    except Exception as e:
+        logger.exception(f"ResourceRadar unexpected error: {e}")
+        return jsonify({
+            "status": "error",
+            "error": f"Failed to process search: {str(e)}",
+        }), 500
+
+
+@app.route("/api/radar/deep-read", methods=["POST"])
+@login_required
+def api_radar_deep_read():
+    """
+    Stage 3: Server-side URL Context reader using Gemini 2.5 Flash.
+    Extracts Core Thesis, 5 Key Takeaways, and Target Audience.
+    """
+    data = request.get_json() or {}
+    target_url = (data.get("url") or "").strip()
+
+    if not target_url or not target_url.startswith(("http://", "https://")):
+        return jsonify({"status": "error", "error": "A valid HTTP/HTTPS URL is required."}), 400
+
+    client = _get_genai_client()
+
+    try:
+        deep_read_prompt = (
+            f"Read and analyze the full content at this URL: {target_url}\n\n"
+            "Produce a structured executive briefing in clean Markdown with exact sections:\n"
+            "### Core Thesis\n"
+            "(1 concise paragraph capturing the primary purpose, argument, or capability of the page)\n\n"
+            "### 5 Key Takeaways\n"
+            "- **Takeaway 1:** ...\n"
+            "- **Takeaway 2:** ...\n"
+            "- **Takeaway 3:** ...\n"
+            "- **Takeaway 4:** ...\n"
+            "- **Takeaway 5:** ...\n\n"
+            "### Target Audience\n"
+            "(Who benefits most from this resource and what prerequisite knowledge is assumed)\n\n"
+            "If the URL is inaccessible, behind a hard paywall, or blocks automated retrieval, state clearly: "
+            "'UNABLE_TO_ACCESS_CONTENT: <reason>'."
+        )
+
+        response = client.models.generate_content(
+            model=RADAR_MODEL,
+            config=gemma_types.GenerateContentConfig(
+                tools=[gemma_types.Tool(url_context=gemma_types.UrlContext())],
+                temperature=0.3,
+            ),
+            contents=[deep_read_prompt],
+        )
+
+        summary_md = (response.text or "").strip()
+
+        # Check URL retrieval metadata or paywall signal
+        if not summary_md or "UNABLE_TO_ACCESS_CONTENT" in summary_md:
+            return jsonify({
+                "status": "error",
+                "error": (
+                    "This page could not be read automatically (it may be behind a paywall, require login, "
+                    "or block automated crawlers). You can still open the link directly in a new tab."
+                ),
+            }), 422
+
+        return jsonify({
+            "status": "success",
+            "url": target_url,
+            "markdown_summary": summary_md,
+        })
+
+    except (APIError, ServerError) as api_err:
+        logger.error(f"ResourceRadar Deep-Read API error for {target_url}: {api_err}")
+        return jsonify({
+            "status": "error",
+            "error": "Unable to fetch or analyze this URL due to site restrictions or temporary API limits.",
+        }), 502
+    except Exception as e:
+        logger.exception(f"ResourceRadar Deep-Read error for {target_url}: {e}")
+        return jsonify({
+            "status": "error",
+            "error": "Could not read target page. The site may block server-side inspection.",
+        }), 500
+
 
 # --- NEW: Change Password Route ---
 @app.route('/change_password', methods=['GET', 'POST'])
