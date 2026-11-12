@@ -5322,6 +5322,7 @@ def api_generate_code_bundle():
 
 RADAR_MODEL = globals().get("IMG_TEXT_DEFAULT_MODEL", "gemini-2.5-flash")
 
+
 # ==========================================
 # 1. Pydantic v2 Structured Schemas
 # ==========================================
@@ -5361,7 +5362,7 @@ def _get_genai_client() -> gemma_genai.Client:
 # 2. Stage 2 Helper: Structured Extraction
 # ==========================================
 def _extract_structured_resources(
-    client: gemma_client,
+    client: gemma_genai.Client,
     search_term: str,
     grounded_summary: str,
     verified_chunks: List[dict],
@@ -5386,7 +5387,7 @@ def _extract_structured_resources(
         "3. Assign an objective authority_score (1-10) and write a crisp why_its_best justification."
     )
 
-    response = gemma_client.models.generate_content(
+    response = client.models.generate_content(
         model=RADAR_MODEL,
         config=gemma_types.GenerateContentConfig(
             system_instruction=(
@@ -5439,7 +5440,7 @@ def api_radar_search():
     if not search_term:
         return jsonify({"status": "error", "error": "Please enter a search term."}), 400
 
-    client = gemma_client
+    client = _get_genai_client()
 
     try:
         # --- STAGE 1: Grounded Live Web Search ---
@@ -5449,7 +5450,7 @@ def api_radar_search():
             "engineering guides, and primary tools. Summarize why each source is valuable."
         )
 
-        search_response = gemma_client.models.generate_content(
+        search_response = client.models.generate_content(
             model=RADAR_MODEL,
             config=gemma_types.GenerateContentConfig(
                 tools=[gemma_types.Tool(google_search=gemma_types.GoogleSearch())],
@@ -5486,7 +5487,7 @@ def api_radar_search():
 
         # --- STAGE 2: Structured Pydantic Extraction ---
         structured_payload = _extract_structured_resources(
-            client=gemma_client,
+            client=client,
             search_term=search_term,
             grounded_summary=grounded_text,
             verified_chunks=verified_chunks,
@@ -5527,7 +5528,7 @@ def api_radar_deep_read():
     if not target_url or not target_url.startswith(("http://", "https://")):
         return jsonify({"status": "error", "error": "A valid HTTP/HTTPS URL is required."}), 400
 
-    client = gemma_client
+    client = _get_genai_client()
 
     try:
         deep_read_prompt = (
@@ -5547,7 +5548,7 @@ def api_radar_deep_read():
             "'UNABLE_TO_ACCESS_CONTENT: <reason>'."
         )
 
-        response = gemma_client.models.generate_content(
+        response = client.models.generate_content(
             model=RADAR_MODEL,
             config=gemma_types.GenerateContentConfig(
                 tools=[gemma_types.Tool(url_context=gemma_types.UrlContext())],
@@ -5580,80 +5581,6 @@ def api_radar_deep_read():
         return jsonify({
             "status": "error",
             "error": f"Gemini Deep-Read Error ({err_code}): {err_detail}",
-        }), 502
-    except Exception as e:
-        logger.exception(f"ResourceRadar Deep-Read error for {target_url}: {e}")
-        return jsonify({
-            "status": "error",
-            "error": "Could not read target page. The site may block server-side inspection.",
-        }), 500
-
-
-@app.route("/api/radar/deep-read", methods=["POST"])
-@login_required
-def api_radar_deep_read():
-    """
-    Stage 3: Server-side URL Context reader using Gemini 2.5 Flash.
-    Extracts Core Thesis, 5 Key Takeaways, and Target Audience.
-    """
-    data = request.get_json() or {}
-    target_url = (data.get("url") or "").strip()
-
-    if not target_url or not target_url.startswith(("http://", "https://")):
-        return jsonify({"status": "error", "error": "A valid HTTP/HTTPS URL is required."}), 400
-
-    client = gemma_client
-
-    try:
-        deep_read_prompt = (
-            f"Read and analyze the full content at this URL: {target_url}\n\n"
-            "Produce a structured executive briefing in clean Markdown with exact sections:\n"
-            "### Core Thesis\n"
-            "(1 concise paragraph capturing the primary purpose, argument, or capability of the page)\n\n"
-            "### 5 Key Takeaways\n"
-            "- **Takeaway 1:** ...\n"
-            "- **Takeaway 2:** ...\n"
-            "- **Takeaway 3:** ...\n"
-            "- **Takeaway 4:** ...\n"
-            "- **Takeaway 5:** ...\n\n"
-            "### Target Audience\n"
-            "(Who benefits most from this resource and what prerequisite knowledge is assumed)\n\n"
-            "If the URL is inaccessible, behind a hard paywall, or blocks automated retrieval, state clearly: "
-            "'UNABLE_TO_ACCESS_CONTENT: <reason>'."
-        )
-
-        response = gemma_client.models.generate_content(
-            model=RADAR_MODEL,
-            config=gemma_types.GenerateContentConfig(
-                tools=[gemma_types.Tool(url_context=gemma_types.UrlContext())],
-                temperature=0.3,
-            ),
-            contents=[deep_read_prompt],
-        )
-
-        summary_md = (response.text or "").strip()
-
-        # Check URL retrieval metadata or paywall signal
-        if not summary_md or "UNABLE_TO_ACCESS_CONTENT" in summary_md:
-            return jsonify({
-                "status": "error",
-                "error": (
-                    "This page could not be read automatically (it may be behind a paywall, require login, "
-                    "or block automated crawlers). You can still open the link directly in a new tab."
-                ),
-            }), 422
-
-        return jsonify({
-            "status": "success",
-            "url": target_url,
-            "markdown_summary": summary_md,
-        })
-
-    except (APIError, ServerError) as api_err:
-        logger.error(f"ResourceRadar Deep-Read API error for {target_url}: {api_err}")
-        return jsonify({
-            "status": "error",
-            "error": "Unable to fetch or analyze this URL due to site restrictions or temporary API limits.",
         }), 502
     except Exception as e:
         logger.exception(f"ResourceRadar Deep-Read error for {target_url}: {e}")
