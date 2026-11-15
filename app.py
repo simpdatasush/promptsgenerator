@@ -2199,7 +2199,7 @@ STRICT RULES:
         response = gemma_client.models.generate_content(
             model='gemini-3.1-flash-lite',
             contents=user_msg,
-            config=types.GenerateContentConfig(
+            config=gemma_types.GenerateContentConfig(
                 system_instruction=system_instruction,
                 temperature=0.5,
             )
