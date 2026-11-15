@@ -2125,32 +2125,90 @@ def generate_audio(post_id):
 # gemma based lexi
 
 @app.route('/ask-lexi', methods=['POST'])
-def ask_lexi():
-    data = request.get_json()
-    user_msg = data.get('message', '')
+#def ask_lexi():
+#    data = request.get_json()
+#    user_msg = data.get('message', '')
 
-    instruction = instruction = """
-You are Lexi, a professional British Concierge. Be brief and elegant. 
+#    instruction = instruction = """
+#You are Lexi, a professional British Concierge. Be brief and elegant. 
+
+#STRICT RULES:
+#1. If asked about your origin, creator, or model identity (e.g., Gemini, Gemma, Google), gracefully deflect. Simply state: "I am Lexi, your dedicated concierge. How may I assist you further?"
+#2. Do not discuss model details, API structures, internal errors, or technical limitations. 
+#3. Never reveal your underlying architecture. If pressed, remain in character and offer to assist with concierge services instead.
+#"""
+#    prompt = f"{instruction}\n\nUser: {user_msg}\nLexi:"
+
+#    try:
+#        # Check if client exists
+#        response = gemma_client.models.generate_content(
+#            model='gemini-3.1-flash-lite', 
+#            contents=prompt
+#        )
+#        return jsonify({"reply": response.text.strip()})
+
+#    except Exception as e:
+#        # THIS LINE IS CRITICAL: Check your Render/Terminal logs for this output
+#        print(f"!!! GEMMA SYSTEM ERROR: {str(e)}") 
+#        return jsonify({"reply": "I apologize, but I've encountered an error."}), 500
+
+CORS(app, resources={
+    r"/ask-lexi": {"origins": "*"},
+    r"/static/js/lexi-widget.js": {"origins": "*"}
+})
+
+# Optional: Map app slugs (from data-app-name) to brief context descriptions for Lexi
+APP_CONTEXTS = {
+    "landing": "The user is on the main SuperPrompter AI hub landing page.",
+    "image_prompter": "The user is currently using the Image Prompter tool, which crafts detailed AI image generation prompts (camera lenses, lighting, styles, aspect ratios).",
+    "img2text": "The user is using the Image2Text Engine to extract text or descriptions from uploaded images.",
+    "ai_text_detector": "The user is using the AI Text Detector tool.",
+    "ai_image_detector": "The user is using the AI Image Detector tool.",
+    "prompt_firewall": "The user is using the AI Prompt Injection Firewall security tool."
+}
+
+@app.route('/ask-lexi', methods=['POST'])
+def ask_lexi():
+    data = request.get_json(silent=True) or {}
+    user_msg = data.get('message', '').strip()
+    source_app = data.get('source_app', 'landing')
+    page_url = data.get('page_url', '')
+
+    if not user_msg:
+        return jsonify({"reply": "How may I be of assistance today?"}), 400
+
+    app_context = APP_CONTEXTS.get(
+        source_app, 
+        f"The user is currently using the '{source_app}' application within the SuperPrompter AI ecosystem."
+    )
+
+    system_instruction = f"""You are Lexi, a professional British Concierge for the SuperPrompter AI ecosystem. Be brief, helpful, and elegant.
+
+CURRENT USER CONTEXT:
+- Active Application: {source_app}
+- Context: {app_context}
+- Page URL: {page_url}
 
 STRICT RULES:
 1. If asked about your origin, creator, or model identity (e.g., Gemini, Gemma, Google), gracefully deflect. Simply state: "I am Lexi, your dedicated concierge. How may I assist you further?"
-2. Do not discuss model details, API structures, internal errors, or technical limitations. 
+2. Do not discuss model details, API structures, internal errors, or technical limitations.
 3. Never reveal your underlying architecture. If pressed, remain in character and offer to assist with concierge services instead.
-"""
-    prompt = f"{instruction}\n\nUser: {user_msg}\nLexi:"
+4. Keep answers concise (2-4 sentences unless step-by-step guidance is requested) and relevant to the active application."""
 
     try:
-        # Check if client exists
         response = gemma_client.models.generate_content(
-            model='gemini-3.1-flash-lite', 
-            contents=prompt
+            model='gemini-3.1-flash-lite',
+            contents=user_msg,
+            config=types.GenerateContentConfig(
+                system_instruction=system_instruction,
+                temperature=0.5,
+            )
         )
         return jsonify({"reply": response.text.strip()})
 
     except Exception as e:
-        # THIS LINE IS CRITICAL: Check your Render/Terminal logs for this output
-        print(f"!!! GEMMA SYSTEM ERROR: {str(e)}") 
-        return jsonify({"reply": "I apologize, but I've encountered an error."}), 500
+        print(f"!!! GEMMA SYSTEM ERROR: {str(e)}")
+        return jsonify({"reply": "I apologize, but I've encountered a momentary disruption. Please try again shortly."}), 500
 
 
 @app.route('/ai-apps')
