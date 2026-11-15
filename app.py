@@ -30,6 +30,7 @@ from typing import List, Optional
 import traceback
 from pydantic import BaseModel, Field
 from werkzeug.utils import secure_filename
+from flask_cors import CORS
 
 # Ensure Google GenAI errors are imported
 from google.genai.errors import APIError, ServerError
