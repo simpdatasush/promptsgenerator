@@ -2124,7 +2124,7 @@ def generate_audio(post_id):
 
 # gemma based lexi
 
-@app.route('/ask-lexi', methods=['POST'])
+#@app.route('/ask-lexi', methods=['POST'])
 #def ask_lexi():
 #    data = request.get_json()
 #    user_msg = data.get('message', '')
