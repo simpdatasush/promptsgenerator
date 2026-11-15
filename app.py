@@ -2141,7 +2141,7 @@ STRICT RULES:
     try:
         # Check if client exists
         response = gemma_client.models.generate_content(
-            model='gemma-4-31b-it', 
+            model='gemini-3.1-flash-lite', 
             contents=prompt
         )
         return jsonify({"reply": response.text.strip()})
