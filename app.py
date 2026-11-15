@@ -3671,6 +3671,20 @@ def image_prompter_page():
     return render_template('image_prompter.html', current_user=current_user)
 
 
+# Shared v1beta client for routes using system_instruction, preview models, or grounding tools
+_v1beta_client = None
+
+def get_v1beta_client():
+    global _v1beta_client
+    if _v1beta_client is None:
+        api_key = os.getenv("GEMINI_API_KEY") or getattr(gemma_client, "api_key", None)
+        _v1beta_client = gemma_genai.Client(
+            api_key=api_key,
+            http_options=gemma_types.HttpOptions(api_version="v1beta"),
+        )
+    return _v1beta_client
+
+
 @app.route('/image_prompter_generate', methods=['POST'])
 @login_required
 def image_prompter_generate():
@@ -3682,19 +3696,21 @@ def image_prompter_generate():
         if not topic:
             return jsonify({'status': 'error', 'error': 'Please provide an image topic or concept.'}), 400
 
-        user_content = f"""
-        TOPIC: {topic}
-        TARGET STYLE: {style_preference}
+        user_content = (
+            f"TOPIC: {topic}\n"
+            f"TARGET STYLE: {style_preference}\n\n"
+            "Using the full 10-dimensional visual framework (imageType, subject, action, environment, "
+            "composition, camera, lighting, color, emotion, output), construct a single production-ready "
+            "descriptive text prompt."
+        )
 
-        Using the full 10-dimensional visual framework (imageType, subject, action, environment, composition, camera, lighting, color, emotion, output), construct a single production-ready descriptive text prompt.
-        """
+        client = get_v1beta_client()
 
-        response = gemma_client.models.generate_content(
+        response = client.models.generate_content(
             model=IMG_TEXT_DEFAULT_MODEL,
             config=gemma_types.GenerateContentConfig(
                 system_instruction=IMAGE_PROMPT_SYSTEM_INSTRUCTION,
-                temperature=0.7,  # Creative temperature for rich visual description
-                tools=[]
+                temperature=0.7,
             ),
             contents=user_content
         )
@@ -3708,15 +3724,19 @@ def image_prompter_generate():
         })
 
     except (ServerError, APIError) as api_err:
-        print(f"Gemini API Server Error: {api_err}")
+        err_detail = getattr(api_err, "message", None) or str(api_err)
+        err_code = getattr(api_err, "code", "API_ERROR")
+        logger.error(f"Image Prompter SuperPrompter AI error [{err_code}] on model '{IMG_TEXT_DEFAULT_MODEL}': {err_detail}")
         return jsonify({
             'status': 'error',
-            'error': 'The SuperPrompter AI service is currently experiencing high load. Please try again in a few moments.'
-        }), 503
+            'error': f'SuperPrompter AI Error ({err_code}): {err_detail}'
+        }), 502
     except Exception as e:
-        print("--- IMAGE PROMPT ARCHITECT ERROR ---")
-        traceback.print_exc()
-        return jsonify({'status': 'error', 'error': 'The SuperPrompter AI service is currently experiencing high load. Please try again in a few moments.'}), 500
+        logger.exception("--- IMAGE PROMPT ARCHITECT ERROR ---")
+        return jsonify({
+            'status': 'error',
+            'error': f'Unexpected error: {str(e)}'
+        }), 500
 
 
 #4. State Reset Utility Endpoint
