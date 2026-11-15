@@ -2164,7 +2164,8 @@ APP_CONTEXTS = {
     "img2text": "The user is using the Image2Text Engine to extract text or descriptions from uploaded images.",
     "ai_text_detector": "The user is using the AI Text Detector tool.",
     "ai_image_detector": "The user is using the AI Image Detector tool.",
-    "prompt_firewall": "The user is using the AI Prompt Injection Firewall security tool."
+    "prompt_firewall": "The user is using the AI Prompt Injection Firewall security tool.",
+    "app_home": "Your ultimate tool for refining, enhancing, and generating powerful AI prompts."
 }
 
 @app.route('/ask-lexi', methods=['POST'])
