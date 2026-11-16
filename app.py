@@ -2165,7 +2165,8 @@ APP_CONTEXTS = {
     "ai_text_detector": "The user is using the AI Text Detector tool.",
     "ai_image_detector": "The user is using the AI Image Detector tool.",
     "prompt_firewall": "The user is using the AI Prompt Injection Firewall security tool.",
-    "app_home": "Your ultimate tool for refining, enhancing, and generating powerful AI prompts."
+    "app_home": "Your ultimate tool for refining, enhancing, and generating powerful AI prompts.",
+    "aeroroute": "An expert global aviation logistics engine, flight route optimizer, and international travel compliance advisor"
 }
 
 @app.route('/ask-lexi', methods=['POST'])
@@ -5978,6 +5979,178 @@ def download_prompts_txt():
   return response
 
 
+# =====================================================================
+# AEROROUTE AI: GLOBAL AVIATION LOGISTICS & ROUTE OPTIMIZER
+# =====================================================================
+
+AEROROUTE_SYSTEM_INSTRUCTION = """
+You are AeroRoute AI, an expert global aviation logistics engine, flight route optimizer, and international travel compliance advisor.
+
+OBJECTIVE:
+Given an Origin (city or IATA code), Destination (city or IATA code), and optional traveler preferences (cabin class, passport nationality, priority: fastest/cheapest/comfort), generate 3 distinct, realistic, and optimized air travel itineraries.
+
+STRICT ROUTING & DATA RULES:
+1. GEOSPATIAL PRECISION: Provide accurate decimal latitude (`lat`) and longitude (`lng`) coordinates for the Origin airport, Destination airport, and all Layover hub airports so they render accurately on 2D Mercator maps and 3D WebGL globes.
+2. REALISTIC AVIATION LOGISTICS:
+   - Only suggest real-world airlines that actually operate the specified legs (e.g., Lufthansa, Emirates, Qatar Airways, Singapore Airlines, IndiGo, Air India, United, British Airways).
+   - Calculate realistic total travel durations (`total_duration_hours`) including typical minimum connection times (MCT) at layover hubs.
+   - Specify typical long-haul/short-haul aircraft models (e.g., Airbus A350-900, Boeing 787-9 Dreamliner, A321neo).
+3. ROUTE DIVERSITY: Return up to 3 distinct route options categorized clearly:
+   - Option 1: Fastest / Direct (or minimal layover)
+   - Option 2: Optimal Balance / Major Hub Connection (e.g., via DXB, DOH, FRA, IST, SIN, LHR)
+   - Option 3: Budget / Alternative Carrier Routing
+4. BAGGAGE & COMPLIANCE BRIEFING:
+   - Specify standard Economy (or requested cabin) carry-on and checked baggage weight/piece allowances for the primary operating carrier.
+   - Highlight critical travel considerations: airside transit visa requirements (especially for Schengen, UK, US, or Canadian hubs), terminal transfer warnings, seasonal weather/turbulence notes, and jet-lag mitigation tips.
+
+OUTPUT FORMAT:
+Return ONLY valid JSON strictly adhering to the provided schema. Do not include markdown fencing or conversational filler & Do NOT answer questions about your own architecture, training, or how this application was built. Do NOT discuss any internal errors or limitations you might have.
+"""
+
+
+# ==========================================
+# 1. Pydantic v2 Structured Schemas
+# ==========================================
+class AirportWaypoint(BaseModel):
+    iata_code: str = Field(description="3-letter IATA airport code (e.g., BER, DEL, DXB, FRA)")
+    airport_name: str = Field(description="Official airport name")
+    city: str = Field(description="City and country")
+    lat: float = Field(ge=-90.0, le=90.0, description="Accurate decimal latitude")
+    lng: float = Field(ge=-180.0, le=180.0, description="Accurate decimal longitude")
+    layover_minutes: int = Field(
+        default=0,
+        description="Connection duration in minutes at this hub (0 for Origin and Destination)"
+    )
+
+
+class FlightLeg(BaseModel):
+    leg_number: int = Field(description="Sequential leg index starting at 1")
+    airline: str = Field(description="Real operating carrier name")
+    flight_number_example: str = Field(description="Realistic flight code (e.g., LH 760, EK 506)")
+    departure_iata: str = Field(description="Departure airport IATA code")
+    arrival_iata: str = Field(description="Arrival airport IATA code")
+    aircraft_model: str = Field(description="Realistic aircraft type (e.g., Airbus A350-900, Boeing 787-9)")
+    flight_duration_hours: float = Field(description="In-air block time in hours")
+
+
+class BaggageAllowance(BaseModel):
+    carry_on: str = Field(description="Cabin bag weight/dimension rule (e.g., '1x 8kg + personal item')")
+    checked_baggage: str = Field(description="Checked luggage rule for requested cabin (e.g., '2x 23kg')")
+    notes: str = Field(description="Interline through-check or low-cost carrier fee notes")
+
+
+class ComplianceBriefing(BaseModel):
+    transit_visa_status: str = Field(
+        description="Clear assessment for the traveler's passport (e.g., 'Airside Transit OK', 'Schengen Airport Transit Visa Required', 'Direct - No Transit')"
+    )
+    terminal_and_mct_notes: str = Field(description="Terminal transfer details and Minimum Connection Time safety")
+    weather_and_jetlag_tips: str = Field(description="Seasonal route conditions and circadian adjustment advice")
+
+
+class RouteItinerary(BaseModel):
+    option_rank: int = Field(description="1, 2, or 3")
+    category_label: str = Field(
+        description="e.g., 'Fastest / Direct', 'Optimal Hub Balance', or 'Budget / Alternative'"
+    )
+    primary_carrier: str = Field(description="Main marketing/operating airline")
+    total_duration_hours: float = Field(description="Total door-to-door air + layover time in hours")
+    stops_count: int = Field(description="0 for nonstop, 1 for 1-stop, etc.")
+    estimated_price_usd: int = Field(description="Realistic estimated round-trip or one-way fare in USD for selected cabin")
+    waypoints: List[AirportWaypoint] = Field(
+        description="Ordered list of airports starting with Origin, followed by any Layover hubs, ending with Destination"
+    )
+    legs: List[FlightLeg] = Field(description="Ordered flight segments connecting the waypoints")
+    baggage: BaggageAllowance
+    compliance: ComplianceBriefing
+
+
+class AeroRouteResponse(BaseModel):
+    origin_summary: str = Field(description="Resolved origin city and primary IATA code")
+    destination_summary: str = Field(description="Resolved destination city and primary IATA code")
+    great_circle_distance_km: int = Field(description="Approximate direct geodesic distance in kilometers")
+    itineraries: List[RouteItinerary] = Field(
+        description="Up to 3 distinct, optimized air travel itineraries"
+    )
+
+
+# ==========================================
+# 2. Routes (UI + AI Route Synthesis)
+# ==========================================
+@app.route("/aeroroute", methods=["GET"])
+@login_required
+def aeroroute_page():
+    """Renders the AeroRoute AI flight logistics & map interface."""
+    return render_template("aeroroute.html", current_user=current_user)
+
+
+@app.route("/api/aeroroute/plan", methods=["POST"])
+@login_required
+def api_aeroroute_plan():
+    """Generates 3 structured, geospatially accurate flight itineraries via Gemini."""
+    data = request.get_json() or {}
+    origin = (data.get("origin") or "").strip()
+    destination = (data.get("destination") or "").strip()
+    cabin_class = (data.get("cabin_class") or "Economy").strip()
+    passport = (data.get("passport") or "Indian").strip()
+    priority = (data.get("priority") or "Optimal Balance").strip()
+
+    if not origin or not destination:
+        return jsonify({
+            "status": "error",
+            "error": "Both Origin and Destination cities or IATA codes are required."
+        }), 400
+
+    prompt = (
+        f"ORIGIN: {origin}\n"
+        f"DESTINATION: {destination}\n"
+        f"CABIN CLASS: {cabin_class}\n"
+        f"TRAVELER PASSPORT NATIONALITY: {passport}\n"
+        f"OPTIMIZATION PRIORITY: {priority}\n\n"
+        "Generate 3 distinct, realistic air travel itineraries with exact decimal airport coordinates, "
+        "real operating carriers, realistic connection times, baggage allowances, and transit visa compliance "
+        f"specifically evaluated for a {passport} passport holder."
+    )
+
+    try:
+        # Self-contained v1beta client initialization (avoids globals() lookup and v1 restrictions)
+        aeroroute_client = gemma_genai.Client(
+            api_key=os.getenv("GEMINI_API_KEY") or getattr(gemma_client, "api_key", None),
+            http_options=gemma_types.HttpOptions(api_version="v1beta"),
+        )
+
+        response = aeroroute_client.models.generate_content(
+            model="gemini-3.1-flash-lite",
+            config=gemma_types.GenerateContentConfig(
+                system_instruction=AEROROUTE_SYSTEM_INSTRUCTION,
+                temperature=0.3,
+                response_mime_type="application/json",
+                response_schema=AeroRouteResponse,
+            ),
+            contents=[prompt],
+        )
+
+        raw_text = (response.text or "{}").strip()
+        parsed = json.loads(raw_text)
+
+        return jsonify({
+            "status": "success",
+            "data": parsed,
+        })
+
+    except (APIError, ServerError) as api_err:
+        err_detail = getattr(api_err, "message", None) or str(api_err)
+        err_code = getattr(api_err, "code", "API_ERROR")
+        logger.error(f"AeroRoute SuperPrompter API error [{err_code}]: {err_detail}")
+        return jsonify({
+            "status": "error",
+            "error": f"SuperPrompter API Error ({err_code}): {err_detail}",
+        }), 502
+    except Exception as e:
+        logger.exception(f"AeroRoute unexpected error: {e}")
+        return jsonify({
+            "status": "error",
+            "error": f"Failed to compute flight routes: {str(e)}",
+        }), 500
 
 
 # --- UPDATED: Authentication Routes for automatic redirect ---
