@@ -141,6 +141,10 @@
             border-radius: 8px;
             padding: 14px 18px;
             margin-bottom: 12px;
+            
+        .dark-map-tiles {
+            filter: invert(100%) hue-rotate(180deg) brightness(92%) contrast(90%);
+        }
         }
     </style>
 </head>
@@ -291,9 +295,10 @@
     function initMapIfNeeded() {
         if (!mapInstance) {
             mapInstance = L.map('routeMap').setView([25, 45], 2);
-            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-                attribution: '&copy; OpenStreetMap &copy; CARTO',
-                maxZoom: 18
+            L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; OpenStreetMap contributors',
+                maxZoom: 18,
+                className: 'dark-map-tiles'
             }).addTo(mapInstance);
             routeLayerGroup = L.layerGroup().addTo(mapInstance);
         }
