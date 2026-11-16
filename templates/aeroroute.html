@@ -468,6 +468,11 @@
         document.getElementById('lblJetlagTips').innerText = comp.weather_and_jetlag_tips || '';
     }
 </script>
-
+<script 
+    src="{{ url_for('static', filename='js/lexi-widget.js') }}" 
+    data-api-url="/ask-lexi" 
+    data-app-name="app_home" 
+    defer>
+</script>
 </body>
 </html>
