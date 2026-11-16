@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AeroRoute AI - Flight Route &amp; Compliance Engine</title>
+
+    <!-- Bootstrap 4, FontAwesome 6, Google Fonts -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fira+Code:wght@500;700&display=swap" rel="stylesheet">
+
+    <!-- Leaflet.js for Geospatial Airport & Flight Path Visualization -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <style>
+        :root {
+            --bg-body: #090d16;
+            --card-bg: #111827;
+            --border-color: #1f293d;
+            --accent-cyan: #38bdf8;
+            --accent-blue: #2563eb;
+            --text-main: #f8fafc;
+            --text-sub: #94a3b8;
+        }
+
+        body {
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+
+        .top-navbar {
+            background-color: #ffffff;
+            border-bottom: 1px solid #e5e7eb;
+            padding: 10px 24px;
+        }
+        .ai-badge-logo {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #007bff;
+            color: #ffffff;
+            font-weight: 700;
+            font-size: 1rem;
+            width: 34px;
+            height: 34px;
+            border-radius: 6px;
+            margin-bottom: 2px;
+        }
+        .brand-title {
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: #1f2937;
+            letter-spacing: -0.5px;
+            line-height: 1.1;
+            margin-bottom: 2px;
+        }
+        .home-link {
+            color: #007bff;
+            text-decoration: none;
+            font-size: 0.88rem;
+            font-weight: 500;
+        }
+
+        .main-shell {
+            max-width: 1180px;
+            margin: 28px auto;
+            padding: 0 16px;
+        }
+
+        .panel-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+        }
+
+        .form-control-dark {
+            background-color: #090d16;
+            border: 1px solid #334155;
+            color: #f8fafc;
+            border-radius: 8px;
+        }
+        .form-control-dark:focus {
+            background-color: #090d16;
+            border-color: var(--accent-cyan);
+            color: #ffffff;
+            box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.2);
+        }
+
+        .btn-route {
+            background: linear-gradient(135deg, #0284c7 0%, #2563eb 100%);
+            color: #ffffff;
+            font-weight: 700;
+            border: none;
+            border-radius: 8px;
+            padding: 10px 22px;
+        }
+        .btn-route:hover {
+            filter: brightness(1.1);
+            color: #ffffff;
+        }
+
+        #routeMap {
+            height: 360px;
+            width: 100%;
+            border-radius: 10px;
+            border: 1px solid #334155;
+            background: #060a12;
+        }
+
+        .itinerary-tab {
+            background: #0d1322;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 16px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            height: 100%;
+        }
+        .itinerary-tab:hover, .itinerary-tab.active {
+            border-color: var(--accent-cyan);
+            background: rgba(56, 189, 248, 0.08);
+        }
+
+        .iata-code {
+            font-family: 'Fira Code', monospace;
+            font-weight: 700;
+            color: var(--accent-cyan);
+        }
+
+        .leg-card {
+            background: #0d1322;
+            border: 1px solid #1e293b;
+            border-left: 4px solid var(--accent-cyan);
+            border-radius: 8px;
+            padding: 14px 18px;
+            margin-bottom: 12px;
+        }
+    </style>
+</head>
+<body>
+
+<header class="top-navbar d-flex justify-content-between align-items-center">
+    <div>
+        <div class="ai-badge-logo">AI</div>
+        <div class="brand-title">SuperPrompter</div>
+        <a href="{{ url_for('landing') }}" class="home-link">Home</a>
+    </div>
+    <span class="badge badge-dark p-2 border border-secondary">
+        <i class="fa-solid fa-plane-departure text-info mr-1"></i> AeroRoute AI Engine
+    </span>
+</header>
+
+<div class="main-shell">
+    <div class="mb-4">
+        <h3 class="font-weight-bold mb-1"><i class="fa-solid fa-earth-americas text-info mr-2"></i>AeroRoute AI</h3>
+        <p class="text-muted small mb-0">Global aviation logistics optimizer with great-circle geospatial mapping, aircraft specs, baggage rules, and transit visa compliance.</p>
+    </div>
+
+    <!-- Search & Traveler Preferences Form -->
+    <div class="panel-card mb-4">
+        <form onsubmit="planFlightRoutes(event)">
+            <div class="row">
+                <div class="col-md-3 mb-3">
+                    <label class="small font-weight-bold text-muted text-uppercase">Origin (City / IATA)</label>
+                    <input type="text" id="originInput" class="form-control form-control-dark" placeholder="e.g., BER or Pune (PNQ)" required>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label class="small font-weight-bold text-muted text-uppercase">Destination (City / IATA)</label>
+                    <input type="text" id="destInput" class="form-control form-control-dark" placeholder="e.g., Tokyo (HND) or SFO" required>
+                </div>
+                <div class="col-md-2 mb-3">
+                    <label class="small font-weight-bold text-muted text-uppercase">Cabin Class</label>
+                    <select id="cabinSelect" class="form-control form-control-dark">
+                        <option value="Economy" selected>Economy</option>
+                        <option value="Premium Economy">Premium Economy</option>
+                        <option value="Business">Business</option>
+                        <option value="First">First Class</option>
+                    </select>
+                </div>
+                <div class="col-md-2 mb-3">
+                    <label class="small font-weight-bold text-muted text-uppercase">Passport</label>
+                    <input type="text" id="passportInput" class="form-control form-control-dark" value="Indian" placeholder="e.g., Indian, German, US">
+                </div>
+                <div class="col-md-2 mb-3">
+                    <label class="small font-weight-bold text-muted text-uppercase">Priority</label>
+                    <select id="prioritySelect" class="form-control form-control-dark">
+                        <option value="Optimal Balance" selected>Optimal Balance</option>
+                        <option value="Fastest">Fastest</option>
+                        <option value="Cheapest">Cheapest</option>
+                        <option value="Maximum Comfort">Comfort</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-between align-items-center mt-2">
+                <span class="small text-muted"><i class="fa-solid fa-shield-halved text-info mr-1"></i> Evaluates Schengen, UK, US &amp; Canadian airside transit rules</span>
+                <button type="submit" id="btnOptimize" class="btn btn-route">
+                    <i class="fa-solid fa-route mr-2"></i> Optimize Flight Routes
+                </button>
+            </div>
+        </form>
+
+        <div id="errorBanner" class="alert alert-danger mt-3 mb-0" style="display: none;"></div>
+    </div>
+
+    <!-- Loading Indicator -->
+    <div id="loadingBox" class="panel-card text-center py-5 mb-4" style="display: none;">
+        <i class="fa-solid fa-plane fa-bounce fa-2x text-info mb-3"></i>
+        <h5 class="font-weight-bold">Computing Great-Circle Vectors &amp; Hub MCTs...</h5>
+        <p class="text-muted small mb-0">Analyzing active airline schedules, aircraft pairings, and passport transit compliance.</p>
+    </div>
+
+    <!-- Results Workspace -->
+    <div id="resultsContainer" style="display: none;">
+        <!-- Corridor Summary + Map -->
+        <div class="panel-card mb-4">
+            <div class="d-flex justify-content-between align-items-center flex-wrap mb-3">
+                <div>
+                    <h5 class="font-weight-bold mb-0">
+                        <span id="lblOriginSummary" class="text-info">Origin</span>
+                        <i class="fa-solid fa-arrow-right mx-2 text-muted"></i>
+                        <span id="lblDestSummary" class="text-info">Destination</span>
+                    </h5>
+                </div>
+                <span class="badge badge-secondary p-2 font-weight-bold">
+                    <i class="fa-solid fa-ruler-horizontal mr-1"></i> Geodesic Distance: <span id="lblDistanceKm">0</span> km
+                </span>
+            </div>
+
+            <!-- Interactive Geospatial Map -->
+            <div id="routeMap"></div>
+        </div>
+
+        <!-- 3 Route Option Selector Cards -->
+        <div class="row mb-4" id="itineraryTabsRow"></div>
+
+        <!-- Detailed Breakdown of Active Itinerary -->
+        <div class="row">
+            <div class="col-lg-7 mb-4">
+                <div class="panel-card h-100">
+                    <h5 class="font-weight-bold mb-3"><i class="fa-solid fa-list-ol text-info mr-2"></i>Flight Segments &amp; Layover Hubs</h5>
+                    <div id="legsContainer"></div>
+                </div>
+            </div>
+
+            <div class="col-lg-5 mb-4">
+                <div class="panel-card h-100">
+                    <h5 class="font-weight-bold mb-3"><i class="fa-solid fa-passport text-warning mr-2"></i>Compliance &amp; Baggage Briefing</h5>
+
+                    <div class="p-3 bg-dark border border-secondary rounded mb-3">
+                        <div class="small font-weight-bold text-uppercase text-warning mb-1">
+                            <i class="fa-solid fa-id-card mr-1"></i> Transit Visa &amp; Border Advisory
+                        </div>
+                        <div class="font-weight-bold text-white mb-1" id="lblVisaStatus">--</div>
+                        <p class="small text-muted mb-0" id="lblTerminalNotes">--</p>
+                    </div>
+
+                    <div class="p-3 bg-dark border border-secondary rounded mb-3">
+                        <div class="small font-weight-bold text-uppercase text-info mb-1">
+                            <i class="fa-solid fa-suitcase-rolling mr-1"></i> Baggage Allowance
+                        </div>
+                        <div class="small text-white"><strong>Carry-On:</strong> <span id="lblCarryOn">--</span></div>
+                        <div class="small text-white"><strong>Checked:</strong> <span id="lblCheckedBag">--</span></div>
+                        <p class="small text-muted mt-1 mb-0" id="lblBagNotes">--</p>
+                    </div>
+
+                    <div class="p-3 bg-dark border border-secondary rounded">
+                        <div class="small font-weight-bold text-uppercase text-success mb-1">
+                            <i class="fa-solid fa-cloud-sun mr-1"></i> Weather &amp; Jet-Lag Protocol
+                        </div>
+                        <p class="small text-light mb-0" id="lblJetlagTips">--</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let currentRouteData = null;
+    let mapInstance = null;
+    let routeLayerGroup = null;
+
+    function initMapIfNeeded() {
+        if (!mapInstance) {
+            mapInstance = L.map('routeMap').setView([25, 45], 2);
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                attribution: '&copy; OpenStreetMap &copy; CARTO',
+                maxZoom: 18
+            }).addTo(mapInstance);
+            routeLayerGroup = L.layerGroup().addTo(mapInstance);
+        }
+    }
+
+    async function planFlightRoutes(event) {
+        event.preventDefault();
+        const origin = document.getElementById('originInput').value.trim();
+        const destination = document.getElementById('destInput').value.trim();
+        const cabin_class = document.getElementById('cabinSelect').value;
+        const passport = document.getElementById('passportInput').value.trim() || 'Indian';
+        const priority = document.getElementById('prioritySelect').value;
+
+        const btn = document.getElementById('btnOptimize');
+        const errBanner = document.getElementById('errorBanner');
+
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin mr-2"></i> Routing...';
+        errBanner.style.display = 'none';
+        document.getElementById('resultsContainer').style.display = 'none';
+        document.getElementById('loadingBox').style.display = 'block';
+
+        try {
+            const res = await fetch('/api/aeroroute/plan', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ origin, destination, cabin_class, passport, priority })
+            });
+            const payload = await res.json();
+
+            if (!res.ok || payload.status !== 'success') {
+                throw new Error(payload.error || 'Failed to generate flight routes.');
+            }
+
+            currentRouteData = payload.data;
+            renderRouteWorkspace(currentRouteData);
+        } catch (err) {
+            errBanner.innerText = err.message;
+            errBanner.style.display = 'block';
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-route mr-2"></i> Optimize Flight Routes';
+            document.getElementById('loadingBox').style.display = 'none';
+        }
+    }
+
+    function renderRouteWorkspace(data) {
+        document.getElementById('lblOriginSummary').innerText = data.origin_summary || '';
+        document.getElementById('lblDestSummary').innerText = data.destination_summary || '';
+        document.getElementById('lblDistanceKm').innerText = (data.great_circle_distance_km || 0).toLocaleString();
+
+        document.getElementById('resultsContainer').style.display = 'block';
+        initMapIfNeeded();
+        setTimeout(() => mapInstance.invalidateSize(), 100);
+
+        const tabsRow = document.getElementById('itineraryTabsRow');
+        tabsRow.innerHTML = '';
+
+        const itineraries = data.itineraries || [];
+        itineraries.forEach((itin, idx) => {
+            const col = document.createElement('div');
+            col.className = 'col-md-4 mb-3';
+            const stopLabel = itin.stops_count === 0 ? 'Nonstop' : `${itin.stops_count} Stop${itin.stops_count > 1 ? 's' : ''}`;
+            const viaCodes = (itin.waypoints || []).map(w => w.iata_code).join(' → ');
+
+            col.innerHTML = `
+                <div class="itinerary-tab ${idx === 0 ? 'active' : ''}" id="itinTab_${idx}" onclick="selectItinerary(${idx})">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="badge badge-info">${itin.category_label}</span>
+                        <span class="font-weight-bold text-success">~$${itin.estimated_price_usd}</span>
+                    </div>
+                    <h6 class="font-weight-bold text-white mb-1">${itin.primary_carrier}</h6>
+                    <div class="small iata-code mb-2">${viaCodes}</div>
+                    <div class="d-flex justify-content-between small text-muted">
+                        <span><i class="fa-regular fa-clock mr-1"></i>${itin.total_duration_hours} hrs</span>
+                        <span>${stopLabel}</span>
+                    </div>
+                </div>
+            `;
+            tabsRow.appendChild(col);
+        });
+
+        if (itineraries.length > 0) {
+            selectItinerary(0);
+        }
+    }
+
+    function selectItinerary(index) {
+        const itineraries = currentRouteData?.itineraries || [];
+        const itin = itineraries[index];
+        if (!itin) return;
+
+        document.querySelectorAll('.itinerary-tab').forEach((el, i) => {
+            el.classList.toggle('active', i === index);
+        });
+
+        // 1. Update Geospatial Map Markers & Flight Arc
+        routeLayerGroup.clearLayers();
+        const latLngs = [];
+
+        (itin.waypoints || []).forEach((wp, i) => {
+            if (typeof wp.lat === 'number' && typeof wp.lng === 'number') {
+                const pos = [wp.lat, wp.lng];
+                latLngs.push(pos);
+
+                const isEndpoint = (i === 0 || i === itin.waypoints.length - 1);
+                const marker = L.circleMarker(pos, {
+                    radius: isEndpoint ? 8 : 6,
+                    color: isEndpoint ? '#38bdf8' : '#f59e0b',
+                    fillColor: isEndpoint ? '#0284c7' : '#d97706',
+                    fillOpacity: 0.9,
+                    weight: 2
+                }).addTo(routeLayerGroup);
+
+                const layoverInfo = wp.layover_minutes > 0 ? `<br>Layover: ${wp.layover_minutes} mins` : '';
+                marker.bindPopup(`<strong>${wp.iata_code}</strong> - ${wp.airport_name}<br>${wp.city}${layoverInfo}`);
+            }
+        });
+
+        if (latLngs.length >= 2) {
+            const polyline = L.polyline(latLngs, {
+                color: '#38bdf8',
+                weight: 3,
+                opacity: 0.85,
+                dashArray: '8, 6'
+            }).addTo(routeLayerGroup);
+            mapInstance.fitBounds(polyline.getBounds(), { padding: [40, 40] });
+        }
+
+        // 2. Render Flight Legs & Layover Badges
+        const legsContainer = document.getElementById('legsContainer');
+        legsContainer.innerHTML = '';
+
+        (itin.legs || []).forEach((leg, i) => {
+            const div = document.createElement('div');
+            div.className = 'leg-card';
+            div.innerHTML = `
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span class="font-weight-bold text-white">
+                        Leg ${leg.leg_number}: <span class="iata-code">${leg.departure_iata}</span> &rarr; <span class="iata-code">${leg.arrival_iata}</span>
+                    </span>
+                    <span class="badge badge-dark border border-secondary">${leg.flight_duration_hours} hrs</span>
+                </div>
+                <div class="small text-info font-weight-bold">${leg.airline} (${leg.flight_number_example})</div>
+                <div class="small text-muted"><i class="fa-solid fa-plane mr-1"></i>Aircraft: ${leg.aircraft_model}</div>
+            `;
+            legsContainer.appendChild(div);
+
+            // Show layover pill if there's a next leg
+            const nextWp = (itin.waypoints || [])[i + 1];
+            if (nextWp && nextWp.layover_minutes > 0 && i < itin.legs.length - 1) {
+                const layDiv = document.createElement('div');
+                layDiv.className = 'text-center my-2';
+                layDiv.innerHTML = `
+                    <span class="badge badge-warning text-dark px-3 py-1">
+                        <i class="fa-solid fa-hourglass-half mr-1"></i> Connection at ${nextWp.iata_code} (${nextWp.city}): ${nextWp.layover_minutes} mins
+                    </span>
+                `;
+                legsContainer.appendChild(layDiv);
+            }
+        });
+
+        // 3. Populate Compliance & Baggage Briefing
+        const comp = itin.compliance || {};
+        const bag = itin.baggage || {};
+
+        document.getElementById('lblVisaStatus').innerText = comp.transit_visa_status || 'Check Embassy Guidelines';
+        document.getElementById('lblTerminalNotes').innerText = comp.terminal_and_mct_notes || '';
+        document.getElementById('lblCarryOn').innerText = bag.carry_on || 'Standard Cabin Bag';
+        document.getElementById('lblCheckedBag').innerText = bag.checked_baggage || 'Standard Checked Allowance';
+        document.getElementById('lblBagNotes').innerText = bag.notes || '';
+        document.getElementById('lblJetlagTips').innerText = comp.weather_and_jetlag_tips || '';
+    }
+</script>
+
+</body>
+</html>
