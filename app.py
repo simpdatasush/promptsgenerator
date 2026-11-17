@@ -2165,8 +2165,8 @@ APP_CONTEXTS = {
     "ai_text_detector": "The user is using the AI Text Detector tool.",
     "ai_image_detector": "The user is using the AI Image Detector tool.",
     "prompt_firewall": "The user is using the AI Prompt Injection Firewall security tool.",
-    "app_home": "Your ultimate tool for refining, enhancing, and generating powerful AI prompts.",
-    "aeroroute": "The user is currently using the AeroRoute tool, an expert global aviation logistics engine, flight route optimizer, and international travel compliance adviso.r"
+    "app_home": "The user is using tool for refining, enhancing, and generating powerful AI prompts.",
+    "aeroroute": "The user is currently using the AeroRoute tool, an expert global aviation logistics engine, flight route optimizer, and international travel compliance advisor."
 }
 
 @app.route('/ask-lexi', methods=['POST'])
