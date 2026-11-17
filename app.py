@@ -2209,7 +2209,7 @@ STRICT RULES:
         return jsonify({"reply": response.text.strip()})
 
     except Exception as e:
-        print(f"!!! GEMMA SYSTEM ERROR: {str(e)}")
+        print(f"!!! SuperPrompter SYSTEM ERROR: {str(e)}")
         return jsonify({"reply": "I apologize, but I've encountered a momentary disruption. Please try again shortly."}), 500
 
 
