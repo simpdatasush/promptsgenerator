@@ -737,7 +737,8 @@
             <i class="fas fa-paper-plane" style="font-size: 14px;"></i>
         </button>
     </div>
-</div>       
+</div> 
+
 
 <section class="news-section mb-5">
     <h2 class="section-title"><a href="{{ url_for('all_news') }}" class="text-decoration-none text-dark">👉Latest News</a></h2>
@@ -813,71 +814,6 @@
         </div>
     </div>
 </section>
-
-        <footer class="modern-footer">
-    <div class="container">
-        <div class="row">
-            <div class="col-lg-4 mb-4 mb-lg-0">
-                <img src="{{ url_for('static', filename='favicon.png') }}" alt="Logo" style="height: 40px; margin-bottom: 20px; border-radius: 5px;">
-                <p class="footer-brand-text">
-                    SuperPrompter AI is your ultimate hub for prompt engineering, 
-                    AI-driven automation, and the latest news, Apps & Many More things in generative AI technology. 
-                    Supercharge your workflow today. Free Access to Students* !
-                </p>
-                <div class="footer-social-icons mt-4">
-    <a href="https://x.com/lumifantsa_ai" target="_blank" title="Follow us on X">
-        <img src="{{ url_for('static', filename='logo-black.png') }}" alt="X Logo" style="height: 24px; width: 24px; filter: brightness(0) invert(1);">
-    </a>
-    <a href="https://whatsapp.com/channel/0029VbCkiuFDzgT2gFpnFq3t" target="_blank" rel="noopener noreferrer" title="Join our WhatsApp Channel">
-        <img src="{{ url_for('static', filename='whatsapp-logo.png') }}" alt="WhatsApp Channel" style="height: 24px; width: 24px;">
-    </a>
-</div>
-            </div>
-
-            <div class="col-6 col-lg-3 mb-4">
-                <h5>Resources</h5>
-                <ul class="footer-links">
-                    <li><a href="/merchandise">Merchandise</a></li>
-                    <li><a href="/ai-facts">Did you know ?</a></li>
-                    <li><a href="/send_request">API Access</a></li>
-                    <li><a href="/">Documentation</a></li>
-                    <li><a href="#">Advertise With Us</a></li>
-                    <li><a href="#">Partners Page</a></li>
-                    <li><a href="{{ url_for('privacy_policy') }}">Privacy Policy</a></li>
-                    <li><a href="{{ url_for('terms_of_use') }}">Terms of Use</a></li>
-                    <li><a href="mailto:info@promptsgenerator.ai">Help Center</a></li>
-                </ul>
-            </div>
-
-            <div class="col-lg-5">
-                <h5>Stay Updated</h5>
-                <p class="footer-brand-text mb-4">Join 5,000+ enthusiasts getting weekly AI insights, prompt tips, and feature updates. Technology handles scale. Humans handle sense. </p>
-                <div class="newsletter-cta">
-                    <a href="https://flow.cleverreach.com/fl/f1b39182-4b74-4664-9c1d-c175cb3a670c/" 
-                       target="_blank" 
-                       class="btn btn-primary btn-block d-flex align-items-center justify-content-center" 
-                       style="height: 50px; font-weight: 600; font-size: 16px; border-radius: 8px;">
-                        <i class="fas fa-paper-plane mr-2"></i> Subscribe to Newsletter
-                    </a>
-                </div>
-                <small class="text-muted d-block mt-3">
-                    <i class="fas fa-lock mr-1"></i> Your privacy is our priority. No spam, ever.
-                </small>
-            </div>
-        </div>
-
-        <div class="footer-bottom d-flex flex-column flex-md-row justify-content-between align-items-center">
-            <div class="footer-info-block text-center text-md-left mb-3 mb-md-0">
-                <p class="text-muted">© 2026 <strong>SuperPrompter AI</strong>. All Rights Reserved.</p>
-                <p class="small text-muted">Developed by <span style="color: #ffffff;">Sushrut Kulkarni</span></p>
-            </div>
-            <div class="footer-contact-block">
-                <p class="text-muted">
-                    Email: <a href="mailto:hello@promptsgenerator.ai">hello@promptsgenerator.ai</a>
-                </p>
-            </div>
-        </div>
-    </div>
 
     <div class="page-flank-layout">
 
@@ -991,6 +927,71 @@
         </aside>
         {% endif %}
 
+    </div>
+
+        <footer class="modern-footer">
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-4 mb-4 mb-lg-0">
+                <img src="{{ url_for('static', filename='favicon.png') }}" alt="Logo" style="height: 40px; margin-bottom: 20px; border-radius: 5px;">
+                <p class="footer-brand-text">
+                    SuperPrompter AI is your ultimate hub for prompt engineering, 
+                    AI-driven automation, and the latest news, Apps & Many More things in generative AI technology. 
+                    Supercharge your workflow today. Free Access to Students* !
+                </p>
+                <div class="footer-social-icons mt-4">
+    <a href="https://x.com/lumifantsa_ai" target="_blank" title="Follow us on X">
+        <img src="{{ url_for('static', filename='logo-black.png') }}" alt="X Logo" style="height: 24px; width: 24px; filter: brightness(0) invert(1);">
+    </a>
+    <a href="https://whatsapp.com/channel/0029VbCkiuFDzgT2gFpnFq3t" target="_blank" rel="noopener noreferrer" title="Join our WhatsApp Channel">
+        <img src="{{ url_for('static', filename='whatsapp-logo.png') }}" alt="WhatsApp Channel" style="height: 24px; width: 24px;">
+    </a>
+</div>
+            </div>
+
+            <div class="col-6 col-lg-3 mb-4">
+                <h5>Resources</h5>
+                <ul class="footer-links">
+                    <li><a href="/merchandise">Merchandise</a></li>
+                    <li><a href="/ai-facts">Did you know ?</a></li>
+                    <li><a href="/send_request">API Access</a></li>
+                    <li><a href="/">Documentation</a></li>
+                    <li><a href="#">Advertise With Us</a></li>
+                    <li><a href="#">Partners Page</a></li>
+                    <li><a href="{{ url_for('privacy_policy') }}">Privacy Policy</a></li>
+                    <li><a href="{{ url_for('terms_of_use') }}">Terms of Use</a></li>
+                    <li><a href="mailto:info@promptsgenerator.ai">Help Center</a></li>
+                </ul>
+            </div>
+
+            <div class="col-lg-5">
+                <h5>Stay Updated</h5>
+                <p class="footer-brand-text mb-4">Join 5,000+ enthusiasts getting weekly AI insights, prompt tips, and feature updates. Technology handles scale. Humans handle sense. </p>
+                <div class="newsletter-cta">
+                    <a href="https://flow.cleverreach.com/fl/f1b39182-4b74-4664-9c1d-c175cb3a670c/" 
+                       target="_blank" 
+                       class="btn btn-primary btn-block d-flex align-items-center justify-content-center" 
+                       style="height: 50px; font-weight: 600; font-size: 16px; border-radius: 8px;">
+                        <i class="fas fa-paper-plane mr-2"></i> Subscribe to Newsletter
+                    </a>
+                </div>
+                <small class="text-muted d-block mt-3">
+                    <i class="fas fa-lock mr-1"></i> Your privacy is our priority. No spam, ever.
+                </small>
+            </div>
+        </div>
+
+        <div class="footer-bottom d-flex flex-column flex-md-row justify-content-between align-items-center">
+            <div class="footer-info-block text-center text-md-left mb-3 mb-md-0">
+                <p class="text-muted">© 2026 <strong>SuperPrompter AI</strong>. All Rights Reserved.</p>
+                <p class="small text-muted">Developed by <span style="color: #ffffff;">Sushrut Kulkarni</span></p>
+            </div>
+            <div class="footer-contact-block">
+                <p class="text-muted">
+                    Email: <a href="mailto:hello@promptsgenerator.ai">hello@promptsgenerator.ai</a>
+                </p>
+            </div>
+        </div>
     </div>
 </footer>
 
