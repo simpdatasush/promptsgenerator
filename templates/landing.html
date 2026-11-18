@@ -550,6 +550,130 @@
                 font-size: 1.6rem; /* Adjust newsletter heading */
             }
         }
+
+/* --- AI PULSE SIDE RAILS (Left & Right Gutters) --- */
+        .page-flank-layout {
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            gap: 20px;
+            max-width: 1840px;
+            margin: 20px auto;
+            padding: 0 15px;
+            flex-grow: 1;
+            width: 100%;
+        }
+        .page-flank-layout > .main-content-wrapper {
+            margin: 0;
+            width: 100%;
+            max-width: 1200px;
+            flex: 0 1 1200px;
+        }
+        .pulse-rail {
+            width: 285px;
+            flex-shrink: 0;
+            position: sticky;
+            top: 85px;
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+        .pulse-widget {
+            background-color: #ffffff;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+            border: 1px solid #e9ecef;
+            overflow: hidden;
+        }
+        .pulse-widget-header {
+            background-color: #343a40;
+            color: #ffffff;
+            padding: 11px 15px;
+            font-size: 0.92rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            letter-spacing: 0.3px;
+        }
+        .pulse-widget-header i {
+            color: #007bff;
+            margin-right: 7px;
+        }
+        .pulse-widget-body {
+            padding: 14px 15px;
+        }
+        .ticker-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #f0f2f5;
+            font-size: 0.9rem;
+        }
+        .ticker-item:last-child { border-bottom: none; padding-bottom: 0; }
+        .ticker-item:first-child { padding-top: 0; }
+        .ticker-sym { font-weight: 700; color: #2c3e50; letter-spacing: 0.4px; }
+        .ticker-price { font-weight: 600; color: #333; margin-right: 6px; }
+        .ticker-badge {
+            font-size: 0.78rem;
+            font-weight: 700;
+            padding: 2px 7px;
+            border-radius: 4px;
+            display: inline-block;
+            min-width: 62px;
+            text-align: right;
+        }
+        .ticker-up { background-color: #e6f4ea; color: #137333; }
+        .ticker-down { background-color: #fce8e6; color: #c5221f; }
+        .spotlight-title {
+            font-size: 0.98rem;
+            font-weight: 700;
+            color: #007bff;
+            margin-bottom: 6px;
+            line-height: 1.35;
+            display: block;
+            text-decoration: none;
+        }
+        .spotlight-title:hover { color: #0056b3; text-decoration: underline; }
+        .spotlight-meta {
+            font-size: 0.78rem;
+            color: #6c757d;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .spotlight-desc {
+            font-size: 0.86rem;
+            color: #555;
+            line-height: 1.5;
+            margin-bottom: 10px;
+        }
+        .event-item {
+            padding: 9px 0;
+            border-bottom: 1px solid #f0f2f5;
+        }
+        .event-item:last-child { border-bottom: none; padding-bottom: 0; }
+        .event-item:first-child { padding-top: 0; }
+        .event-name {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #2c3e50;
+            text-decoration: none;
+            display: block;
+            line-height: 1.3;
+            margin-bottom: 3px;
+        }
+        .event-name:hover { color: #007bff; text-decoration: underline; }
+        .event-meta { font-size: 0.78rem; color: #6c757d; }
+        .pulse-timestamp { font-size: 0.72rem; color: #888; text-align: center; margin-top: 4px; }
+
+        @media (max-width: 1650px) {
+            .page-flank-layout { flex-direction: column; align-items: center; }
+            .pulse-rail { position: static; width: 100%; max-width: 1200px; flex-direction: row; flex-wrap: wrap; }
+            .pulse-widget { flex: 1 1 320px; }
+        }
     </style>
 </head>
 <body>
@@ -753,6 +877,120 @@
                 </p>
             </div>
         </div>
+    </div>
+
+    <div class="page-flank-layout">
+
+        <!-- LEFT FLANK: AI TICKERS & SPOTLIGHT REPO -->
+        {% if ai_pulse %}
+        <aside class="pulse-rail" aria-label="AI Market and Repository Spotlight">
+            {% if ai_pulse.tickers %}
+            <div class="pulse-widget">
+                <div class="pulse-widget-header">
+                    <span><i class="fas fa-chart-line"></i>AI Market Watch</span>
+                    <span class="badge badge-primary" style="font-size: 0.7rem;">LIVE</span>
+                </div>
+                <div class="pulse-widget-body">
+                    {% for t in ai_pulse.tickers %}
+                    {% set is_neg = t.change_percent.strip().startswith('-') %}
+                    <div class="ticker-item">
+                        <span class="ticker-sym">{{ t.symbol }}</span>
+                        <div>
+                            <span class="ticker-price">{{ t.price }}</span>
+                            <span class="ticker-badge {{ 'ticker-down' if is_neg else 'ticker-up' }}">
+                                {{ t.change_percent }}
+                            </span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            {% if ai_pulse.spotlight_repo and ai_pulse.spotlight_repo.repo_name %}
+            <div class="pulse-widget">
+                <div class="pulse-widget-header">
+                    <span><i class="fab fa-github"></i>Spotlight Repository</span>
+                </div>
+                <div class="pulse-widget-body">
+                    <a href="{{ ai_pulse.spotlight_repo.url }}" target="_blank" rel="noopener noreferrer" class="spotlight-title">
+                        {{ ai_pulse.spotlight_repo.repo_name }}
+                    </a>
+                    {% if ai_pulse.spotlight_repo.stars %}
+                    <div class="spotlight-meta">
+                        <span><i class="fas fa-star text-warning"></i> {{ ai_pulse.spotlight_repo.stars }} stars</span>
+                        <span>• Open Source</span>
+                    </div>
+                    {% endif %}
+                    <p class="spotlight-desc mb-2">{{ ai_pulse.spotlight_repo.summary }}</p>
+                    <a href="{{ ai_pulse.spotlight_repo.url }}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-primary btn-sm btn-block">
+                        Explore Repo <i class="fas fa-external-link-alt ml-1"></i>
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+        </aside>
+        {% endif %}
+
+        <!-- EXISTING CENTER MAIN CONTENT (100% UNCHANGED) -->
+        <div class="main-content-wrapper">
+            <!-- Keep all your existing jumbotron, status strip, news, jobs, and footer code here untouched -->
+        </div>
+
+        <!-- RIGHT FLANK: SPOTLIGHT ARXIV & UPCOMING EVENTS -->
+        {% if ai_pulse %}
+        <aside class="pulse-rail" aria-label="AI Research and Upcoming Events">
+            {% if ai_pulse.spotlight_arxiv and ai_pulse.spotlight_arxiv.title %}
+            <div class="pulse-widget">
+                <div class="pulse-widget-header">
+                    <span><i class="fas fa-file-alt"></i>Spotlight arXiv Paper</span>
+                </div>
+                <div class="pulse-widget-body">
+                    <a href="{{ ai_pulse.spotlight_arxiv.url }}" target="_blank" rel="noopener noreferrer" class="spotlight-title">
+                        {{ ai_pulse.spotlight_arxiv.title }}
+                    </a>
+                    {% if ai_pulse.spotlight_arxiv.arxiv_id %}
+                    <div class="spotlight-meta">
+                        <span class="badge badge-light border">arXiv:{{ ai_pulse.spotlight_arxiv.arxiv_id }}</span>
+                    </div>
+                    {% endif %}
+                    <p class="spotlight-desc mb-2">{{ ai_pulse.spotlight_arxiv.tldr }}</p>
+                    <a href="{{ ai_pulse.spotlight_arxiv.url }}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-primary btn-sm btn-block">
+                        Read Paper <i class="fas fa-external-link-alt ml-1"></i>
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+
+            {% if ai_pulse.events %}
+            <div class="pulse-widget">
+                <div class="pulse-widget-header">
+                    <span><i class="far fa-calendar-alt"></i>Upcoming AI Events</span>
+                </div>
+                <div class="pulse-widget-body">
+                    {% for ev in ai_pulse.events %}
+                    <div class="event-item">
+                        <a href="{{ ev.url }}" target="_blank" rel="noopener noreferrer" class="event-name">
+                            {{ ev.name }}
+                        </a>
+                        <div class="event-meta">
+                            <i class="far fa-clock mr-1"></i>{{ ev.date }}
+                            {% if ev.location %} • <i class="fas fa-map-marker-alt ml-1 mr-1"></i>{{ ev.location }}{% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            {% if ai_pulse.published_at %}
+            <div class="pulse-timestamp">
+                Curated Pulse • {{ ai_pulse.published_at }}
+            </div>
+            {% endif %}
+        </aside>
+        {% endif %}
+
     </div>
 </footer>
 
