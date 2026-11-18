@@ -851,6 +851,65 @@
                     </div>
                 </div>
             </section>
+        </div>
+        <!-- END .main-content-wrapper -->
+
+        <!-- 3. RIGHT FLANK: SPOTLIGHT ARXIV & UPCOMING EVENTS -->
+        {% if ai_pulse %}
+        <aside class="pulse-rail" aria-label="AI Research and Upcoming Events">
+            {% if ai_pulse.spotlight_arxiv and ai_pulse.spotlight_arxiv.title %}
+            <div class="pulse-widget">
+                <div class="pulse-widget-header">
+                    <span><i class="fas fa-file-alt"></i>Spotlight arXiv Paper</span>
+                </div>
+                <div class="pulse-widget-body">
+                    <a href="{{ ai_pulse.spotlight_arxiv.url }}" target="_blank" rel="noopener noreferrer" class="spotlight-title">
+                        {{ ai_pulse.spotlight_arxiv.title }}
+                    </a>
+                    {% if ai_pulse.spotlight_arxiv.arxiv_id %}
+                    <div class="spotlight-meta">
+                        <span class="badge badge-light border">arXiv:{{ ai_pulse.spotlight_arxiv.arxiv_id }}</span>
+                    </div>
+                    {% endif %}
+                    <p class="spotlight-desc mb-2">{{ ai_pulse.spotlight_arxiv.tldr }}</p>
+                    <a href="{{ ai_pulse.spotlight_arxiv.url }}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-primary btn-sm btn-block">
+                        Read Paper <i class="fas fa-external-link-alt ml-1"></i>
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+
+            {% if ai_pulse.events %}
+            <div class="pulse-widget">
+                <div class="pulse-widget-header">
+                    <span><i class="far fa-calendar-alt"></i>Upcoming AI Events</span>
+                </div>
+                <div class="pulse-widget-body">
+                    {% for ev in ai_pulse.events %}
+                    <div class="event-item">
+                        <a href="{{ ev.url }}" target="_blank" rel="noopener noreferrer" class="event-name">
+                            {{ ev.name }}
+                        </a>
+                        <div class="event-meta">
+                            <i class="far fa-clock mr-1"></i>{{ ev.date }}
+                            {% if ev.location %} • <i class="fas fa-map-marker-alt ml-1 mr-1"></i>{{ ev.location }}{% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            {% if ai_pulse.published_at %}
+            <div class="pulse-timestamp">
+                Curated Pulse • {{ ai_pulse.published_at }}
+            </div>
+            {% endif %}
+        </aside>
+        {% endif %}
+
+    </div>
+    <!-- END .page-flank-layout -->
 
             <footer class="modern-footer">
                 <div class="container">
@@ -917,65 +976,6 @@
                     </div>
                 </div>
             </footer>
-        </div>
-        <!-- END .main-content-wrapper -->
-
-        <!-- 3. RIGHT FLANK: SPOTLIGHT ARXIV & UPCOMING EVENTS -->
-        {% if ai_pulse %}
-        <aside class="pulse-rail" aria-label="AI Research and Upcoming Events">
-            {% if ai_pulse.spotlight_arxiv and ai_pulse.spotlight_arxiv.title %}
-            <div class="pulse-widget">
-                <div class="pulse-widget-header">
-                    <span><i class="fas fa-file-alt"></i>Spotlight arXiv Paper</span>
-                </div>
-                <div class="pulse-widget-body">
-                    <a href="{{ ai_pulse.spotlight_arxiv.url }}" target="_blank" rel="noopener noreferrer" class="spotlight-title">
-                        {{ ai_pulse.spotlight_arxiv.title }}
-                    </a>
-                    {% if ai_pulse.spotlight_arxiv.arxiv_id %}
-                    <div class="spotlight-meta">
-                        <span class="badge badge-light border">arXiv:{{ ai_pulse.spotlight_arxiv.arxiv_id }}</span>
-                    </div>
-                    {% endif %}
-                    <p class="spotlight-desc mb-2">{{ ai_pulse.spotlight_arxiv.tldr }}</p>
-                    <a href="{{ ai_pulse.spotlight_arxiv.url }}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-primary btn-sm btn-block">
-                        Read Paper <i class="fas fa-external-link-alt ml-1"></i>
-                    </a>
-                </div>
-            </div>
-            {% endif %}
-
-            {% if ai_pulse.events %}
-            <div class="pulse-widget">
-                <div class="pulse-widget-header">
-                    <span><i class="far fa-calendar-alt"></i>Upcoming AI Events</span>
-                </div>
-                <div class="pulse-widget-body">
-                    {% for ev in ai_pulse.events %}
-                    <div class="event-item">
-                        <a href="{{ ev.url }}" target="_blank" rel="noopener noreferrer" class="event-name">
-                            {{ ev.name }}
-                        </a>
-                        <div class="event-meta">
-                            <i class="far fa-clock mr-1"></i>{{ ev.date }}
-                            {% if ev.location %} • <i class="fas fa-map-marker-alt ml-1 mr-1"></i>{{ ev.location }}{% endif %}
-                        </div>
-                    </div>
-                    {% endfor %}
-                </div>
-            </div>
-            {% endif %}
-
-            {% if ai_pulse.published_at %}
-            <div class="pulse-timestamp">
-                Curated Pulse • {{ ai_pulse.published_at }}
-            </div>
-            {% endif %}
-        </aside>
-        {% endif %}
-
-    </div>
-    <!-- END .page-flank-layout -->
 
     <!-- FLOATING LEXI WIDGET (Kept outside flex columns so fixed positioning stays clean) -->
     <div id="alex-widget-container" style="position: fixed; bottom: 20px; right: 20px; z-index: 1000; display: flex; flex-direction: column; align-items: flex-end; font-family: 'Playfair Display', serif;">
