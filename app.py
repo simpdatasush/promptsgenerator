@@ -767,6 +767,41 @@ async def generate_reverse_prompt_async(input_text, language_code="en-US"):
 
 # --- Flask Routes ---
 
+AI_PULSE_PREFIX = "[AI_PULSE]"
+
+def save_ai_pulse_snapshot(payload: dict, user_id: int = None) -> News:
+    """Stores the curated AI Pulse JSON payload in the unmodified News table using [AI_PULSE] prefix."""
+    now = datetime.utcnow()
+    snapshot = News(
+        title=f"AI Pulse Snapshot ({now.strftime('%Y-%m-%d')})",
+        url="internal://ai_pulse",
+        description=f"{AI_PULSE_PREFIX}{json.dumps(payload)}",
+        timestamp=now,
+        published_date=now,
+        user_id=user_id,
+    )
+    db.session.add(snapshot)
+    db.session.commit()
+    return snapshot
+
+def get_latest_ai_pulse_snapshot() -> dict:
+    """Fetches and parses the latest [AI_PULSE] record from the News table."""
+    snapshot = (
+        News.query.filter(News.description.like(f"{AI_PULSE_PREFIX}%"))
+        .order_by(News.id.desc())
+        .first()
+    )
+    if snapshot and snapshot.description:
+        raw_json = snapshot.description[len(AI_PULSE_PREFIX):].strip()
+        try:
+            data = json.loads(raw_json)
+            ts = snapshot.published_date or snapshot.timestamp
+            data["published_at"] = ts.strftime("%Y-%m-%d %H:%M UTC") if ts else ""
+            return data
+        except (json.JSONDecodeError, TypeError):
+            return {}
+    return {}
+
 
 # In app.py
 from datetime import datetime, timedelta, timezone # Import necessary time libraries
@@ -780,7 +815,7 @@ def landing():
     has_new_jobs = False
 
     # 1. Fetch latest 6 news items
-    raw_news_items = News.query.filter(~News.description.like('[AI_APP]%'),~News.description.like('[APP_LOG]%'),~News.description.like('[PROMPT]%'),~News.description.like('[AI_HUB]%'),~News.description.like('[AI-FACT]%')).order_by(News.timestamp.desc()).limit(6).all()
+    raw_news_items = News.query.filter(~News.description.like('[AI_APP]%'),~News.description.like('[APP_LOG]%'),~News.description.like('[PROMPT]%'),~News.description.like('[AI_HUB]%'),~News.description.like('[AI-FACT]%'),~News.description.like('[AI_PULSE]%')).order_by(News.timestamp.desc()).limit(6).all()
     
     # Process news items to clean the description for the summary view
     cleaned_news_items = []
@@ -844,6 +879,8 @@ def landing():
         status_message = "Displaying latest available items. No new additions in the last 24 hours."
         status_class = "alert-info"
     # --- END NEW LOGIC ---
+
+    ai_pulse = get_latest_ai_pulse_snapshot()
     
     return render_template('landing.html', 
                             news_items=cleaned_news_items,
@@ -852,7 +889,8 @@ def landing():
                             blog_id_tracker=blog_id_tracker,
                             # Pass the message and styling class for the single strip
                             status_message=status_message,
-                            status_class=status_class)
+                            status_class=status_class,
+                            ai_pulse=ai_pulse)
 
 @app.route('/dashboard')
 @login_required
@@ -1373,7 +1411,8 @@ def all_news():
         ~News.description.like('[APP_LOG]%'),
         ~News.description.like('[PROMPT]%'),
         ~News.description.like('[AI_HUB]%'),
-        ~News.description.like('[AI-FACT]%')
+        ~News.description.like('[AI-FACT]%'),
+        ~News.description.like('[AI_PULSE]%')
     ).order_by(News.timestamp.desc())
 
     # 2. ADD SEARCH FILTERS (If search_query exists)
@@ -1388,7 +1427,8 @@ def all_news():
             ~News.description.like('[APP_LOG]%'),
             ~News.description.like('[PROMPT]%'),
             ~News.description.like('[AI_HUB]%'),
-            ~News.description.like('[AI-FACT]%')
+            ~News.description.like('[AI-FACT]%'),
+            ~News.description.like('[AI_PULSE]%')
         )
 
     # 3. PAGINATE THE QUERY OBJECT
@@ -5846,6 +5886,218 @@ def api_aeroroute_plan():
             "status": "error",
             "error": f"Failed to compute flight routes: {str(e)}",
         }), 500
+
+# =====================================================================
+# AI PULSE: ADMIN STEP-BY-STEP CURATOR & LANDING PUBLISHER
+# =====================================================================
+
+class PulseTicker(BaseModel):
+    symbol: str = Field(description="Ticker symbol e.g. AMD, NVDA")
+    price: str = Field(description="Share price with $ sign e.g. $585.30")
+    change_percent: str = Field(description="Daily percentage change with + or - e.g. +5.86%")
+
+class PulseTickerList(BaseModel):
+    tickers: List[PulseTicker]
+
+class PulseEvent(BaseModel):
+    name: str = Field(description="Official name of upcoming AI or tech event")
+    date: str = Field(description="Event dates e.g. Nov 18-20, 2026")
+    location: str = Field(description="City/Country or Virtual")
+    url: str = Field(description="Official event URL")
+
+class PulseEventList(BaseModel):
+    events: List[PulseEvent]
+
+class PulseRepo(BaseModel):
+    repo_name: str = Field(description="GitHub owner/repo name")
+    url: str = Field(description="GitHub repository URL")
+    stars: str = Field(description="Star count e.g. 14.2k")
+    summary: str = Field(description="Crisp 2-sentence summary of what the repo does")
+
+class PulseArxiv(BaseModel):
+    title: str = Field(description="Exact arXiv paper title")
+    arxiv_id: str = Field(description="arXiv ID e.g. 2611.04123")
+    url: str = Field(description="arXiv abstract URL")
+    tldr: str = Field(description="Crisp 2-sentence plain-English TL;DR")
+
+
+_pulse_client = None
+
+def _get_pulse_client() -> gemma_genai.Client:
+    """Dedicated v1beta Gemini client for AI Pulse GoogleSearch grounding."""
+    global _pulse_client
+    if _pulse_client is None:
+        api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
+        if not api_key:
+            raise RuntimeError("Missing GEMINI_API_KEY (or GOOGLE_API_KEY) in environment.")
+        _pulse_client = gemma_genai.Client(
+            api_key=api_key,
+            http_options=gemma_types.HttpOptions(api_version="v1beta"),
+        )
+    return _pulse_client
+
+
+def _run_grounded_pulse_step(discovery_prompt: str, extraction_instructions: str, schema: type[BaseModel]) -> dict:
+    client = _get_pulse_client()
+
+    # Stage 1: Google Search Grounding
+    search_response = client.models.generate_content(
+        model=RADAR_MODEL,
+        config=gemma_types.GenerateContentConfig(
+            tools=[gemma_types.Tool(google_search=gemma_types.GoogleSearch())],
+            temperature=0.2,
+        ),
+        contents=[discovery_prompt],
+    )
+    grounded_text = search_response.text or ""
+
+    verified_chunks = []
+    candidates = getattr(search_response, "candidates", []) or []
+    if candidates:
+        g_meta = getattr(candidates[0], "grounding_metadata", None)
+        chunks = getattr(g_meta, "grounding_chunks", []) or []
+        seen_uris = set()
+        for chunk in chunks:
+            web_info = getattr(chunk, "web", None)
+            if web_info and getattr(web_info, "uri", None):
+                uri = web_info.uri.strip()
+                if uri not in seen_uris:
+                    seen_uris.add(uri)
+                    verified_chunks.append({
+                        "title": getattr(web_info, "title", None) or "Source",
+                        "uri": uri,
+                    })
+
+    # Stage 2: Pydantic Structured Extraction
+    extraction_prompt = (
+        f"--- GROUNDED SEARCH FINDINGS ---\n{grounded_text}\n\n"
+        f"--- VERIFIED GROUNDING SOURCES ---\n{json.dumps(verified_chunks, indent=2)}\n\n"
+        f"INSTRUCTIONS:\n{extraction_instructions}\n"
+        "Use exact URLs from VERIFIED GROUNDING SOURCES whenever a URL field is required."
+    )
+    structured_response = client.models.generate_content(
+        model=RADAR_MODEL,
+        config=gemma_types.GenerateContentConfig(
+            system_instruction="You are an AI Market & Research Curator. Output strictly valid JSON.",
+            temperature=0.1,
+            response_mime_type="application/json",
+            response_schema=schema,
+        ),
+        contents=[extraction_prompt],
+    )
+    return json.loads((structured_response.text or "{}").strip())
+
+
+@app.route("/admin/ai-pulse", methods=["GET"])
+@login_required
+@admin_required
+def admin_ai_pulse_page():
+    latest_pulse = get_latest_ai_pulse_snapshot()
+    return render_template("admin_ai_pulse.html", pulse=latest_pulse)
+
+
+@app.route("/api/admin/pulse/step/tickers", methods=["POST"])
+@login_required
+def api_pulse_step_tickers():
+    if not current_user.is_admin:
+        return jsonify({"status": "error", "error": "Admin privileges required."}), 403
+    data = request.get_json() or {}
+    symbols = [s.strip().upper() for s in data.get("symbols", "AMD, NVDA, GOOGL, META, MSFT").split(",") if s.strip()]
+    try:
+        result = _run_grounded_pulse_step(
+            discovery_prompt=(
+                f"Get the latest stock price (USD with $ sign) and daily percentage change (+ or - sign) "
+                f"for these AI/tech companies: {', '.join(symbols)}."
+            ),
+            extraction_instructions=f"Extract symbol, price, and change_percent for: {', '.join(symbols)}.",
+            schema=PulseTickerList,
+        )
+        return jsonify({"status": "success", "data": result})
+    except (APIError, ServerError, Exception) as e:
+        logger.exception(f"AI Pulse Tickers error: {e}")
+        return jsonify({"status": "error", "error": str(e)}), 500
+
+
+@app.route("/api/admin/pulse/step/events", methods=["POST"])
+@login_required
+def api_pulse_step_events():
+    if not current_user.is_admin:
+        return jsonify({"status": "error", "error": "Admin privileges required."}), 403
+    today_str = datetime.utcnow().strftime("%B %d, %Y")
+    try:
+        result = _run_grounded_pulse_step(
+            discovery_prompt=(
+                f"Today is {today_str}. Find 3 major upcoming AI, LLM, or developer tech conferences/events "
+                "happening within the next 60 days. Include dates, city/virtual location, and official URLs."
+            ),
+            extraction_instructions="Extract 3 upcoming AI/tech events with name, date, location, and official url.",
+            schema=PulseEventList,
+        )
+        return jsonify({"status": "success", "data": result})
+    except (APIError, ServerError, Exception) as e:
+        logger.exception(f"AI Pulse Events error: {e}")
+        return jsonify({"status": "error", "error": str(e)}), 500
+
+
+@app.route("/api/admin/pulse/step/repo", methods=["POST"])
+@login_required
+def api_pulse_step_repo():
+    if not current_user.is_admin:
+        return jsonify({"status": "error", "error": "Admin privileges required."}), 403
+    try:
+        result = _run_grounded_pulse_step(
+            discovery_prompt=(
+                "Find 1 trending open-source AI or machine learning GitHub repository from this week. "
+                "Include owner/repo name, GitHub URL, approximate stars, and what it builds."
+            ),
+            extraction_instructions="Extract 1 spotlight repo with repo_name, url, stars, and a 2-sentence summary.",
+            schema=PulseRepo,
+        )
+        return jsonify({"status": "success", "data": result})
+    except (APIError, ServerError, Exception) as e:
+        logger.exception(f"AI Pulse Repo error: {e}")
+        return jsonify({"status": "error", "error": str(e)}), 500
+
+
+@app.route("/api/admin/pulse/step/arxiv", methods=["POST"])
+@login_required
+def api_pulse_step_arxiv():
+    if not current_user.is_admin:
+        return jsonify({"status": "error", "error": "Admin privileges required."}), 403
+    try:
+        result = _run_grounded_pulse_step(
+            discovery_prompt=(
+                "Find 1 notable or trending AI / LLM research paper published recently on arXiv.org. "
+                "Provide exact paper title, arXiv ID, arxiv.org URL, and key breakthrough."
+            ),
+            extraction_instructions="Extract 1 spotlight arXiv paper with title, arxiv_id, url, and a 2-sentence TL;DR.",
+            schema=PulseArxiv,
+        )
+        return jsonify({"status": "success", "data": result})
+    except (APIError, ServerError, Exception) as e:
+        logger.exception(f"AI Pulse arXiv error: {e}")
+        return jsonify({"status": "error", "error": str(e)}), 500
+
+
+@app.route("/api/admin/pulse/publish", methods=["POST"])
+@login_required
+def api_pulse_publish():
+    if not current_user.is_admin:
+        return jsonify({"status": "error", "error": "Admin privileges required."}), 403
+    payload = request.get_json() or {}
+    if not any(k in payload for k in ("tickers", "events", "spotlight_repo", "spotlight_arxiv")):
+        return jsonify({"status": "error", "error": "Cannot publish empty payload."}), 400
+    try:
+        snapshot = save_ai_pulse_snapshot(payload=payload, user_id=current_user.id)
+        return jsonify({
+            "status": "success",
+            "snapshot_id": snapshot.id,
+            "published_at": snapshot.published_date.strftime("%Y-%m-%d %H:%M UTC"),
+        })
+    except Exception as e:
+        db.session.rollback()
+        logger.exception(f"AI Pulse publish error: {e}")
+        return jsonify({"status": "error", "error": str(e)}), 500
 
 
 # --- NEW: Change Password Route ---
