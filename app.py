@@ -5441,7 +5441,7 @@ def api_generate_code_bundle():
 # RESOURCERADAR: 3-STAGE GROUNDED DISCOVERY & URL DEEP-READER ENGINE
 # =====================================================================
 
-RADAR_MODEL = globals().get("IMG_TEXT_DEFAULT_MODEL", "gemini-2.5-flash")
+RADAR_MODEL = globals().get("IMG_TEXT_DEFAULT_MODEL", "gemini-3.5-flash-lite")
 
 
 # ==========================================
