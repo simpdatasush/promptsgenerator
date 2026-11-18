@@ -556,27 +556,28 @@
             display: flex;
             justify-content: center;
             align-items: flex-start;
-            gap: 20px;
-            max-width: 1840px;
+            gap: 18px;
+            max-width: 1800px;
             margin: 20px auto;
             padding: 0 15px;
             flex-grow: 1;
             width: 100%;
         }
         .page-flank-layout > .main-content-wrapper {
-            margin: 0;
+            margin: 0 !important;
             width: 100%;
-            max-width: 1200px;
-            flex: 0 1 1200px;
+            max-width: 1120px;
+            flex: 1 1 auto;
+            min-width: 0;
         }
         .pulse-rail {
-            width: 285px;
-            flex-shrink: 0;
+            width: 255px;
+            flex: 0 0 255px;
             position: sticky;
             top: 85px;
             display: flex;
             flex-direction: column;
-            gap: 18px;
+            gap: 16px;
         }
         .pulse-widget {
             background-color: #ffffff;
@@ -588,8 +589,8 @@
         .pulse-widget-header {
             background-color: #343a40;
             color: #ffffff;
-            padding: 11px 15px;
-            font-size: 0.92rem;
+            padding: 10px 14px;
+            font-size: 0.9rem;
             font-weight: 600;
             display: flex;
             align-items: center;
@@ -601,33 +602,33 @@
             margin-right: 7px;
         }
         .pulse-widget-body {
-            padding: 14px 15px;
+            padding: 12px 14px;
         }
         .ticker-item {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 8px 0;
+            padding: 7px 0;
             border-bottom: 1px solid #f0f2f5;
-            font-size: 0.9rem;
+            font-size: 0.88rem;
         }
         .ticker-item:last-child { border-bottom: none; padding-bottom: 0; }
         .ticker-item:first-child { padding-top: 0; }
         .ticker-sym { font-weight: 700; color: #2c3e50; letter-spacing: 0.4px; }
-        .ticker-price { font-weight: 600; color: #333; margin-right: 6px; }
+        .ticker-price { font-weight: 600; color: #333; margin-right: 5px; }
         .ticker-badge {
-            font-size: 0.78rem;
+            font-size: 0.75rem;
             font-weight: 700;
-            padding: 2px 7px;
+            padding: 2px 6px;
             border-radius: 4px;
             display: inline-block;
-            min-width: 62px;
+            min-width: 58px;
             text-align: right;
         }
         .ticker-up { background-color: #e6f4ea; color: #137333; }
         .ticker-down { background-color: #fce8e6; color: #c5221f; }
         .spotlight-title {
-            font-size: 0.98rem;
+            font-size: 0.94rem;
             font-weight: 700;
             color: #007bff;
             margin-bottom: 6px;
@@ -637,7 +638,7 @@
         }
         .spotlight-title:hover { color: #0056b3; text-decoration: underline; }
         .spotlight-meta {
-            font-size: 0.78rem;
+            font-size: 0.76rem;
             color: #6c757d;
             margin-bottom: 8px;
             display: flex;
@@ -645,19 +646,19 @@
             gap: 8px;
         }
         .spotlight-desc {
-            font-size: 0.86rem;
+            font-size: 0.84rem;
             color: #555;
-            line-height: 1.5;
+            line-height: 1.48;
             margin-bottom: 10px;
         }
         .event-item {
-            padding: 9px 0;
+            padding: 8px 0;
             border-bottom: 1px solid #f0f2f5;
         }
         .event-item:last-child { border-bottom: none; padding-bottom: 0; }
         .event-item:first-child { padding-top: 0; }
         .event-name {
-            font-size: 0.9rem;
+            font-size: 0.88rem;
             font-weight: 600;
             color: #2c3e50;
             text-decoration: none;
@@ -666,16 +667,17 @@
             margin-bottom: 3px;
         }
         .event-name:hover { color: #007bff; text-decoration: underline; }
-        .event-meta { font-size: 0.78rem; color: #6c757d; }
+        .event-meta { font-size: 0.76rem; color: #6c757d; }
         .pulse-timestamp { font-size: 0.72rem; color: #888; text-align: center; margin-top: 4px; }
 
-        @media (max-width: 1650px) {
+        /* Stack below main content only on screens narrower than 1360px */
+        @media (max-width: 1360px) {
             .page-flank-layout { flex-direction: column; align-items: center; }
-            .pulse-rail { position: static; width: 100%; max-width: 1200px; flex-direction: row; flex-wrap: wrap; }
-            .pulse-widget { flex: 1 1 320px; }
+            .pulse-rail { position: static; width: 100%; max-width: 1120px; flex: none; flex-direction: row; flex-wrap: wrap; }
+            .pulse-widget { flex: 1 1 300px; }
         }
     </style>
-</head>
+<head>
 <body>
     <header class="app-header">
         <div class="logo-section">
@@ -703,121 +705,10 @@
         </div>
     </header>
 
-    <div class="main-content-wrapper">
-        <div class="jumbotron text-center bg-light p-5 rounded shadow-sm mb-5">
-            <h1 class="display-4 text-primary">Welcome to SuperPrompter!</h1>
-            <p class="lead">Your ultimate tool for refining, enhancing, and generating powerful AI prompts.</p>
-            <hr class="my-4">
-            <p>Leverage the power of AI to transform your raw ideas into perfectly crafted prompts for large language models.</p>
-            {% if current_user.is_authenticated %}
-                <a class="btn btn-primary btn-lg" href="{{ url_for('app_home') }}" role="button">Start Generating Prompts</a>
-            {% else %}
-                <p class="text-muted">Please log in or register to start generating prompts.</p>
-                <a class="btn btn-primary btn-lg" href="{{ url_for('login') }}" role="button">Login to Get Started</a>
-            {% endif %}
-        </div>
-
-{# --- 1. SINGLE STATUS STRIP: Always appears based on 'freshness' calculated in Python --- #}
-<div class="alert {{ status_class }} text-center" style="margin-top: 20px; margin-bottom: 30px; font-size: 1.0em;">
-    <i class="fas fa-bullhorn"></i> <strong>Latest Update:</strong> {{ status_message }}
-</div>
-
-<div id="alex-widget-container" style="position: fixed; bottom: 20px; right: 20px; z-index: 1000; display: flex; flex-direction: column; align-items: flex-end; font-family: 'Playfair Display', serif;">
-    <div id="alex-chat-window" style="display: none; width: 300px; max-height: 400px; background: white; border-radius: 15px; box-shadow: 0 5px 25px rgba(0,0,0,0.2); margin-bottom: 15px; flex-direction: column; overflow: hidden; border: 1px solid #eee;">
-        <div style="background: #1a1a1a; color: white; padding: 10px 15px; font-size: 14px; font-weight: bold;">Lexi Concierge</div>
-        <div id="alex-messages" style="flex: 1; padding: 15px; overflow-y: auto; font-size: 13px; display: flex; flex-direction: column; gap: 10px; background: #fdfdfd;">
-            </div>
-    </div>
-
-    <div id="alex-status" style="background: rgba(0,0,0,0.7); color: white; padding: 5px 12px; border-radius: 20px; margin-bottom: 8px; font-size: 11px; display: none; transition: all 0.3s ease;">Lexi is thinking...</div>
-    
-    <div style="display: flex; gap: 10px; background: white; padding: 10px; border-radius: 30px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); border: 1px solid #eee;">
-        <input type="text" id="alex-input" placeholder="Ask Lexi anything..." style="border: none; outline: none; padding: 5px 15px; width: 220px; font-family: inherit; font-size: 14px;">
-        <button id="alex-send" style="background: #1a1a1a; color: white; border: none; border-radius: 50%; width: 35px; height: 35px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
-            <i class="fas fa-paper-plane" style="font-size: 14px;"></i>
-        </button>
-    </div>
-</div> 
-
-
-<section class="news-section mb-5">
-    <h2 class="section-title"><a href="{{ url_for('all_news') }}" class="text-decoration-none text-dark">👉Latest News</a></h2>
-    <div class="row">
-        {% for item in news_items %}
-        <div class="col-md-6 col-lg-4">
-    <div class="card h-100">
-        <div class="card-body">
-            <img src="https://picsum.photos/seed/{{ loop.index }}/100/100" 
-     class="card-thumb" 
-     alt="Thumbnail"
-     onerror="this.onerror=null;this.src='https://placehold.co/100/007bff/ffffff?text=AI';">
-
-            <h5 class="card-title">{{ item.title }}</h5>
-            <p class="card-text">{{ item.summary_snippet | striptags | truncate(100) }}</p>
-            
-            <div class="mt-auto">
-                <a href="{{ item.url }}" target="_blank" class="card-link">Read More <i class="fas fa-external-link-alt"></i></a>
-                <p class="meta-info mb-0">Added: {{ item.timestamp.strftime('%Y-%m-%d') }}</p>
-            </div>
-        </div>
-    </div>
-</div>
-        {# !!! REMOVED THE {% else %} BLOCK HERE !!! #}
-        {% endfor %}
-        
-        {# OPTIONAL: Handle the rare case where there are truly zero items in the database #}
-        {% if news_items|length == 0 %}
-            <div class="col-12">
-                <p class="text-center text-muted">No news items have been added to the database yet.</p>
-            </div>
-        {% endif %}
-    </div>
-</section>
-
-<section class="jobs-section mb-5">
-    <h2 class="section-title">
-        <a href="{{ url_for('all_jobs') }}" class="text-decoration-none text-dark">👉Job Listings</a>
-    </h2>
-
-    <div class="jobs-wrapper">
-        {% if not current_user.is_authenticated %}
-            <div class="lock-overlay">
-                <div class="premium-note">
-                    <i class="fas fa-lock"></i>
-                    <h4>Premium & Exclusive Job Offers</h4>
-                    <p>Click here to view high-paying AI roles</p>
-                    <a href="{{ url_for('login') }}" class="btn btn-primary font-weight-bold px-4">Login to Unlock</a>
-                </div>
-            </div>
-        {% endif %}
-
-        <div class="row {% if not current_user.is_authenticated %}content-locked{% endif %}">
-            {% for job in job_listings %}
-            <div class="col-md-6 col-lg-4">
-                <div class="card h-100">
-                    <div class="card-body">
-                        <h5 class="card-title">{{ job.title | truncate(100) }}</h5>
-                        <h6 class="card-subtitle mb-2 text-muted">{{ job.company }} - {{ job.location if job.location else 'Remote' }}</h6>
-                        <p class="card-text">{{ job.description | truncate(100) }}</p>
-                        <a href="{{ job.url }}" target="_blank" class="card-link">Apply Now <i class="fas fa-external-link-alt"></i></a>
-                        <p class="meta-info">Added: {{ job.timestamp.strftime('%Y-%m-%d %H:%M') }}</p>
-                    </div>
-                </div>
-            </div>
-            {% endfor %}
-            
-            {% if job_listings|length == 0 %}
-                <div class="col-12">
-                    <p class="text-center text-muted">No job listings have been added to the database yet.</p>
-                </div>
-            {% endif %}
-        </div>
-    </div>
-</section>
-
+    <!-- ================= 3-COLUMN FLANK LAYOUT (LEFT RAIL + CENTER + RIGHT RAIL) ================= -->
     <div class="page-flank-layout">
 
-        <!-- LEFT FLANK: AI TICKERS & SPOTLIGHT REPO -->
+        <!-- 1. LEFT FLANK: AI TICKERS & SPOTLIGHT REPO -->
         {% if ai_pulse %}
         <aside class="pulse-rail" aria-label="AI Market and Repository Spotlight">
             {% if ai_pulse.tickers %}
@@ -868,12 +759,168 @@
         </aside>
         {% endif %}
 
-        <!-- EXISTING CENTER MAIN CONTENT (100% UNCHANGED) -->
+        <!-- 2. CENTER MAIN CONTENT WRAPPER (YOUR EXISTING CONTENT) -->
         <div class="main-content-wrapper">
-            <!-- Keep all your existing jumbotron, status strip, news, jobs, and footer code here untouched -->
-        </div>
+            <div class="jumbotron text-center bg-light p-5 rounded shadow-sm mb-5">
+                <h1 class="display-4 text-primary">Welcome to SuperPrompter!</h1>
+                <p class="lead">Your ultimate tool for refining, enhancing, and generating powerful AI prompts.</p>
+                <hr class="my-4">
+                <p>Leverage the power of AI to transform your raw ideas into perfectly crafted prompts for large language models.</p>
+                {% if current_user.is_authenticated %}
+                    <a class="btn btn-primary btn-lg" href="{{ url_for('app_home') }}" role="button">Start Generating Prompts</a>
+                {% else %}
+                    <p class="text-muted">Please log in or register to start generating prompts.</p>
+                    <a class="btn btn-primary btn-lg" href="{{ url_for('login') }}" role="button">Login to Get Started</a>
+                {% endif %}
+            </div>
 
-        <!-- RIGHT FLANK: SPOTLIGHT ARXIV & UPCOMING EVENTS -->
+            {# --- 1. SINGLE STATUS STRIP --- #}
+            <div class="alert {{ status_class }} text-center" style="margin-top: 20px; margin-bottom: 30px; font-size: 1.0em;">
+                <i class="fas fa-bullhorn"></i> <strong>Latest Update:</strong> {{ status_message }}
+            </div>
+
+            <section class="news-section mb-5">
+                <h2 class="section-title"><a href="{{ url_for('all_news') }}" class="text-decoration-none text-dark">👉Latest News</a></h2>
+                <div class="row">
+                    {% for item in news_items %}
+                    <div class="col-md-6 col-lg-4">
+                        <div class="card h-100">
+                            <div class="card-body">
+                                <img src="https://picsum.photos/seed/{{ loop.index }}/100/100"
+                                     class="card-thumb"
+                                     alt="Thumbnail"
+                                     onerror="this.onerror=null;this.src='https://placehold.co/100/007bff/ffffff?text=AI';">
+
+                                <h5 class="card-title">{{ item.title }}</h5>
+                                <p class="card-text">{{ item.summary_snippet | striptags | truncate(100) }}</p>
+
+                                <div class="mt-auto">
+                                    <a href="{{ item.url }}" target="_blank" class="card-link">Read More <i class="fas fa-external-link-alt"></i></a>
+                                    <p class="meta-info mb-0">Added: {{ item.timestamp.strftime('%Y-%m-%d') }}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+
+                    {% if news_items|length == 0 %}
+                        <div class="col-12">
+                            <p class="text-center text-muted">No news items have been added to the database yet.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </section>
+
+            <section class="jobs-section mb-5">
+                <h2 class="section-title">
+                    <a href="{{ url_for('all_jobs') }}" class="text-decoration-none text-dark">👉Job Listings</a>
+                </h2>
+
+                <div class="jobs-wrapper">
+                    {% if not current_user.is_authenticated %}
+                        <div class="lock-overlay">
+                            <div class="premium-note">
+                                <i class="fas fa-lock"></i>
+                                <h4>Premium & Exclusive Job Offers</h4>
+                                <p>Click here to view high-paying AI roles</p>
+                                <a href="{{ url_for('login') }}" class="btn btn-primary font-weight-bold px-4">Login to Unlock</a>
+                            </div>
+                        </div>
+                    {% endif %}
+
+                    <div class="row {% if not current_user.is_authenticated %}content-locked{% endif %}">
+                        {% for job in job_listings %}
+                        <div class="col-md-6 col-lg-4">
+                            <div class="card h-100">
+                                <div class="card-body">
+                                    <h5 class="card-title">{{ job.title | truncate(100) }}</h5>
+                                    <h6 class="card-subtitle mb-2 text-muted">{{ job.company }} - {{ job.location if job.location else 'Remote' }}</h6>
+                                    <p class="card-text">{{ job.description | truncate(100) }}</p>
+                                    <a href="{{ job.url }}" target="_blank" class="card-link">Apply Now <i class="fas fa-external-link-alt"></i></a>
+                                    <p class="meta-info">Added: {{ job.timestamp.strftime('%Y-%m-%d %H:%M') }}</p>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+
+                        {% if job_listings|length == 0 %}
+                            <div class="col-12">
+                                <p class="text-center text-muted">No job listings have been added to the database yet.</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </section>
+
+            <footer class="modern-footer">
+                <div class="container">
+                    <div class="row">
+                        <div class="col-lg-4 mb-4 mb-lg-0">
+                            <img src="{{ url_for('static', filename='favicon.png') }}" alt="Logo" style="height: 40px; margin-bottom: 20px; border-radius: 5px;">
+                            <p class="footer-brand-text">
+                                SuperPrompter AI is your ultimate hub for prompt engineering,
+                                AI-driven automation, and the latest news, Apps & Many More things in generative AI technology.
+                                Supercharge your workflow today. Free Access to Students* !
+                            </p>
+                            <div class="footer-social-icons mt-4">
+                                <a href="https://x.com/lumifantsa_ai" target="_blank" title="Follow us on X">
+                                    <img src="{{ url_for('static', filename='logo-black.png') }}" alt="X Logo" style="height: 24px; width: 24px; filter: brightness(0) invert(1);">
+                                </a>
+                                <a href="https://whatsapp.com/channel/0029VbCkiuFDzgT2gFpnFq3t" target="_blank" rel="noopener noreferrer" title="Join our WhatsApp Channel">
+                                    <img src="{{ url_for('static', filename='whatsapp-logo.png') }}" alt="WhatsApp Channel" style="height: 24px; width: 24px;">
+                                </a>
+                            </div>
+                        </div>
+
+                        <div class="col-6 col-lg-3 mb-4">
+                            <h5>Resources</h5>
+                            <ul class="footer-links">
+                                <li><a href="/merchandise">Merchandise</a></li>
+                                <li><a href="/ai-facts">Did you know ?</a></li>
+                                <li><a href="/send_request">API Access</a></li>
+                                <li><a href="/">Documentation</a></li>
+                                <li><a href="#">Advertise With Us</a></li>
+                                <li><a href="#">Partners Page</a></li>
+                                <li><a href="{{ url_for('privacy_policy') }}">Privacy Policy</a></li>
+                                <li><a href="{{ url_for('terms_of_use') }}">Terms of Use</a></li>
+                                <li><a href="mailto:info@promptsgenerator.ai">Help Center</a></li>
+                            </ul>
+                        </div>
+
+                        <div class="col-lg-5">
+                            <h5>Stay Updated</h5>
+                            <p class="footer-brand-text mb-4">Join 5,000+ enthusiasts getting weekly AI insights, prompt tips, and feature updates. Technology handles scale. Humans handle sense. </p>
+                            <div class="newsletter-cta">
+                                <a href="https://flow.cleverreach.com/fl/f1b39182-4b74-4664-9c1d-c175cb3a670c/"
+                                   target="_blank"
+                                   class="btn btn-primary btn-block d-flex align-items-center justify-content-center"
+                                   style="height: 50px; font-weight: 600; font-size: 16px; border-radius: 8px;">
+                                    <i class="fas fa-paper-plane mr-2"></i> Subscribe to Newsletter
+                                </a>
+                            </div>
+                            <small class="text-muted d-block mt-3">
+                                <i class="fas fa-lock mr-1"></i> Your privacy is our priority. No spam, ever.
+                            </small>
+                        </div>
+                    </div>
+
+                    <div class="footer-bottom d-flex flex-column flex-md-row justify-content-between align-items-center">
+                        <div class="footer-info-block text-center text-md-left mb-3 mb-md-0">
+                            <p class="text-muted">© 2026 <strong>SuperPrompter AI</strong>. All Rights Reserved.</p>
+                            <p class="small text-muted">Developed by <span style="color: #ffffff;">Sushrut Kulkarni</span></p>
+                        </div>
+                        <div class="footer-contact-block">
+                            <p class="text-muted">
+                                Email: <a href="mailto:hello@promptsgenerator.ai">hello@promptsgenerator.ai</a>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </footer>
+        </div>
+        <!-- END .main-content-wrapper -->
+
+        <!-- 3. RIGHT FLANK: SPOTLIGHT ARXIV & UPCOMING EVENTS -->
         {% if ai_pulse %}
         <aside class="pulse-rail" aria-label="AI Research and Upcoming Events">
             {% if ai_pulse.spotlight_arxiv and ai_pulse.spotlight_arxiv.title %}
@@ -928,72 +975,23 @@
         {% endif %}
 
     </div>
+    <!-- END .page-flank-layout -->
 
-        <footer class="modern-footer">
-    <div class="container">
-        <div class="row">
-            <div class="col-lg-4 mb-4 mb-lg-0">
-                <img src="{{ url_for('static', filename='favicon.png') }}" alt="Logo" style="height: 40px; margin-bottom: 20px; border-radius: 5px;">
-                <p class="footer-brand-text">
-                    SuperPrompter AI is your ultimate hub for prompt engineering, 
-                    AI-driven automation, and the latest news, Apps & Many More things in generative AI technology. 
-                    Supercharge your workflow today. Free Access to Students* !
-                </p>
-                <div class="footer-social-icons mt-4">
-    <a href="https://x.com/lumifantsa_ai" target="_blank" title="Follow us on X">
-        <img src="{{ url_for('static', filename='logo-black.png') }}" alt="X Logo" style="height: 24px; width: 24px; filter: brightness(0) invert(1);">
-    </a>
-    <a href="https://whatsapp.com/channel/0029VbCkiuFDzgT2gFpnFq3t" target="_blank" rel="noopener noreferrer" title="Join our WhatsApp Channel">
-        <img src="{{ url_for('static', filename='whatsapp-logo.png') }}" alt="WhatsApp Channel" style="height: 24px; width: 24px;">
-    </a>
-</div>
-            </div>
-
-            <div class="col-6 col-lg-3 mb-4">
-                <h5>Resources</h5>
-                <ul class="footer-links">
-                    <li><a href="/merchandise">Merchandise</a></li>
-                    <li><a href="/ai-facts">Did you know ?</a></li>
-                    <li><a href="/send_request">API Access</a></li>
-                    <li><a href="/">Documentation</a></li>
-                    <li><a href="#">Advertise With Us</a></li>
-                    <li><a href="#">Partners Page</a></li>
-                    <li><a href="{{ url_for('privacy_policy') }}">Privacy Policy</a></li>
-                    <li><a href="{{ url_for('terms_of_use') }}">Terms of Use</a></li>
-                    <li><a href="mailto:info@promptsgenerator.ai">Help Center</a></li>
-                </ul>
-            </div>
-
-            <div class="col-lg-5">
-                <h5>Stay Updated</h5>
-                <p class="footer-brand-text mb-4">Join 5,000+ enthusiasts getting weekly AI insights, prompt tips, and feature updates. Technology handles scale. Humans handle sense. </p>
-                <div class="newsletter-cta">
-                    <a href="https://flow.cleverreach.com/fl/f1b39182-4b74-4664-9c1d-c175cb3a670c/" 
-                       target="_blank" 
-                       class="btn btn-primary btn-block d-flex align-items-center justify-content-center" 
-                       style="height: 50px; font-weight: 600; font-size: 16px; border-radius: 8px;">
-                        <i class="fas fa-paper-plane mr-2"></i> Subscribe to Newsletter
-                    </a>
-                </div>
-                <small class="text-muted d-block mt-3">
-                    <i class="fas fa-lock mr-1"></i> Your privacy is our priority. No spam, ever.
-                </small>
-            </div>
+    <!-- FLOATING LEXI WIDGET (Kept outside flex columns so fixed positioning stays clean) -->
+    <div id="alex-widget-container" style="position: fixed; bottom: 20px; right: 20px; z-index: 1000; display: flex; flex-direction: column; align-items: flex-end; font-family: 'Playfair Display', serif;">
+        <div id="alex-chat-window" style="display: none; width: 300px; max-height: 400px; background: white; border-radius: 15px; box-shadow: 0 5px 25px rgba(0,0,0,0.2); margin-bottom: 15px; flex-direction: column; overflow: hidden; border: 1px solid #eee;">
+            <div style="background: #1a1a1a; color: white; padding: 10px 15px; font-size: 14px; font-weight: bold;">Lexi Concierge</div>
+            <div id="alex-messages" style="flex: 1; padding: 15px; overflow-y: auto; font-size: 13px; display: flex; flex-direction: column; gap: 10px; background: #fdfdfd;"></div>
         </div>
-
-        <div class="footer-bottom d-flex flex-column flex-md-row justify-content-between align-items-center">
-            <div class="footer-info-block text-center text-md-left mb-3 mb-md-0">
-                <p class="text-muted">© 2026 <strong>SuperPrompter AI</strong>. All Rights Reserved.</p>
-                <p class="small text-muted">Developed by <span style="color: #ffffff;">Sushrut Kulkarni</span></p>
-            </div>
-            <div class="footer-contact-block">
-                <p class="text-muted">
-                    Email: <a href="mailto:hello@promptsgenerator.ai">hello@promptsgenerator.ai</a>
-                </p>
-            </div>
+        <div id="alex-status" style="background: rgba(0,0,0,0.7); color: white; padding: 5px 12px; border-radius: 20px; margin-bottom: 8px; font-size: 11px; display: none; transition: all 0.3s ease;">Lexi is thinking...</div>
+        <div style="display: flex; gap: 10px; background: white; padding: 10px; border-radius: 30px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); border: 1px solid #eee;">
+            <input type="text" id="alex-input" placeholder="Ask Lexi anything..." style="border: none; outline: none; padding: 5px 15px; width: 220px; font-family: inherit; font-size: 14px;">
+            <button id="alex-send" style="background: #1a1a1a; color: white; border: none; border-radius: 50%; width: 35px; height: 35px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+                <i class="fas fa-paper-plane" style="font-size: 14px;"></i>
+            </button>
         </div>
     </div>
-</footer>
+
 
 
     <!-- Bootstrap JS and its dependencies -->
