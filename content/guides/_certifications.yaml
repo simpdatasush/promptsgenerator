@@ -1,0 +1,126 @@
+certifications:
+  certified-ai-engineer:
+    code: "CERT-AIE"
+    title: "Certified AI Engineer"
+    slug: "certified-ai-engineer"
+    tagline: "Master production LLM engineering, automated evaluations, OpenTelemetry observability, and security guardrails."
+    price_usd: 49
+    pass_threshold: 80
+    exam_duration_minutes: 45
+    mcq_weight: 0.75
+    architecture_case_weight: 0.25
+    unlocked_roles:
+      - title: "Production AI Engineer"
+        job_query: "AI Engineer"
+      - title: "LLMOps / AI Platform Engineer"
+        job_query: "LLMOps"
+      - title: "AI Reliability & Guardrails Engineer"
+        job_query: "AI Security"
+    milestones:
+      - id: "aie-m1"
+        order: 1
+        title: "Milestone 1: Deterministic LLM Control & Routing"
+        pass_threshold: 75
+        duration_minutes: 12
+        question_count: 8
+        guides:
+          - "llm_concepts/structured-outputs-json-schema"
+          - "llm_concepts/context-engineering"
+          - "llm_concepts/prompt-caching"
+          - "architecture/multi-model-routing-gateways"
+      - id: "aie-m2"
+        order: 2
+        title: "Milestone 2: Automated Evaluation & CI/CD"
+        pass_threshold: 75
+        duration_minutes: 12
+        question_count: 8
+        guides:
+          - "ai_engineering/golden-datasets-curation"
+          - "ai_engineering/evaluation-metrics-framework"
+          - "ai_engineering/llm-as-a-judge"
+          - "ai_engineering/ci-cd-prompt-regression"
+      - id: "aie-m3"
+        order: 3
+        title: "Milestone 3: Observability, Caching & Cost SLAs"
+        pass_threshold: 75
+        duration_minutes: 12
+        question_count: 8
+        guides:
+          - "ai_engineering/opentelemetry-llm-tracing"
+          - "ai_engineering/latency-cost-optimization"
+          - "architecture/semantic-caching-layers"
+          - "architecture/fallback-resilience-patterns"
+      - id: "aie-m4"
+        order: 4
+        title: "Milestone 4: Security Firewalls & Multi-Tenant Architecture"
+        pass_threshold: 75
+        duration_minutes: 12
+        question_count: 8
+        guides:
+          - "ai_engineering/prompt-injection-firewalls"
+          - "ai_engineering/pii-redaction-compliance"
+          - "ai_engineering/deterministic-output-guardrails"
+          - "architecture/multi-tenant-ai-isolation"
+
+  certified-rag-agent-developer:
+    code: "CERT-RAG-AGT"
+    title: "Certified RAG & Agentic Systems Developer"
+    slug: "certified-rag-agent-developer"
+    tagline: "Build high-recall hybrid retrieval pipelines and fault-tolerant multi-agent workflows."
+    price_usd: 49
+    pass_threshold: 80
+    exam_duration_minutes: 45
+    mcq_weight: 0.75
+    architecture_case_weight: 0.25
+    unlocked_roles:
+      - title: "RAG & Search Systems Engineer"
+        job_query: "RAG"
+      - title: "Agentic AI Developer"
+        job_query: "AI Agent"
+      - title: "AI Solutions & Automation Architect"
+        job_query: "Solutions Architect"
+    milestones:
+      - id: "rag-m1"
+        order: 1
+        title: "Milestone 1: Unstructured Ingestion, Chunking & Indexing"
+        pass_threshold: 75
+        duration_minutes: 12
+        question_count: 8
+        guides:
+          - "data_engineering/unstructured-document-etl"
+          - "retrieval_search/semantic-chunking-strategies"
+          - "ai_fundamentals/dense-embeddings"
+          - "retrieval_search/vector-indexing-hnsw-ivf"
+      - id: "rag-m2"
+        order: 2
+        title: "Milestone 2: Hybrid Search, Re-Ranking & Retrieval Evals"
+        pass_threshold: 75
+        duration_minutes: 12
+        question_count: 8
+        guides:
+          - "retrieval_search/hybrid-search-bm25-vector"
+          - "retrieval_search/query-transformation-hyde"
+          - "retrieval_search/cross-encoder-reranking"
+          - "retrieval_search/retrieval-evaluation-ragas"
+      - id: "rag-m3"
+        order: 3
+        title: "Milestone 3: Tool Calling, Reasoning Loops & Agent Memory"
+        pass_threshold: 75
+        duration_minutes: 12
+        question_count: 8
+        guides:
+          - "llm_concepts/function-tool-calling"
+          - "ai_agents/react-vs-plan-execute"
+          - "ai_agents/agent-memory-state-persistence"
+          - "ai_agents/tool-sandboxing-security"
+      - id: "rag-m4"
+        order: 4
+        title: "Milestone 4: Multi-Agent Orchestration & Durable Execution"
+        pass_threshold: 75
+        duration_minutes: 12
+        question_count: 8
+        guides:
+          - "ai_agents/multi-agent-orchestration"
+          - "ai_agents/human-in-the-loop-patterns"
+          - "ai_agents/durable-execution-state-machines"
+          - "ai_agents/agent-trajectory-evaluation"
