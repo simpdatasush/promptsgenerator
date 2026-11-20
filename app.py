@@ -6594,7 +6594,9 @@ with app.app_context():
       app.logger.info("Default admin user 'admin' created with password 'adminpass'.")
 
 
-
+# --- Guides & Certification Blueprint ---
+from guides_routes import guides_bp
+app.register_blueprint(guides_bp)
 
 # --- Main App Run ---
 if __name__ == '__main__':
