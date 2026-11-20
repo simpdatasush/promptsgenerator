@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ topic.title }} Guides - SuperPrompter AI</title>
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+  <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='guides.css') }}">
+</head>
+<body>
+
+<header class="app-header">
+  <div class="logo-section">
+    <img src="https://placehold.co/40x40/007bff/ffffff?text=AI" alt="SuperPrompter Logo" class="app-logo">
+    <h1 class="header-title">SuperPrompter</h1>
+  </div>
+  <nav>
+    <a href="{{ url_for('guides.all_guides') }}" class="btn btn-outline-light btn-sm mr-2">All Guides</a>
+    <a href="{{ url_for('all_jobs') }}" class="btn btn-outline-light btn-sm mr-2">AI Jobs</a>
+    <a href="{{ url_for('app_home') }}" class="btn btn-outline-light btn-sm mr-2">App Home</a>
+  </nav>
+</header>
+
+<div class="container pb-5">
+  <div class="mb-3">
+    <a href="{{ url_for('guides.all_guides') }}" class="text-secondary small"><i class="fas fa-arrow-left"></i> Back to All Guide Topics</a>
+  </div>
+
+  <div class="mb-4">
+    <h1 style="color: var(--color-dark-bg); font-weight: 700;">{{ topic.title }}</h1>
+    <p class="text-muted">{{ topic.description }}</p>
+  </div>
+
+  <!-- Published Guides -->
+  <h4 class="mb-3" style="color: var(--color-dark-bg); font-weight: 600;">Technical Guides</h4>
+  {% if guides %}
+    <div class="row mb-4">
+      {% for g in guides %}
+      <div class="col-md-6 mb-3">
+        <a href="{{ url_for('guides.single_guide', topic_slug=topic.slug, guide_slug=g.slug) }}" class="topic-card">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <h2 class="topic-card-title" style="font-size: 1.1rem;">{{ g.title }}</h2>
+            <i class="fas fa-arrow-right topic-arrow"></i>
+          </div>
+          <div class="small text-muted">
+            <span class="badge badge-light border mr-2">{{ g.difficulty }}</span>
+            <i class="far fa-clock"></i> {{ g.reading_time }}
+          </div>
+        </a>
+      </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="alert alert-light border mb-4">
+      Guides for <strong>{{ topic.title }}</strong> are coming soon. Visit <strong>AI Engineering</strong> to preview the live guide!
+    </div>
+  {% endif %}
+
+  <!-- Forward Projection: What You Can Become -->
+  <div class="p-4 bg-white rounded border shadow-sm">
+    <h3 style="color: var(--color-dark-bg); font-weight: 700;">🚀 What You Can Become</h3>
+    <p class="text-muted mb-4">Mastering <strong>{{ topic.title }}</strong> prepares you for these high-demand roles:</p>
+    <div class="row">
+      {% for role in topic.career_outcomes %}
+      <div class="col-md-6 mb-3">
+        <div class="career-outcome-card d-flex flex-column justify-content-between">
+          <div>
+            <span class="suitability-badge">{{ role.suitability }}</span>
+            <h4 class="mt-2 mb-2" style="color: var(--color-primary); font-size: 1.15rem; font-weight: 700;">{{ role.role_title }}</h4>
+            <p class="small text-muted">{{ role.why_it_fits }}</p>
+          </div>
+          <div class="mt-2">
+            <a href="{{ url_for('all_jobs', q=role.job_query) }}" class="btn btn-sm text-white" style="background-color: var(--color-secondary);">
+              Explore Live {{ role.role_title }} Jobs <i class="fas fa-external-link-alt ml-1"></i>
+            </a>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
