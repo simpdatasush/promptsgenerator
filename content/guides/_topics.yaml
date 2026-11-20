@@ -1,0 +1,92 @@
+topics:
+  ai_fundamentals:
+    title: "AI Fundamentals"
+    slug: "ai_fundamentals"
+    description: "Core concepts behind modern artificial intelligence, transformers, embeddings, and model adaptation."
+    order: 1
+    career_outcomes:
+      - role_title: "Applied ML / AI Developer"
+        job_query: "AI Developer"
+        suitability: "Primary Track"
+        why_it_fits: "Gives you the architectural intuition needed to select, fine-tune, and benchmark foundation models."
+
+  llm_concepts:
+    title: "LLM Concepts"
+    slug: "llm_concepts"
+    description: "How large language models work and how to control them deterministically in software."
+    order: 2
+    career_outcomes:
+      - role_title: "Generative AI Product Engineer"
+        job_query: "AI Engineer"
+        suitability: "Primary Track"
+        why_it_fits: "Turning probabilistic LLMs into reliable software features requires structured outputs, tool calling, and context engineering."
+
+  retrieval_search:
+    title: "Retrieval & Search"
+    slug: "retrieval_search"
+    description: "Techniques for chunking, indexing, ranking, and grounding AI responses in enterprise knowledge."
+    order: 3
+    career_outcomes:
+      - role_title: "RAG & Search Systems Engineer"
+        job_query: "RAG"
+        suitability: "Primary Track"
+        why_it_fits: "Enterprise AI relies on accurate retrieval; hybrid search and re-ranking are core differentiators in interviews."
+
+  knowledge_graphs:
+    title: "Knowledge Graphs"
+    slug: "knowledge_graphs"
+    description: "Structured representations of entities, ontologies, and multi-hop relationships for GraphRAG."
+    order: 4
+    career_outcomes:
+      - role_title: "Knowledge Graph & GraphRAG Engineer"
+        job_query: "Knowledge Graph"
+        suitability: "Primary Track"
+        why_it_fits: "Solves multi-hop reasoning and global summarization problems where standard vector RAG fails."
+
+  ai_agents:
+    title: "AI Agents"
+    slug: "ai_agents"
+    description: "Autonomous systems that reason, plan, call tools, persist memory, and execute multi-step workflows."
+    order: 5
+    career_outcomes:
+      - role_title: "Agentic AI Systems Engineer"
+        job_query: "AI Agent"
+        suitability: "Primary Track"
+        why_it_fits: "Organizations are shifting from single-turn chatbots to stateful, multi-agent workflow automation."
+
+  data_engineering:
+    title: "Data Engineering"
+    slug: "data_engineering"
+    description: "Building unstructured ETL pipelines, incremental vector sync, and synthetic evaluation datasets."
+    order: 6
+    career_outcomes:
+      - role_title: "AI Data Pipeline Engineer"
+        job_query: "Data Engineer"
+        suitability: "Primary Track"
+        why_it_fits: "AI systems are only as fresh and clean as their ingestion pipelines."
+
+  ai_engineering:
+    title: "AI Engineering"
+    slug: "ai_engineering"
+    description: "Evaluation, observability, guardrails, security, and production operations for AI systems."
+    order: 7
+    career_outcomes:
+      - role_title: "Production AI Engineer"
+        job_query: "AI Engineer"
+        suitability: "Primary Track"
+        why_it_fits: "Companies struggle to move prototypes to production; mastering evals, tracing, and guardrails sets you apart."
+      - role_title: "LLMOps / AI Platform Engineer"
+        job_query: "LLMOps"
+        suitability: "Primary Track"
+        why_it_fits: "Focuses on latency/cost optimization, semantic caching, and automated CI/CD regression pipelines."
+
+  architecture:
+    title: "Architecture"
+    slug: "architecture"
+    description: "Reference blueprints for production RAG, GraphRAG, multi-model routing gateways, and multi-tenant platforms."
+    order: 8
+    career_outcomes:
+      - role_title: "Principal / Staff AI Architect"
+        job_query: "AI Architect"
+        suitability: "Primary Track"
+        why_it_fits: "Demonstrates end-to-end system ownership across routing gateways, caching, and SLA guarantees."
