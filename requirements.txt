@@ -23,6 +23,9 @@ Pillow>=10.0.0
 pydantic>=2.6.0
 python-dotenv>=1.0.1
 flask-cors
+PyYAML
+markdown
+Pygments
 
 ##Flask==2.3.2
 ##google-generativeai==0.7.0
