@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Engineering Guides & Learning Paths - SuperPrompter AI</title>
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+  <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='guides.css') }}">
+</head>
+<body>
+
+<header class="app-header">
+  <div class="logo-section">
+    <img src="https://placehold.co/40x40/007bff/ffffff?text=AI" alt="SuperPrompter Logo" class="app-logo">
+    <h1 class="header-title">SuperPrompter</h1>
+  </div>
+  <nav>
+    <a href="{{ url_for('landing') }}" class="btn btn-outline-light btn-sm mr-2">Back to Landing Page</a>
+    <a href="{{ url_for('all_jobs') }}" class="btn btn-outline-light btn-sm mr-2">AI Jobs</a>
+    <a href="{{ url_for('all_news') }}" class="btn btn-outline-light btn-sm mr-2">AI News</a>
+    <a href="{{ url_for('app_home') }}" class="btn btn-outline-light btn-sm mr-2">App Home</a>
+  </nav>
+</header>
+
+<div class="container pb-5">
+  <div class="text-center mb-5">
+    <h1 style="color: var(--color-dark-bg); font-weight: 700;">📚 AI Engineering Guides & Career Paths</h1>
+    <p class="text-muted mx-auto" style="max-width: 700px;">
+      Master production AI architectures step-by-step, pass milestone evaluations, and discover the exact engineering roles your skills unlock.
+    </p>
+  </div>
+
+  <!-- 2-Column Domain / Topic Cards -->
+  <div class="row">
+    {% for topic in topics %}
+    <div class="col-md-6 mb-4">
+      <a href="{{ url_for('guides.guide_topic', topic_slug=topic.slug) }}" class="topic-card">
+        <div>
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <h2 class="topic-card-title">{{ topic.title }}</h2>
+            <i class="fas fa-arrow-right topic-arrow"></i>
+          </div>
+          <p class="text-muted mb-3" style="font-size: 0.94rem;">{{ topic.description }}</p>
+        </div>
+        <div class="d-flex justify-content-between align-items-center pt-2 border-top">
+          <span class="small font-weight-bold text-secondary">
+            {{ topic.published_count }} Guide{{ '' if topic.published_count == 1 else 's' }} Available
+          </span>
+          <span class="small" style="color: var(--color-primary);">Explore Curriculum</span>
+        </div>
+      </a>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- Certification Learning Paths -->
+  <div class="mt-4 p-4 bg-white rounded border shadow-sm">
+    <h3 style="color: var(--color-dark-bg); font-weight: 700;">🎓 Certification Learning Paths</h3>
+    <p class="text-muted mb-4">Complete structured milestones, pass the hybrid architecture exam, and earn a verifiable credential.</p>
+    <div class="row">
+      {% for cert in certifications %}
+      <div class="col-md-6 mb-3">
+        <div class="career-outcome-card">
+          <span class="suitability-badge">{{ cert.code }} • {{ cert.milestones|length }} Milestones</span>
+          <h4 class="mt-2 mb-2" style="color: var(--color-dark-bg); font-size: 1.15rem; font-weight: 700;">{{ cert.title }}</h4>
+          <p class="text-muted small mb-2">{{ cert.tagline }}</p>
+          <div class="small text-dark">
+            <strong>Unlocks Roles:</strong>
+            {% for r in cert.unlocked_roles %}{{ r.title }}{% if not loop.last %}, {% endif %}{% endfor %}
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
