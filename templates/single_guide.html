@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ meta.title }} - SuperPrompter AI</title>
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+  <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='guides.css') }}">
+</head>
+<body>
+
+<header class="app-header">
+  <div class="logo-section">
+    <img src="https://placehold.co/40x40/007bff/ffffff?text=AI" alt="SuperPrompter Logo" class="app-logo">
+    <h1 class="header-title">SuperPrompter</h1>
+  </div>
+  <nav>
+    <a href="{{ url_for('guides.all_guides') }}" class="btn btn-outline-light btn-sm mr-2">All Guides</a>
+    <a href="{{ url_for('all_jobs') }}" class="btn btn-outline-light btn-sm mr-2">AI Jobs</a>
+    <a href="{{ url_for('app_home') }}" class="btn btn-outline-light btn-sm mr-2">App Home</a>
+  </nav>
+</header>
+
+<div class="container-fluid px-lg-5 pb-5">
+  <div class="mb-3">
+    <a href="{{ url_for('guides.guide_topic', topic_slug=topic.slug) }}" class="text-secondary small">
+      <i class="fas fa-arrow-left"></i> Back to {{ topic.title }}
+    </a>
+  </div>
+
+  <div class="row">
+    <!-- Left Sidebar: Topic Guides -->
+    <div class="col-lg-2 mb-4">
+      <div class="reader-sidebar">
+        <strong class="d-block mb-2" style="color: var(--color-dark-bg);">{{ topic.title }}</strong>
+        <ul>
+          {% for g in sibling_guides %}
+          <li>
+            <a href="{{ url_for('guides.single_guide', topic_slug=topic.slug, guide_slug=g.slug) }}"
+               class="{{ 'active' if g.slug == meta.slug else '' }}">
+              {{ g.title }}
+            </a>
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+
+    <!-- Center Column: Main Article -->
+    <div class="col-lg-7 mb-4">
+      <article class="guide-article">
+        <div class="mb-2 small text-muted">
+          <span class="badge badge-info mr-2">{{ topic.title }}</span>
+          <span class="badge badge-light border mr-2">{{ meta.difficulty }}</span>
+          <i class="far fa-clock"></i> {{ meta.reading_time }}
+        </div>
+        <h1 class="mb-4">{{ meta.title }}</h1>
+
+        {{ content_html | safe }}
+
+        {% if meta.sandbox_app %}
+        <div class="sandbox-cta d-flex justify-content-between align-items-center flex-wrap">
+          <div class="mb-2 mb-md-0">
+            <strong class="d-block" style="color: var(--color-dark-bg);"><i class="fas fa-flask text-primary"></i> {{ meta.sandbox_app.title }}</strong>
+            <span class="small text-muted">{{ meta.sandbox_app.description }}</span>
+          </div>
+          <a href="{{ meta.sandbox_app.url }}" class="btn btn-sm text-white" style="background-color: var(--color-primary);">
+            Launch Micro-App <i class="fas fa-arrow-right ml-1"></i>
+          </a>
+        </div>
+        {% endif %}
+      </article>
+    </div>
+
+    <!-- Right Sidebar: TOC + Forward Roles -->
+    <div class="col-lg-3 mb-4">
+      <div class="reader-sidebar">
+        <strong class="d-block mb-2" style="color: var(--color-dark-bg);">On This Page</strong>
+        {{ toc_html | safe }}
+
+        {% if meta.unlocked_roles %}
+        <hr>
+        <strong class="d-block mb-2" style="color: var(--color-dark-bg);">Roles Using This Skill</strong>
+        <ul>
+          {% for role in meta.unlocked_roles %}
+          <li>
+            <a href="{{ url_for('all_jobs', q=role) }}">
+              <i class="fas fa-briefcase text-secondary mr-1"></i> {{ role }}
+            </a>
+          </li>
+          {% endfor %}
+        </ul>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
