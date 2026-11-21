@@ -1,9 +1,4 @@
 ---
-
-### 2. `content/guides/llm_concepts/context-engineering.md`
-
-```markdown
----
 title: "Context Engineering & Window Budgeting"
 slug: "context-engineering"
 topic: "llm_concepts"
