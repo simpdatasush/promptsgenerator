@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Final Capstone Exam - {{ cert.title }} | SuperPrompter AI</title>
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+  <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='guides.css') }}">
+  <style>
+    .rubric-bar-bg {
+      background-color: #e9ecef;
+      border-radius: 6px;
+      height: 10px;
+      overflow: hidden;
+    }
+    .rubric-bar-fill {
+      background: linear-gradient(90deg, var(--color-secondary), var(--color-primary));
+      height: 100%;
+      transition: width 0.4s ease;
+    }
+    .design-case-box {
+      background-color: #f8f9fc;
+      border-left: 5px solid var(--color-dark-bg);
+      padding: 1.25rem 1.5rem;
+      border-radius: 6px;
+    }
+  </style>
+</head>
+<body>
+
+<header class="app-header">
+  <div class="logo-section">
+    <img src="https://placehold.co/40x40/007bff/ffffff?text=AI" alt="SuperPrompter Logo" class="app-logo">
+    <h1 class="header-title">SuperPrompter</h1>
+  </div>
+  <nav>
+    <a href="{{ url_for('guides.certification_track', track_slug=cert.slug) }}" class="btn btn-outline-light btn-sm mr-2">Back to Track</a>
+    <a href="{{ url_for('guides.all_guides') }}" class="btn btn-outline-light btn-sm mr-2">All Guides</a>
+    <a href="{{ url_for('app_home') }}" class="btn btn-outline-light btn-sm mr-2">App Home</a>
+  </nav>
+</header>
+
+<div class="container pb-5" style="max-width: 940px;">
+  <!-- Top Breadcrumb & Timer -->
+  <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap">
+    <a href="{{ url_for('guides.certification_track', track_slug=cert.slug) }}" class="text-secondary small">
+      <i class="fas fa-arrow-left"></i> Back to {{ cert.title }}
+    </a>
+    {% if not result %}
+    <span class="badge badge-dark p-2" id="final-exam-timer" style="font-size: 0.92rem;">
+      <i class="far fa-clock mr-1"></i> Time Remaining: {{ duration_minutes }}:00
+    </span>
+    {% endif %}
+  </div>
+
+  <!-- Exam Header Card -->
+  <div class="p-4 bg-white rounded border shadow-sm mb-4">
+    <span class="suitability-badge">{{ cert.code }} • Final Capstone Assessment</span>
+    <h2 class="mt-2 mb-1" style="color: var(--color-dark-bg); font-weight: 700;">{{ cert.title }} — Hybrid Final Exam</h2>
+    <p class="small text-muted mb-0">
+      Part 1: Cross-Domain Scenario MCQs ({{ questions|length }} Questions) • Part 2: Architecture Design Case (25-Point Principal Architect Rubric) • Pass Threshold: <strong>{{ pass_threshold }}%</strong>
+    </p>
+  </div>
+
+  {% if error_message %}
+  <div class="alert alert-danger shadow-sm">
+    <i class="fas fa-exclamation-triangle mr-1"></i> {{ error_message }}
+  </div>
+  {% endif %}
+
+  {% if result %}
+    <!-- OVERALL HYBRID EXAM VERDICT -->
+    <div class="alert {{ 'alert-success' if result.passed else 'alert-danger' }} p-4 shadow-sm mb-4">
+      <div class="d-flex justify-content-between align-items-center flex-wrap">
+        <div>
+          <h4 class="alert-heading font-weight-bold mb-1">
+            {% if result.passed %}
+              <i class="fas fa-award"></i> Certification Exam Passed! Composite Score: {{ result.composite_pct }}%
+            {% else %}
+              <i class="fas fa-times-circle"></i> Composite Score: {{ result.composite_pct }}% ({{ result.pass_threshold }}% Required to Certify)
+            {% endif %}
+          </h4>
+          <p class="mb-0 small">
+            Part 1 (MCQs): <strong>{{ result.mcq_correct }}/{{ result.mcq_total }} ({{ result.mcq_pct }}%)</strong> &nbsp;|&nbsp;
+            Part 2 (Architecture Case): <strong>{{ result.rubric.total_points }}/{{ result.rubric.max_points }} ({{ result.case_pct }}%)</strong> &nbsp;|&nbsp;
+            Candidate: <strong>{{ candidate_email }}</strong>
+          </p>
+        </div>
+        <div class="mt-2 mt-md-0">
+          <a href="{{ url_for('guides.certification_track', track_slug=cert.slug) }}" class="btn btn-sm btn-dark">Return to Track</a>
+          {% if not result.passed %}
+          <a href="{{ url_for('guides.final_exam', track_slug=cert.slug) }}" class="btn btn-sm btn-outline-dark ml-1">Retake Final Exam</a>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- PART 2: GEMINI 25-POINT ARCHITECTURE RUBRIC SCORECARD -->
+    <div class="card mb-4 shadow-sm border-primary">
+      <div class="card-header text-white font-weight-bold" style="background-color: var(--color-dark-bg);">
+        <i class="fas fa-project-diagram mr-1"></i> Part 2 Evaluation: Principal AI Architect Rubric ({{ result.rubric.total_points }} / 25 Points)
+      </div>
+      <div class="card-body">
+        <div class="alert alert-light border mb-4">
+          <strong class="d-block text-dark mb-1"><i class="fas fa-comment-alt text-primary mr-1"></i> Examiner Summary:</strong>
+          <span class="text-muted">{{ result.rubric.examiner_summary }}</span>
+        </div>
+
+        {% set dimensions = [
+          ("1. System Topology & Component Boundaries", result.rubric.architecture_clarity_score),
+          ("2. Failure Mode Handling, Retries & Fallbacks", result.rubric.failure_mode_handling_score),
+          ("3. Latency, Caching & Token Cost Optimization", result.rubric.latency_cost_optimization_score),
+          ("4. Security Firewalls, PII & Multi-Tenant Isolation", result.rubric.security_isolation_score),
+          ("5. Automated Evaluation & OpenTelemetry Observability", result.rubric.evaluation_observability_score)
+        ] %}
+
+        <div class="mb-4">
+          {% for label, pts in dimensions %}
+          <div class="mb-3">
+            <div class="d-flex justify-content-between small font-weight-bold mb-1">
+              <span>{{ label }}</span>
+              <span style="color: var(--color-primary);">{{ pts }} / 5</span>
+            </div>
+            <div class="rubric-bar-bg">
+              <div class="rubric-bar-fill" style="width: {{ (pts / 5) * 100 }}%;"></div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+
+        <div class="row">
+          <div class="col-md-6 mb-3">
+            <div class="p-3 bg-light rounded border h-100">
+              <h6 class="font-weight-bold text-success"><i class="fas fa-check-circle mr-1"></i> Architectural Strengths</h6>
+              <ul class="small mb-0 pl-3">
+                {% for s in result.rubric.strengths %}
+                <li class="mb-1">{{ s }}</li>
+                {% endfor %}
+              </ul>
+            </div>
+          </div>
+          <div class="col-md-6 mb-3">
+            <div class="p-3 bg-light rounded border h-100">
+              <h6 class="font-weight-bold text-danger"><i class="fas fa-wrench mr-1"></i> Gaps & Guardrails to Improve</h6>
+              <ul class="small mb-0 pl-3">
+                {% for g in result.rubric.gaps_to_improve %}
+                <li class="mb-1">{{ g }}</li>
+                {% endfor %}
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PART 1: MCQ DIAGNOSTIC BREAKDOWN -->
+    <h4 class="mb-3" style="color: var(--color-dark-bg); font-weight: 700;">Part 1 Review: Cross-Domain Scenarios</h4>
+    {% for item in result.mcq_details %}
+    <div class="card mb-3 border-{{ 'success' if item.is_correct else 'danger' }}">
+      <div class="card-body">
+        <div class="mb-2">
+          <span class="badge badge-{{ 'success' if item.is_correct else 'danger' }}">
+            Question {{ loop.index }} • {{ 'Correct' if item.is_correct else 'Incorrect' }}
+          </span>
+        </div>
+        <p class="font-weight-bold text-dark">{{ item.prompt_text }}</p>
+        <p class="small mb-1">Your Answer: <strong>{{ item.user_choice or 'No Answer' }}</strong> | Correct Answer: <strong>{{ item.correct_option }}</strong></p>
+        <div class="p-2 bg-light rounded small text-muted mt-2">
+          <strong>Engineering Rationale:</strong> {{ item.explanation }}
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+
+  {% else %}
+    <!-- ACTIVE HYBRID EXAM FORM -->
+    <form method="POST" id="final-exam-form">
+      <div class="card mb-4 bg-light">
+        <div class="card-body py-3">
+          <label class="font-weight-bold small mb-1">Candidate Email (for official certification record):</label>
+          <input type="email" name="candidate_email" class="form-control form-control-sm"
+                 placeholder="you@domain.com" value="{{ candidate_email }}" required>
+        </div>
+      </div>
+
+      <!-- PART 1: CROSS-DOMAIN MCQS -->
+      <h4 class="mb-3" style="color: var(--color-dark-bg); font-weight: 700;">
+        Part 1: Cross-Domain Production Scenarios ({{ questions|length }} Questions)
+      </h4>
+
+      {% for q in questions %}
+      <div class="card mb-4 shadow-sm">
+        <div class="card-body">
+          <span class="badge badge-info mb-2">Scenario {{ loop.index }} of {{ questions|length }}</span>
+          <p class="font-weight-bold text-dark" style="font-size: 1.02rem;">{{ q.prompt_text }}</p>
+          {% for opt_key, opt_text in q.options.items() %}
+          <div class="form-check mb-2 p-2 rounded border bg-light">
+            <input class="form-check-input ml-1" type="radio" name="q_{{ q.id }}" id="final_{{ q.id }}_{{ opt_key }}" value="{{ opt_key }}" required>
+            <label class="form-check-label ml-4 d-block" for="final_{{ q.id }}_{{ opt_key }}" style="cursor: pointer;">
+              <strong>{{ opt_key }}.</strong> {{ opt_text }}
+            </label>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endfor %}
+
+      <!-- PART 2: ARCHITECTURE DESIGN CASE -->
+      <h4 class="mt-5 mb-3" style="color: var(--color-dark-bg); font-weight: 700;">
+        Part 2: Architecture Design Case (25 Points — AI Rubric Graded)
+      </h4>
+
+      <div class="card mb-4 shadow-sm">
+        <div class="card-body">
+          <div class="design-case-box mb-3">
+            <span class="badge badge-dark mb-2">{{ design_case.title }}</span>
+            <p class="mb-2 text-dark">{{ design_case.scenario }}</p>
+            <strong class="small d-block text-dark mb-1">Your Architecture Proposal Must Address:</strong>
+            <ul class="small text-muted mb-0 pl-3">
+              {% for req in design_case.requirements %}
+              <li>{{ req }}</li>
+              {% endfor %}
+            </ul>
+          </div>
+
+          <div class="form-group mb-1">
+            <label for="architecture_solution" class="font-weight-bold text-dark">
+              Your End-to-End Architecture Specification:
+            </label>
+            <textarea class="form-control" id="architecture_solution" name="architecture_solution"
+                      rows="10" minlength="150" required
+                      placeholder="Structure your design across: (1) Model Routing & JSON Schema Enforcement, (2) Caching & Latency/Cost SLA Strategy, (3) Prompt Injection & Multi-Tenant Data Isolation, (4) Fallback Resilience & Circuit Breakers, and (5) Golden Dataset Evals & OpenTelemetry Tracing...">{{ submitted_solution or '' }}</textarea>
+          </div>
+          <div class="d-flex justify-content-between small text-muted">
+            <span>Minimum 150 characters recommended for full 25-point rubric coverage.</span>
+            <span id="char-counter">0 characters</span>
+          </div>
+        </div>
+      </div>
+
+      <button type="submit" id="submit-final-btn" class="btn btn-lg btn-block text-white font-weight-bold" style="background-color: var(--color-primary);">
+        Submit Final Exam for Grading <i class="fas fa-paper-plane ml-1"></i>
+      </button>
+    </form>
+
+    <script>
+      // Live Character Counter
+      const textarea = document.getElementById('architecture_solution');
+      const counter = document.getElementById('char-counter');
+      if (textarea && counter) {
+        const updateCount = () => { counter.textContent = `${textarea.value.length} characters`; };
+        textarea.addEventListener('input', updateCount);
+        updateCount();
+      }
+
+      // Loading state on submit (since Gemini rubric grading takes ~3-5 seconds)
+      const form = document.getElementById('final-exam-form');
+      const submitBtn = document.getElementById('submit-final-btn');
+      if (form && submitBtn) {
+        form.addEventListener('submit', () => {
+          submitBtn.disabled = true;
+          submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Evaluating Architecture with Principal AI Examiner...';
+        });
+      }
+
+      // Exam Countdown Timer
+      let totalSeconds = {{ duration_minutes }} * 60;
+      const timerEl = document.getElementById('final-exam-timer');
+      const interval = setInterval(() => {
+        totalSeconds--;
+        if (totalSeconds <= 0) {
+          clearInterval(interval);
+          if (form) form.submit();
+          return;
+        }
+        const mins = Math.floor(totalSeconds / 60);
+        const secs = totalSeconds % 60;
+        if (timerEl) {
+          timerEl.innerHTML = `<i class="far fa-clock mr-1"></i> Time Remaining: ${mins}:${secs < 10 ? '0' : ''}${secs}`;
+        }
+      }, 1000);
+    </script>
+  {% endif %}
+</div>
+
+</body>
+</html>
