@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ cert.title }} - Certification Track | SuperPrompter AI</title>
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+  <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='guides.css') }}">
+</head>
+<body>
+
+<header class="app-header">
+  <div class="logo-section">
+    <img src="https://placehold.co/40x40/007bff/ffffff?text=AI" alt="SuperPrompter Logo" class="app-logo">
+    <h1 class="header-title">SuperPrompter</h1>
+  </div>
+  <nav>
+    <a href="{{ url_for('guides.all_guides') }}" class="btn btn-outline-light btn-sm mr-2">All Guides</a>
+    <a href="{{ url_for('all_jobs') }}" class="btn btn-outline-light btn-sm mr-2">AI Jobs</a>
+    <a href="{{ url_for('app_home') }}" class="btn btn-outline-light btn-sm mr-2">App Home</a>
+  </nav>
+</header>
+
+<div class="container pb-5">
+  <div class="mb-3">
+    <a href="{{ url_for('guides.all_guides') }}" class="text-secondary small"><i class="fas fa-arrow-left"></i> Back to Guides & Tracks</a>
+  </div>
+
+  <div class="p-4 bg-white rounded border shadow-sm mb-4">
+    <span class="suitability-badge">{{ cert.code }} • Passing Score: {{ cert.final_exam.pass_threshold }}%</span>
+    <h1 class="mt-2" style="color: var(--color-dark-bg); font-weight: 700;">{{ cert.title }}</h1>
+    <p class="text-muted mb-3">{{ cert.tagline }}</p>
+
+    <!-- Candidate Progress Tracker Bar -->
+    <form method="POST" class="form-inline bg-light p-3 rounded border">
+      <label class="mr-2 font-weight-bold small text-dark">Track Progress by Email:</label>
+      <input type="email" name="candidate_email" class="form-control form-control-sm mr-2"
+             placeholder="you@domain.com" value="{{ candidate_email }}" required>
+      <button type="submit" class="btn btn-sm text-white" style="background-color: var(--color-secondary);">Load My Progress</button>
+    </form>
+  </div>
+
+  <h3 class="mb-3" style="color: var(--color-dark-bg); font-weight: 700;">Stage Milestones & Checkpoint Exams</h3>
+
+  {% for m in cert.milestones %}
+  {% set m_prog = progress.get(m.id) %}
+  <div class="card mb-3 shadow-sm">
+    <div class="card-body d-flex justify-content-between align-items-center flex-wrap">
+      <div class="mb-2 mb-md-0" style="max-width: 720px;">
+        <div class="mb-1">
+          <span class="badge badge-secondary mr-2">Stage {{ loop.index }}</span>
+          {% if m_prog and m_prog.passed %}
+            <span class="badge badge-success"><i class="fas fa-check-circle"></i> Passed ({{ m_prog.best_score }}%)</span>
+          {% elif m_prog %}
+            <span class="badge badge-warning">Best Attempt: {{ m_prog.best_score }}% (Need {{ m.pass_threshold }}%)</span>
+          {% else %}
+            <span class="badge badge-light border">Not Attempted</span>
+          {% endif %}
+        </div>
+        <h5 class="card-title mb-1" style="color: var(--color-dark-bg); font-weight: 700;">{{ m.title }}</h5>
+        <p class="card-text small text-muted mb-1">
+          Pass Threshold: <strong>{{ m.pass_threshold }}%</strong> • Duration: <strong>{{ m.duration_minutes }} mins</strong>
+        </p>
+      </div>
+
+      <div>
+        <a href="{{ url_for('guides.milestone_exam', track_slug=cert.slug, milestone_id=m.id) }}"
+           class="btn btn-sm text-white" style="background-color: var(--color-primary);">
+          {{ 'Retake Checkpoint' if (m_prog and m_prog.passed) else 'Start Milestone Exam' }} <i class="fas fa-arrow-right ml-1"></i>
+        </a>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+</body>
+</html>
