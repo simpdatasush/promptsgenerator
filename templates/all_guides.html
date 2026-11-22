@@ -55,7 +55,7 @@
     {% endfor %}
   </div>
 
-  <!-- Certification Learning Paths -->
+<!-- Certification Learning Paths -->
   <div class="mt-4 p-4 bg-white rounded border shadow-sm">
     <h3 style="color: var(--color-dark-bg); font-weight: 700;">🎓 Certification Learning Paths</h3>
     <p class="text-muted mb-4">Complete structured milestones, pass the hybrid architecture exam, and earn a verifiable credential.</p>
@@ -70,12 +70,18 @@
             <strong>Unlocks Roles:</strong>
             {% for r in cert.unlocked_roles %}{{ r.title }}{% if not loop.last %}, {% endif %}{% endfor %}
           </div>
+          <!-- ADD YOUR BUTTON HERE -->
+          <div class="mt-3">
+            <a href="{{ url_for('guides.certification_track', track_slug=cert.slug) }}"
+               class="btn btn-sm text-white" style="background-color: var(--color-primary);">
+              Open Milestones & Checkpoint Exams <i class="fas fa-arrow-right ml-1"></i>
+            </a>
+          </div>
         </div>
       </div>
       {% endfor %}
     </div>
   </div>
-</div>
 
 <div class="mt-3">
   <a href="{{ url_for('guides.certification_track', track_slug=cert.slug) }}"
