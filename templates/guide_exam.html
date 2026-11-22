@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ milestone.title }} - Checkpoint Exam | SuperPrompter AI</title>
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+  <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='guides.css') }}">
+</head>
+<body>
+
+<header class="app-header">
+  <div class="logo-section">
+    <img src="https://placehold.co/40x40/007bff/ffffff?text=AI" alt="SuperPrompter Logo" class="app-logo">
+    <h1 class="header-title">SuperPrompter</h1>
+  </div>
+  <nav>
+    <a href="{{ url_for('guides.certification_track', track_slug=cert.slug) }}" class="btn btn-outline-light btn-sm mr-2">Back to Track</a>
+    <a href="{{ url_for('guides.all_guides') }}" class="btn btn-outline-light btn-sm mr-2">All Guides</a>
+  </nav>
+</header>
+
+<div class="container pb-5" style="max-width: 880px;">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <a href="{{ url_for('guides.certification_track', track_slug=cert.slug) }}" class="text-secondary small">
+      <i class="fas fa-arrow-left"></i> Back to {{ cert.title }}
+    </a>
+    {% if not result %}
+    <span class="badge badge-dark p-2" id="exam-timer" style="font-size: 0.9rem;">
+      <i class="far fa-clock mr-1"></i> Time Remaining: {{ milestone.duration_minutes }}:00
+    </span>
+    {% endif %}
+  </div>
+
+  <div class="p-4 bg-white rounded border shadow-sm mb-4">
+    <span class="suitability-badge">{{ cert.code }} • Milestone Checkpoint</span>
+    <h2 class="mt-2 mb-1" style="color: var(--color-dark-bg); font-weight: 700;">{{ milestone.title }}</h2>
+    <p class="small text-muted mb-0">Pass Threshold: {{ milestone.pass_threshold }}% • Scenario-Based Architecture Assessment</p>
+  </div>
+
+  {% if result %}
+    <!-- Diagnostic Scorecard -->
+    <div class="alert {{ 'alert-success' if result.passed else 'alert-danger' }} p-4 shadow-sm">
+      <h4 class="alert-heading font-weight-bold">
+        {% if result.passed %}
+          <i class="fas fa-check-circle"></i> Milestone Passed! Score: {{ result.score_pct }}% ({{ result.correct_count }}/{{ result.total_count }})
+        {% else %}
+          <i class="fas fa-times-circle"></i> Score: {{ result.score_pct }}% ({{ result.correct_count }}/{{ result.total_count }}) — {{ result.pass_threshold }}% Required
+        {% endif %}
+      </h4>
+      <p class="mb-2">Your progress has been saved for <strong>{{ candidate_email }}</strong>.</p>
+      <a href="{{ url_for('guides.certification_track', track_slug=cert.slug) }}" class="btn btn-sm btn-dark mr-2">Return to Certification Track</a>
+      {% if not result.passed %}
+        <a href="{{ url_for('guides.milestone_exam', track_slug=cert.slug, milestone_id=milestone.id) }}" class="btn btn-sm btn-outline-dark">Retry Checkpoint</a>
+      {% endif %}
+    </div>
+
+    <!-- Detailed Answer Review -->
+    {% for item in result.details %}
+    <div class="card mb-3 border-{{ 'success' if item.is_correct else 'danger' }}">
+      <div class="card-body">
+        <div class="mb-2">
+          <span class="badge badge-{{ 'success' if item.is_correct else 'danger' }}">
+            Question {{ loop.index }} • {{ 'Correct' if item.is_correct else 'Incorrect' }}
+          </span>
+        </div>
+        <p class="font-weight-bold text-dark">{{ item.prompt_text }}</p>
+        <p class="small mb-1">Your Answer: <strong>{{ item.user_choice or 'No Answer' }}</strong> | Correct Answer: <strong>{{ item.correct_option }}</strong></p>
+        <div class="p-2 bg-light rounded small text-muted mt-2">
+          <strong>Engineering Rationale:</strong> {{ item.explanation }}
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+
+  {% elif questions %}
+    <!-- Active Exam Form -->
+    <form method="POST" id="milestone-form">
+      <div class="card mb-4 bg-light">
+        <div class="card-body py-3">
+          <label class="font-weight-bold small mb-1">Candidate Email (for saving milestone progress):</label>
+          <input type="email" name="candidate_email" class="form-control form-control-sm"
+                 placeholder="you@domain.com" value="{{ candidate_email }}" required>
+        </div>
+      </div>
+
+      {% for q in questions %}
+      <div class="card mb-4 shadow-sm">
+        <div class="card-body">
+          <span class="badge badge-info mb-2">Scenario {{ loop.index }} of {{ questions|length }}</span>
+          <p class="font-weight-bold text-dark" style="font-size: 1.02rem;">{{ q.prompt_text }}</p>
+          {% for opt_key, opt_text in q.options.items() %}
+          <div class="form-check mb-2 p-2 rounded border bg-light">
+            <input class="form-check-input ml-1" type="radio" name="q_{{ q.id }}" id="{{ q.id }}_{{ opt_key }}" value="{{ opt_key }}" required>
+            <label class="form-check-label ml-4 d-block" for="{{ q.id }}_{{ opt_key }}" style="cursor: pointer;">
+              <strong>{{ opt_key }}.</strong> {{ opt_text }}
+            </label>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endfor %}
+
+      <button type="submit" class="btn btn-lg btn-block text-white font-weight-bold" style="background-color: var(--color-primary);">
+        Submit Milestone Assessment <i class="fas fa-check ml-1"></i>
+      </button>
+    </form>
+
+    <script>
+      let totalSeconds = {{ milestone.duration_minutes }} * 60;
+      const timerEl = document.getElementById('exam-timer');
+      const interval = setInterval(() => {
+        totalSeconds--;
+        if (totalSeconds <= 0) {
+          clearInterval(interval);
+          document.getElementById('milestone-form').submit();
+          return;
+        }
+        const mins = Math.floor(totalSeconds / 60);
+        const secs = totalSeconds % 60;
+        timerEl.innerHTML = `<i class="far fa-clock mr-1"></i> Time Remaining: ${mins}:${secs < 10 ? '0' : ''}${secs}`;
+      }, 1000);
+    </script>
+  {% else %}
+    <div class="alert alert-info">Questions for this milestone are currently being calibrated.</div>
+  {% endif %}
+</div>
+
+</body>
+</html>
