@@ -1,12 +1,33 @@
 import os
+import json
 import yaml
 import markdown
+from pydantic import BaseModel, Field
 
-CONTENT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "content", "guides")
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+CONTENT_DIR = os.path.join(BASE_DIR, "content", "guides")
+
+# Map hyphenated guide frontmatter URLs to your exact underscore routes in app.py
+#SANDBOX_URL_MAP = {
+#    "/llm-benchmark": "/llm_benchmark",
+#    "/prompt-firewall": "/prompt_firewall",
+#    "/code-reviewer": "/code_reviewer",
+#    "/doc-extractor": "/doc_extractor",
+#}
+
+
+class ArchitectureRubricScore(BaseModel):
+    architecture_clarity_score: int = Field(ge=0, le=5, description="0-5 score on system topology and component boundaries")
+    failure_mode_handling_score: int = Field(ge=0, le=5, description="0-5 score on retries, fallbacks, and edge cases")
+    latency_cost_optimization_score: int = Field(ge=0, le=5, description="0-5 score on caching, routing, and token budgets")
+    security_isolation_score: int = Field(ge=0, le=5, description="0-5 score on prompt injection, PII, and tenant isolation")
+    evaluation_observability_score: int = Field(ge=0, le=5, description="0-5 score on evals, tracing, and regression gates")
+    strengths: list[str] = Field(description="2-3 specific architectural strengths in the candidate's response")
+    gaps_to_improve: list[str] = Field(description="2-3 concrete missing guardrails or trade-offs")
+    examiner_summary: str = Field(description="Concise 3-sentence principal architect feedback")
 
 
 def _parse_markdown_file(filepath):
-    """Splits YAML frontmatter and Markdown body, returning metadata + rendered HTML + TOC."""
     with open(filepath, "r", encoding="utf-8") as f:
         raw = f.read()
 
@@ -19,6 +40,11 @@ def _parse_markdown_file(filepath):
             meta = yaml.safe_load(parts[1]) or {}
             body = parts[2].strip()
 
+    # Normalize sandbox_app.url to match app.py underscore routes
+    sandbox = meta.get("sandbox_app")
+    if isinstance(sandbox, dict) and sandbox.get("url") in SANDBOX_URL_MAP:
+        sandbox["url"] = SANDBOX_URL_MAP[sandbox["url"]]
+
     md = markdown.Markdown(
         extensions=["fenced_code", "tables", "codehilite", "toc"],
         extension_configs={
@@ -26,18 +52,14 @@ def _parse_markdown_file(filepath):
             "toc": {"permalink": False, "toc_depth": "2-3"},
         },
     )
-    html_content = md.convert(body)
-    toc_html = md.toc
-
     return {
         "meta": meta,
-        "html": html_content,
-        "toc": toc_html,
+        "html": md.convert(body),
+        "toc": md.toc,
     }
 
 
 def load_all_topics():
-    """Loads _topics.yaml and counts available Markdown guides per topic."""
     topics_path = os.path.join(CONTENT_DIR, "_topics.yaml")
     if not os.path.exists(topics_path):
         return []
@@ -45,15 +67,10 @@ def load_all_topics():
     with open(topics_path, "r", encoding="utf-8") as f:
         data = yaml.safe_load(f) or {}
 
-    topics_dict = data.get("topics", {})
     topics_list = []
-
-    for slug, info in topics_dict.items():
+    for slug, info in data.get("topics", {}).items():
         topic_dir = os.path.join(CONTENT_DIR, slug)
-        actual_files = []
-        if os.path.isdir(topic_dir):
-            actual_files = [fn for fn in os.listdir(topic_dir) if fn.endswith(".md")]
-
+        actual_files = [fn for fn in os.listdir(topic_dir) if fn.endswith(".md")] if os.path.isdir(topic_dir) else []
         item = dict(info)
         item["slug"] = slug
         item["published_count"] = len(actual_files)
@@ -64,7 +81,6 @@ def load_all_topics():
 
 
 def load_certifications():
-    """Loads V1 certification tracks from _certifications.yaml."""
     cert_path = os.path.join(CONTENT_DIR, "_certifications.yaml")
     if not os.path.exists(cert_path):
         return []
@@ -72,12 +88,15 @@ def load_certifications():
     with open(cert_path, "r", encoding="utf-8") as f:
         data = yaml.safe_load(f) or {}
 
-    certs = data.get("certifications", {})
-    return list(certs.values())
+    return list(data.get("certifications", {}).values())
+
+
+def get_certification_by_slug(track_slug):
+    certs = load_certifications()
+    return next((c for c in certs if c.get("slug") == track_slug), None)
 
 
 def get_topic_with_guides(topic_slug):
-    """Returns topic metadata + ordered list of published guides inside that topic."""
     topics = load_all_topics()
     topic = next((t for t in topics if t["slug"] == topic_slug), None)
     if not topic:
@@ -85,7 +104,6 @@ def get_topic_with_guides(topic_slug):
 
     topic_dir = os.path.join(CONTENT_DIR, topic_slug)
     guides = []
-
     if os.path.isdir(topic_dir):
         for fn in os.listdir(topic_dir):
             if fn.endswith(".md"):
@@ -99,7 +117,6 @@ def get_topic_with_guides(topic_slug):
 
 
 def get_single_guide(topic_slug, guide_slug):
-    """Fetches a specific rendered guide and sibling guides in the same topic."""
     topic, sibling_guides = get_topic_with_guides(topic_slug)
     if not topic:
         return None, None, []
@@ -108,5 +125,131 @@ def get_single_guide(topic_slug, guide_slug):
     if not os.path.exists(filepath):
         return topic, None, sibling_guides
 
-    parsed = _parse_markdown_file(filepath)
-    return topic, parsed, sibling_guides
+    return topic, _parse_markdown_file(filepath), sibling_guides
+
+
+def get_milestone_questions(track_slug, milestone_id):
+    seed_path = os.path.join(CONTENT_DIR, "_seed_questions_aie.json")
+    if not os.path.exists(seed_path):
+        return []
+
+    with open(seed_path, "r", encoding="utf-8") as f:
+        all_questions = json.load(f)
+
+    return [
+        q for q in all_questions
+        if q.get("track_slug") == track_slug and q.get("milestone_id") == milestone_id
+    ]
+
+
+def grade_and_save_milestone(db, MilestoneAttempt, user_id, candidate_email, track_slug, milestone_id, submitted_answers, pass_threshold=75):
+    questions = get_milestone_questions(track_slug, milestone_id)
+    if not questions:
+        return None
+
+    correct_count = 0
+    details = []
+
+    for q in questions:
+        user_choice = submitted_answers.get(q["id"], "")
+        is_correct = (user_choice == q["correct_option"])
+        if is_correct:
+            correct_count += 1
+        details.append({
+            "id": q["id"],
+            "prompt_text": q["prompt_text"],
+            "options": q["options"],
+            "user_choice": user_choice,
+            "correct_option": q["correct_option"],
+            "is_correct": is_correct,
+            "explanation": q["explanation"],
+        })
+
+    total_count = len(questions)
+    score_pct = round((correct_count / total_count) * 100, 1)
+    passed = score_pct >= pass_threshold
+
+    attempt = MilestoneAttempt(
+        user_id=user_id,
+        candidate_email=candidate_email.strip().lower(),
+        track_slug=track_slug,
+        milestone_id=milestone_id,
+        attempt_type="milestone",
+        score_pct=score_pct,
+        correct_count=correct_count,
+        total_count=total_count,
+        passed=passed,
+        details_json=json.dumps(details),
+    )
+    db.session.add(attempt)
+    db.session.commit()
+
+    return {
+        "score_pct": score_pct,
+        "correct_count": correct_count,
+        "total_count": total_count,
+        "passed": passed,
+        "pass_threshold": pass_threshold,
+        "details": details,
+    }
+
+
+def get_candidate_progress(MilestoneAttempt, user_id, candidate_email, track_slug):
+    query = MilestoneAttempt.query.filter_by(track_slug=track_slug)
+    if user_id:
+        attempts = query.filter_by(user_id=user_id).all()
+    elif candidate_email:
+        attempts = query.filter_by(candidate_email=candidate_email.strip().lower()).all()
+    else:
+        return {}
+
+    progress = {}
+    for a in attempts:
+        existing = progress.get(a.milestone_id)
+        if not existing:
+            progress[a.milestone_id] = {"best_score": a.score_pct, "passed": a.passed}
+        else:
+            progress[a.milestone_id] = {
+                "best_score": max(existing["best_score"], a.score_pct),
+                "passed": existing["passed"] or a.passed,
+            }
+    return progress
+
+
+def grade_architecture_case_with_gemini(client, gemma_types, case_prompt: str, candidate_solution: str, model_name: str = "gemini-2.5-flash") -> dict:
+    """
+    Reuses app.py's existing `gemma_client` / `get_v1beta_client()` and `gemma_types`
+    to grade a 25-point Architecture Design Case via strict Pydantic JSON schema.
+    """
+    if not client:
+        raise RuntimeError("Gemini client is not configured in app.py.")
+
+    system_instruction = (
+        "You are a Principal AI Systems Architect grading a certification design exam. "
+        "Score strictly on a 0-5 scale per rubric dimension (25 points total). "
+        "Reward concrete engineering mechanisms (schemas, thresholds, delimiters, circuit breakers, eval metrics) "
+        "and penalize vague buzzwords."
+    )
+    prompt = f"DESIGN SCENARIO:\n{case_prompt}\n\nCANDIDATE ARCHITECTURE SUBMISSION:\n{candidate_solution}"
+
+    response = client.models.generate_content(
+        model=model_name,
+        config=gemma_types.GenerateContentConfig(
+            system_instruction=system_instruction,
+            temperature=0.1,
+            response_mime_type="application/json",
+            response_schema=ArchitectureRubricScore,
+        ),
+        contents=[prompt],
+    )
+    parsed = json.loads((response.text or "{}").strip())
+    total_points = (
+        parsed.get("architecture_clarity_score", 0)
+        + parsed.get("failure_mode_handling_score", 0)
+        + parsed.get("latency_cost_optimization_score", 0)
+        + parsed.get("security_isolation_score", 0)
+        + parsed.get("evaluation_observability_score", 0)
+    )
+    parsed["total_points"] = total_points
+    parsed["max_points"] = 25
+    return parsed
