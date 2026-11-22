@@ -340,6 +340,22 @@ class ApiRequestLog(db.Model):
 
     user = db.relationship('User', backref=db.backref('api_logs', lazy=True))
 
+class MilestoneAttempt(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+    candidate_email = db.Column(db.String(120), nullable=False)
+    track_slug = db.Column(db.String(100), nullable=False)
+    milestone_id = db.Column(db.String(50), nullable=False)  # e.g., 'aie-m1' or 'final-exam'
+    attempt_type = db.Column(db.String(20), default='milestone', nullable=False)
+    score_pct = db.Column(db.Float, nullable=False)
+    correct_count = db.Column(db.Integer, nullable=False)
+    total_count = db.Column(db.Integer, nullable=False)
+    passed = db.Column(db.Boolean, default=False, nullable=False)
+    details_json = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    user = db.relationship('User', backref=db.backref('milestone_attempts', lazy=True))
+
 # Initialize variable
 blog_id_tracker = []
 
