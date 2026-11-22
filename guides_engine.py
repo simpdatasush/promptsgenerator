@@ -253,3 +253,43 @@ def grade_architecture_case_with_gemini(client, gemma_types, case_prompt: str, c
     parsed["total_points"] = total_points
     parsed["max_points"] = 25
     return parsed
+
+DESIGN_CASES = {
+    "certified-ai-engineer": {
+        "title": "Enterprise Multi-Tenant Compliance & Support Copilot",
+        "scenario": (
+            "You are architecting a B2B SaaS AI copilot used by 450 enterprise customers to query internal "
+            "HR/security policies (50,000+ PDFs) and trigger automated support ticket triage. "
+            "Strict SLAs: P95 TTFT < 600ms, 100% valid JSON payloads for downstream ticket routing, "
+            "zero cross-tenant data leakage, and resistance to indirect prompt injection embedded inside uploaded PDFs."
+        ),
+        "requirements": [
+            "1. Model Routing & Schema Enforcement: How you dispatch requests across model tiers and guarantee 100% valid structured JSON without hallucinating missing optional fields.",
+            "2. Latency & Cost SLAs: How you use KV prompt caching, semantic caching (with tenant partitioning), and async I/O to meet P95 TTFT < 600ms.",
+            "3. Security & Multi-Tenant Isolation: How you defend against indirect prompt injection inside PDFs, redact PII before external LLM calls, and isolate vector searches by org_id.",
+            "4. Resilience & Circuit Breakers: How you handle HTTP 429/503 provider outages, timeouts, and retry storms.",
+            "5. Evals & Observability: How you structure Golden Datasets, CI/CD PR regression gates, and OpenTelemetry tracing.",
+        ],
+    }
+}
+
+
+def get_final_exam_bundle(track_slug: str):
+    """Selects 8 cross-domain MCQs (2 per milestone) + the track's Architecture Design Case."""
+    seed_path = os.path.join(CONTENT_DIR, "_seed_questions_aie.json")
+    all_questions = []
+    if os.path.exists(seed_path):
+        with open(seed_path, "r", encoding="utf-8") as f:
+            all_questions = [q for q in json.load(f) if q.get("track_slug") == track_slug]
+
+    # Pick up to 2 questions from each milestone for balanced 8-question coverage
+    by_milestone = {}
+    for q in all_questions:
+        by_milestone.setdefault(q["milestone_id"], []).append(q)
+
+    selected_mcqs = []
+    for m_id in sorted(by_milestone.keys()):
+        selected_mcqs.extend(by_milestone[m_id][:2])
+
+    design_case = DESIGN_CASES.get(track_slug) or DESIGN_CASES["certified-ai-engineer"]
+    return selected_mcqs, design_case
