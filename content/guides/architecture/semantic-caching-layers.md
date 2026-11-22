@@ -32,21 +32,30 @@ Standard HTTP status logs (`200 OK`) cannot tell you why an AI pipeline took 6 s
 ## Production Implementation (Python + Structured JSON)
 
 ```python
-import asyncio
+import numpy as np
 
-async def fetch_vector_context(query: str) -> list[str]:
-    await asyncio.sleep(0.15)  # Simulated vector search I/O
-    return ["Policy Doc A: Refunds within 30 days."]
+def cosine_similarity(vec_a: list[float], vec_b: list[float]) -> float:
+    a, b = np.array(vec_a), np.array(vec_b)
+    denom = np.linalg.norm(a) * np.linalg.norm(b)
+    return float(np.dot(a, b) / denom) if denom else 0.0
 
-async def fetch_user_account_tier(user_id: str) -> dict:
-    await asyncio.sleep(0.12)  # Simulated SQL/Redis lookup
-    return {"user_id": user_id, "tier": "enterprise"}
+def lookup_semantic_cache(
+    query_embedding: list[float],
+    tenant_id: str,
+    cache_entries: list[dict],
+    threshold: float = 0.95,
+) -> str | None:
+    best_score = -1.0
+    best_answer = None
 
-async def gather_prompt_inputs(user_id: str, query: str) -> dict:
-    # Execute independent I/O concurrently instead of sequentially
-    docs, account = await asyncio.gather(
-        fetch_vector_context(query),
-        fetch_user_account_tier(user_id),
-    )
-    return {"docs": docs, "account": account}
+    for entry in cache_entries:
+        # CRITICAL: Always filter by tenant_id and prompt_version before similarity check
+        if entry["tenant_id"] != tenant_id:
+            continue
+        score = cosine_similarity(query_embedding, entry["embedding"])
+        if score > best_score:
+            best_score = score
+            best_answer = entry["answer"]
+
+    return best_answer if best_score >= threshold else None
 ```
