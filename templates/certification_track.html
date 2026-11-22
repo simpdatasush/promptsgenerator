@@ -29,7 +29,7 @@
   </div>
 
   <div class="p-4 bg-white rounded border shadow-sm mb-4">
-    <span class="suitability-badge">{{ cert.code }} • Passing Score: {{ cert.final_exam.pass_threshold }}%</span>
+    <span class="suitability-badge">{{ cert.code }} • Passing Score: {{ cert.pass_threshold or (cert.final_exam.pass_threshold if cert.final_exam else 80) }}%</span>
     <h1 class="mt-2" style="color: var(--color-dark-bg); font-weight: 700;">{{ cert.title }}</h1>
     <p class="text-muted mb-3">{{ cert.tagline }}</p>
 
