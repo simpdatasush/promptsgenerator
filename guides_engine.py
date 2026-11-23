@@ -40,11 +40,6 @@ def _parse_markdown_file(filepath):
             meta = yaml.safe_load(parts[1]) or {}
             body = parts[2].strip()
 
-    # Normalize sandbox_app.url to match app.py underscore routes
-    sandbox = meta.get("sandbox_app")
-    if isinstance(sandbox, dict) and sandbox.get("url") in SANDBOX_URL_MAP:
-        sandbox["url"] = SANDBOX_URL_MAP[sandbox["url"]]
-
     md = markdown.Markdown(
         extensions=["fenced_code", "tables", "codehilite", "toc"],
         extension_configs={
