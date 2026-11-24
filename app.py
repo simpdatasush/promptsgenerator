@@ -3221,7 +3221,7 @@ def audit_prompt_security(user_prompt):
     """
 
     response = gemma_client.models.generate_content(
-        model=IMG_TEXT_DEFAULT_MODEL,
+        model='gemini-2.5-flash',
         config=gemma_types.GenerateContentConfig(
             system_instruction=system_instruction,
             temperature=0.1  # Low temperature for deterministic security evaluation
