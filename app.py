@@ -5877,14 +5877,9 @@ def api_aeroroute_plan():
     )
 
     try:
-        # Self-contained v1beta client initialization (avoids globals() lookup and v1 restrictions)
-        aeroroute_client = gemma_genai.Client(
-            api_key=os.getenv("GEMINI_API_KEY") or getattr(gemma_client, "api_key", None),
-            http_options=gemma_types.HttpOptions(api_version="v1beta"),
-        )
 
-        response = aeroroute_client.models.generate_content(
-            model="gemini-3.1-flash-lite",
+        response = gemma_client.models.generate_content(
+            model= "gemini-3.1-flash-lite",
             config=gemma_types.GenerateContentConfig(
                 system_instruction=AEROROUTE_SYSTEM_INSTRUCTION,
                 temperature=0.3,
