@@ -2105,7 +2105,7 @@ def chat_toy():
     )
 
     try:
-        response = gemma_client.models.generate_content(model='gemma-4-31b-it', contents=prompt)
+        response = gemma_client.models.generate_content(model='gemini-2.5-flash', contents=prompt)
         reply_text, follow_up_qs = process_toy_response(response.text)
         
         return jsonify({
