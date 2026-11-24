@@ -2092,6 +2092,18 @@ def ignite_toy():
         "initial_questions": initial_qs
     })
 
+def process_toy_response(raw_text):
+  # 1. Extract all questions matching the [Q: Question] format
+  questions = re.findall(r'\[Q:\s*(.*?)\]', raw_text)
+
+  # 2. Remove the [Q: ...] tags from the main reply so they don't show up twice in the chat bubble
+  clean_reply = re.sub(r'\[Q:\s*.*?\]', '', raw_text).strip()
+
+  # Clean up any extra whitespace from each extracted question
+  clean_questions = [q.strip() for q in questions if q.strip()]
+
+  return clean_reply, clean_questions
+
 @app.route('/chat_toy', methods=['POST'])
 def chat_toy():
     data = request.get_json()
