@@ -3225,8 +3225,7 @@ def audit_prompt_security(user_prompt):
         model=IMG_TEXT_DEFAULT_MODEL,,
         config=gemma_types.GenerateContentConfig(
             system_instruction=system_instruction,
-            temperature=0.1,# Low temperature for deterministic security evaluation
-            response_mime_type='application/json',
+            temperature=0.1# Low temperature for deterministic security evaluation
         ),
         contents=eval_prompt
     )
