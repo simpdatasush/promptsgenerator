@@ -245,3 +245,77 @@
   gap: 1rem;
   flex-wrap: wrap;
 }
+/* =========================================================
+   GLOBAL BUTTON CONTRAST FIX (Applies to all /guides pages)
+   ========================================================= */
+
+/* 1. Navbar outline buttons inside .app-header */
+.app-header .btn-outline-light {
+  color: #ffffff !important;
+  border-color: rgba(255, 255, 255, 0.75) !important;
+  background-color: transparent !important;
+  font-weight: 600;
+}
+
+.app-header .btn-outline-light:hover {
+  background-color: #ffffff !important;
+  color: #311B92 !important;
+}
+
+/* 2. All Primary & Secondary Brand Buttons across Track & Exam Pages */
+.container .btn[style*="--color-primary"],
+.container .btn-sp-primary {
+  background-color: #C3497C !important;
+  border-color: #C3497C !important;
+  color: #ffffff !important;
+  font-weight: 600;
+  opacity: 1 !important;
+}
+
+.container .btn[style*="--color-primary"]:hover,
+.container .btn-sp-primary:hover {
+  background-color: #a33765 !important;
+  border-color: #a33765 !important;
+  color: #ffffff !important;
+}
+
+.container .btn[style*="--color-secondary"],
+.container .btn-sp-secondary {
+  background-color: #311B92 !important;
+  border-color: #311B92 !important;
+  color: #ffffff !important;
+  font-weight: 600;
+  opacity: 1 !important;
+}
+
+.container .btn[style*="--color-secondary"]:hover,
+.container .btn-sp-secondary:hover {
+  background-color: #211169 !important;
+  border-color: #211169 !important;
+  color: #ffffff !important;
+}
+
+/* 3. Locked / Disabled Final Exam Button & Dark Review Buttons */
+.container .btn-secondary:disabled {
+  background-color: #6c757d !important;
+  border-color: #6c757d !important;
+  color: #ffffff !important;
+  opacity: 0.85 !important;
+}
+
+.container .btn-dark {
+  background-color: #2c3e50 !important;
+  border-color: #2c3e50 !important;
+  color: #ffffff !important;
+}
+
+.container .btn-outline-dark {
+  color: #2c3e50 !important;
+  border-color: #2c3e50 !important;
+  background-color: #ffffff !important;
+}
+
+.container .btn-outline-dark:hover {
+  background-color: #2c3e50 !important;
+  color: #ffffff !important;
+}
