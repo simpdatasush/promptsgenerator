@@ -157,7 +157,8 @@ def configure_ai_apis():
             
             # 2. Configure the Gemma (New) SDK Client
             # Use the verified api_key variable here
-            gemma_client = gemma_genai.Client(api_key=gemini_key)
+            gemma_client = gemma_genai.Client(api_key=gemini_key,http_options=gemma_types.HttpOptions(api_version="v1beta"),)
+
             
             GEMINI_API_CONFIGURED = True
             app.logger.info("Both Gemini and Gemma APIs configured successfully.")
@@ -3221,13 +3222,15 @@ def audit_prompt_security(user_prompt):
     """
 
     response = gemma_client.models.generate_content(
-        model='gemini-2.5-flash',
+        model=IMG_TEXT_DEFAULT_MODEL,,
         config=gemma_types.GenerateContentConfig(
             system_instruction=system_instruction,
-            temperature=0.1  # Low temperature for deterministic security evaluation
+            temperature=0.1,# Low temperature for deterministic security evaluation
+            response_mime_type='application/json',
         ),
         contents=eval_prompt
     )
+  
 
     clean_text = response.text.strip()
     if clean_text.startswith("```json"):
