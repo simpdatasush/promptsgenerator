@@ -5879,7 +5879,7 @@ def api_aeroroute_plan():
     try:
 
         response = gemma_client.models.generate_content(
-            model= "gemini-3.5-flash-lite",
+            model= "gemini-3.6-flash",
             config=gemma_types.GenerateContentConfig(
                 system_instruction=AEROROUTE_SYSTEM_INSTRUCTION,
                 temperature=0.3,
