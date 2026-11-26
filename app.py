@@ -2001,7 +2001,7 @@ def generate_blog_poll(post_id):
     try:
         # Switching to Gemini 3 Flash
         response = gemma_client.models.generate_content(
-            model='gemini-3.1-flash-lite',
+            model='gemini-2.5-flash-lite',
             contents=prompt
         )
         
@@ -2039,7 +2039,7 @@ def poll_review():
     
     try:
         response = gemma_client.models.generate_content(
-            model='gemini-3.1-flash-lite',
+            model='gemini-2.5-flash-lite',
             contents=prompt
         )
         
@@ -2268,7 +2268,7 @@ STRICT RULES:
 
     try:
         response = gemma_client.models.generate_content(
-            model='gemini-3.1-flash-lite',
+            model='gemini-2.5-flash-lite',
             contents=user_msg,
             config=gemma_types.GenerateContentConfig(
                 system_instruction=system_instruction,
@@ -2528,7 +2528,7 @@ def get_ai_fact():
 
     try:
         response = gemma_client.models.generate_content(
-            model='gemini-3.1-flash-lite', 
+            model='gemini-2.5-flash-lite', 
             contents=prompt
         )
         reply_text = response.text.strip()
@@ -4741,10 +4741,7 @@ def detect_document_boxes():
         logger.error(f"Unexpected Exception: {traceback.format_exc()}")
         return jsonify({"status": "error", "error": str(e)}), 500
 
-import io
-import os
-from flask import render_template, request, jsonify, send_file
-from werkzeug.utils import secure_filename
+
 
 # ---------------------------------------------------------------------
 # PDF EDITOR
@@ -5473,7 +5470,6 @@ def api_generate_code_bundle():
 
 RADAR_MODEL = globals().get("IMG_TEXT_DEFAULT_MODEL", "gemini-3.5-flash-lite")
 
-
 # ==========================================
 # 1. Pydantic v2 Structured Schemas
 # ==========================================
@@ -5657,10 +5653,10 @@ def api_radar_search():
     except (APIError, ServerError) as api_err:
         err_detail = getattr(api_err, "message", None) or str(api_err)
         err_code = getattr(api_err, "code", "API_ERROR")
-        logger.error(f"ResourceRadar Gemini API error [{err_code}] on model '{RADAR_MODEL}': {err_detail}")
+        logger.error(f"ResourceRadar SuperPrompter API error [{err_code}] on model '{RADAR_MODEL}': {err_detail}")
         return jsonify({
             "status": "error",
-            "error": f"Gemini API Error ({err_code}): {err_detail}",
+            "error": f"SuperPrompter API Error ({err_code}): {err_detail}",
         }), 502
     except Exception as e:
         logger.exception(f"ResourceRadar unexpected error: {e}")
@@ -5735,7 +5731,7 @@ def api_radar_deep_read():
         logger.error(f"ResourceRadar Deep-Read API error [{err_code}] for {target_url}: {err_detail}")
         return jsonify({
             "status": "error",
-            "error": f"Gemini Deep-Read Error ({err_code}): {err_detail}",
+            "error": f"SuperPrompter API Deep-Read Error ({err_code}): {err_detail}",
         }), 502
     except Exception as e:
         logger.exception(f"ResourceRadar Deep-Read error for {target_url}: {e}")
